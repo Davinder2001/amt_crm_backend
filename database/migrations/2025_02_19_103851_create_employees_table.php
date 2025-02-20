@@ -19,12 +19,8 @@ return new class extends Migration
             $table->string('mobile_no')->unique();
             $table->string('password');
             $table->string('aadhar_card_no')->unique();
-
-            // Define 'role_id' column before adding the foreign key
             $table->unsignedBigInteger('role_id')->nullable();
             $table->foreign('role_id')->references('id')->on('emp_roles')->onDelete('set null');
-
-            // Define 'admin_id' column before adding the foreign key
             $table->unsignedBigInteger('admin_id');
             $table->foreign('admin_id')->references('id')->on('admins')->onDelete('cascade');
 
@@ -32,14 +28,15 @@ return new class extends Migration
         });
     }
 
+
     /**
      * Reverse the migrations.
      */
     public function down(): void
     {
         Schema::table('employees', function (Blueprint $table) {
-            $table->dropForeign(['admin_id']); // Drop admin foreign key
-            $table->dropForeign(['role_id']);  // Drop role foreign key
+            $table->dropForeign(['admin_id']);
+            $table->dropForeign(['role_id']);
             $table->dropColumn('admin_id');
             $table->dropColumn('role_id');
         });

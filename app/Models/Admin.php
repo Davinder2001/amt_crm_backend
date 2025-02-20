@@ -4,9 +4,10 @@ namespace App\Models;
 
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Tymon\JWTAuth\Contracts\JWTSubject;
 use Laravel\Sanctum\HasApiTokens;
 
-class Admin extends Authenticatable
+class Admin extends Authenticatable implements JWTSubject
 {
     use HasApiTokens, Notifiable;
 
@@ -32,17 +33,40 @@ class Admin extends Authenticatable
         parent::boot();
 
         static::creating(function ($admin) {
-            $admin->uid = 'AMT' . str_pad(Admin::max('id') + 1, 6, '0', STR_PAD_LEFT);
+            $latestAdminId = Admin::max('id') ?? 0;
+            $admin->uid = 'AMT' . str_pad($latestAdminId + 1, 6, '0', STR_PAD_LEFT);
         });
     }
 
-    // public function employees()
-    // {
-    //     return $this->hasMany(Employee::class);
-    // }
+    /**
+     * Relationship: One Admin has many Employees
+     */
+    public function employees()
+    {
+        return $this->hasMany(Employee::class);
+    }
 
-    // public function rolesAssigned()
-    // {
-    //     return $this->hasMany(EmpRole::class, 'assigned_by_admin_id');
-    // }
+    /**
+     * Relationship: One Admin assigns many Roles
+     */
+    public function rolesAssigned()
+    {
+        return $this->hasMany(EmpRole::class, 'assigned_by_admin_id');
+    }
+
+    /**
+     * Get the identifier that will be stored in JWT
+     */
+    public function getJWTIdentifier()
+    {
+        return $this->getKey();
+    }
+
+    /**
+     * Return a key-value array, containing any custom claims to be added to JWT
+     */
+    public function getJWTCustomClaims()
+    {
+        return ['role' => 'admin'];
+    }
 }

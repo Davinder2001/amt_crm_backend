@@ -35,8 +35,6 @@ class EmployeeController extends Controller
     {
         try {
 
-            // dd($request->employee_id);
-
             $validator = Validator::make($request->all(), [
                 'employee_id' => 'required|unique:employees',
                 'name' => 'required|string|max:255',
