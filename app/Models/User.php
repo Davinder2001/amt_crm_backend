@@ -9,6 +9,7 @@ use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Models\Company;
+use App\Models\Scopes\CompanyScope;
 
 class User extends Authenticatable
 {
@@ -31,6 +32,14 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password'          => 'hashed',
     ];
+
+    /**
+     * Boot the model and add the CompanyScope to all queries.
+     */
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new CompanyScope());
+    }
 
     /**
      * Relationship with the Company model.
