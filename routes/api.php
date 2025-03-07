@@ -5,10 +5,15 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\RolePermissionController;
 use App\Http\Controllers\Api\RoleController;
+use App\Http\Controllers\API\PermissionController;
+
+
+
 
 
 
 Route::prefix('v1')->group(function () {
+    Route::apiResource('permissions', PermissionController::class);
 
     // Public routes (no session needed)
     Route::middleware(['api'])->group(function () {
@@ -18,6 +23,7 @@ Route::prefix('v1')->group(function () {
         Route::post('admin-register', [AuthController::class, 'adminRegister']);
     });
 
+    Route::post('roles/{id}/assign-permission', [RolePermissionController::class, 'assignPermissionToRole']);
 
     // Protected routes (using Sanctum only)
     Route::middleware(['web', 'auth:sanctum'])->group(function () {
@@ -27,14 +33,28 @@ Route::prefix('v1')->group(function () {
         Route::post('users/{id}/assign-role', [RolePermissionController::class, 'assignRole']);
         Route::post('users/{id}/remove-role', [RolePermissionController::class, 'removeRole']);
         Route::put('users/{id}/update-role', [RolePermissionController::class, 'updateRole']);
-        Route::post('roles/{roleName}/assign-permission', [RolePermissionController::class, 'assignPermissionToRole']);
-        Route::post('roles/{roleName}/remove-permission', [RolePermissionController::class, 'removePermissionFromRole']);
+        Route::post('roles/{id}/remove-permission', [RolePermissionController::class, 'removePermissionFromRole']);
+
+
 
 
 
         Route::get('user', [UserController::class, 'authUser']);
-        Route::apiResource('users', UserController::class);
-        Route::apiResource('roles', RoleController::class);
+        Route::get('users', [UserController::class, 'index'])->middleware('permission:view_user');
+    
+    
+        Route::post('users', [UserController::class, 'store']);
+        Route::get('users/{user}', [UserController::class, 'show']);
+        Route::put('users/{user}', [UserController::class, 'update']);
+        Route::delete('users/{user}', [UserController::class, 'destroy']);
+
+
+        Route::get('roles', [RoleController::class, 'index']);
+        Route::post('roles', [RoleController::class, 'store']);
+        Route::get('roles/{role}', [RoleController::class, 'show']);
+        Route::put('roles/{role}', [RoleController::class, 'update']);
+        Route::delete('roles/{role}', [RoleController::class, 'destroy']);
+        
     });
 
 });
