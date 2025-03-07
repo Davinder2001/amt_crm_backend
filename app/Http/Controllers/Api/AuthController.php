@@ -5,29 +5,23 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use App\Services\AdminRegistrationService;
 use App\Http\Requests\AdminRegisterRequest;
 use App\Models\User;
-use Illuminate\Http\JsonResponse;
-use App\Models\Company;
 use App\Http\Resources\UserResource;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Http\JsonResponse;
 
 class AuthController extends Controller
 {
-
-    protected $registrationService;
+    protected AdminRegistrationService $registrationService;
 
     public function __construct(AdminRegistrationService $registrationService)
     {
         $this->registrationService = $registrationService;
     }
 
-
-
-    public function register(Request $request)
+    public function register(Request $request): JsonResponse
     {
         $data = $request->validate([
             'name'     => 'required|string|max:255',
@@ -52,14 +46,12 @@ class AuthController extends Controller
         ], 201);
     }
 
-
     public function adminRegister(AdminRegisterRequest $request): JsonResponse
     {
         $data = $request->validated();
     
         try {
             $result = $this->registrationService->register($data);
-    
             // Automatically assign the 'admin' role to the new user.
             $result['user']->assignRole('admin');
     
@@ -74,11 +66,8 @@ class AuthController extends Controller
             return response()->json(['error' => $e->getMessage()], 422);
         }
     }
-    
 
-
-
-    public function login(Request $request)
+    public function login(Request $request): JsonResponse
     {
         $data = $request->validate([
             'number'   => 'required|string',
@@ -87,8 +76,7 @@ class AuthController extends Controller
     
         $user = User::where('number', $data['number'])->first();
 
-
-        if (!$user || $user === null) {
+        if (!$user) {
             throw ValidationException::withMessages([
                 'number' => ['No user found with the provided mobile number.']
             ]);
@@ -110,20 +98,9 @@ class AuthController extends Controller
         ]);
     }
     
-
-    // protected function failedValidation(Validator $validator)
-    // {
-    //     throw new HttpResponseException(
-    //         response()->json(['errors' => $validator->errors()], 422)
-    //     );
-    // }
-    
-
-
-    public function logout(Request $request)
+    public function logout(Request $request): JsonResponse
     {
         $request->user()->currentAccessToken()->delete();
-
         return response()->json(['message' => 'Logged out successfully.']);
     }
 }

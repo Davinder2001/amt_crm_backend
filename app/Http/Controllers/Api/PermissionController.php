@@ -4,38 +4,29 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 use Spatie\Permission\Models\Permission;
+use Illuminate\Http\JsonResponse;
 
 class PermissionController extends Controller
 {
     /**
      * Display a listing of the permissions.
      */
-    public function index()
+    public function index(): JsonResponse
     {
-        $permissions = Permission::all();
-        return response()->json($permissions);
+        return response()->json(Permission::all());
     }
 
     /**
      * Store a newly created permission.
      */
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse
     {
-        // Validate using the Validator facade
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|unique:permissions,name',
+        $data = $request->validate([
+            'name' => 'required|unique:permissions,name|string|max:255',
         ]);
 
-        // Check if validation fails
-        if ($validator->fails()) {
-            return response()->json([
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        $permission = Permission::create(['name' => $request->name]);
+        $permission = Permission::create($data);
 
         return response()->json($permission, 201);
     }
@@ -43,32 +34,21 @@ class PermissionController extends Controller
     /**
      * Display the specified permission.
      */
-    public function show($id)
+    public function show(Permission $permission): JsonResponse
     {
-        $permission = Permission::findOrFail($id);
         return response()->json($permission);
     }
 
     /**
      * Update the specified permission.
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, Permission $permission): JsonResponse
     {
-        $permission = Permission::findOrFail($id);
-
-        // Validate using the Validator facade
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|unique:permissions,name,' . $id,
+        $data = $request->validate([
+            'name' => 'required|unique:permissions,name,' . $permission->id . '|string|max:255',
         ]);
 
-        // Check if validation fails
-        if ($validator->fails()) {
-            return response()->json([
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        $permission->update(['name' => $request->name]);
+        $permission->update($data);
 
         return response()->json($permission);
     }
@@ -76,11 +56,9 @@ class PermissionController extends Controller
     /**
      * Remove the specified permission.
      */
-    public function destroy($id)
+    public function destroy(Permission $permission): JsonResponse
     {
-        $permission = Permission::findOrFail($id);
         $permission->delete();
-
         return response()->json(['message' => 'Permission deleted successfully']);
     }
 }

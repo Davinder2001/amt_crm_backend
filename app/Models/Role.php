@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use Spatie\Permission\Models\Role as SpatieRole;
 use App\Models\Scopes\CompanyScope;
 
-class Role extends Model
+class Role extends SpatieRole
 {
     /**
      * The attributes that are mass assignable.
@@ -22,18 +22,5 @@ class Role extends Model
     protected static function booted()
     {
         static::addGlobalScope(new CompanyScope);
-    }
-
-    /**
-     * Define the relationship with the Permission model.
-     */
-    public function permissions()
-    {
-        return $this->belongsToMany(
-            \Spatie\Permission\Models\Permission::class,
-            'role_has_permissions',
-            'role_id',
-            'permission_id'
-        );
     }
 }
