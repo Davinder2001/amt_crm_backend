@@ -13,6 +13,7 @@ Route::prefix('v1')->group(function () {
     // Public routes (no session needed)
     Route::middleware(['api'])->group(function () {
         Route::post('login', [AuthController::class, 'login']);
+        Route::post('c-login', [AuthController::class, 'companyLogin']);
         Route::post('register', [AuthController::class, 'register']);
         Route::post('admin-register', [AuthController::class, 'adminRegister']);
     });
@@ -31,7 +32,7 @@ Route::prefix('v1')->group(function () {
 
 
 
-
+        Route::get('user', [UserController::class, 'authUser']);
         Route::apiResource('users', UserController::class);
         Route::apiResource('roles', RoleController::class);
     });

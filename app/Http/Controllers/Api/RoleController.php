@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Spatie\Permission\Models\Role;
+use App\Models\Role; // Using our custom Role model
 
 class RoleController extends Controller
 {
@@ -21,7 +21,12 @@ class RoleController extends Controller
             'guard_name' => 'sometimes|string',
         ]);
 
+        // Automatically set guard_name to 'web' if not provided
         $data['guard_name'] = $data['guard_name'] ?? 'web';
+
+        // Set the company_id automatically from authenticated user
+        $data['company_id'] = $request->user()->company_id;
+
         $role = Role::create($data);
 
         return response()->json($role, 201);
