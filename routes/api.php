@@ -31,8 +31,6 @@ Route::prefix('v1')->group(function () {
         Route::post('roles/{roleName}/remove-permission', [RolePermissionController::class, 'removePermissionFromRole']);
 
 
-
-        Route::get('user', [UserController::class, 'authUser']);
         Route::apiResource('users', UserController::class);
         Route::apiResource('roles', RoleController::class);
     });
