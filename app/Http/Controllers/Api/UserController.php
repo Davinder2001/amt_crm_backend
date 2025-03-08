@@ -13,13 +13,8 @@ class UserController extends Controller
     /**
      * Display a listing of the users.
      */
-    public function index(Request $request)
+    public function index()
     {
-        // Check if the authenticated user has the "view_user" permission.
-        if (!$request->user() || !$request->user()->can('view_user')) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-    
         $users = User::with(['roles.permissions', 'company'])->get();
     
         return response()->json([

@@ -1,11 +1,11 @@
 <?php
-
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Role;
 use Spatie\Permission\Models\Permission;
+use Illuminate\Support\Facades\Auth;
 
 class RoleController extends Controller
 {
@@ -19,13 +19,13 @@ class RoleController extends Controller
     {
         $data = $request->validate([
             'name'         => 'required|string|unique:roles,name',
-            'guard_name'   => 'sometimes|string',
-            'permissions'  => 'sometimes|array',
-            'permissions.*'=> 'string|exists:permissions,name'
+            'guard_name'   => 'nullable|string',
+            'permissions'  => 'nullable|array',
+            'permissions.*' => 'string|exists:permissions,name',
         ]);
 
         $data['guard_name'] = $data['guard_name'] ?? 'web';
-        $data['company_id'] = $request->user()->company_id;
+        $data['company_id'] = Auth::user()->company_id;
 
         $role = Role::create($data);
 
@@ -43,11 +43,12 @@ class RoleController extends Controller
 
     public function update(Request $request, Role $role)
     {
+
         $data = $request->validate([
-            'name'         => 'required|string|unique:roles,name,'.$role->id,
-            'guard_name'   => 'sometimes|string',
-            'permissions'  => 'sometimes|array',
-            'permissions.*'=> 'string|exists:permissions,name'
+            'name'         => 'required|string|unique:roles,name,' . $role->id,
+            'guard_name'   => 'nullable|string',
+            'permissions'  => 'nullable|array',
+            'permissions.*' => 'string|exists:permissions,name',
         ]);
 
         $data['guard_name'] = $data['guard_name'] ?? 'web';

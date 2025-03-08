@@ -17,11 +17,19 @@ class CheckPermission
      */
     public function handle(Request $request, Closure $next, $permission)
     {
-        // Ensure the user is authenticated and has the required permission.
-        if (! $request->user() || ! $request->user()->can($permission)) {
+
+        if (! $request->user()) {
             return response()->json(['message' => 'Unauthorized.'], 403);
         }
         
+        if ($request->user()->hasRole('Admin')) {
+            return $next($request);
+        }
+
+        if (! $request->user()->can($permission)) {
+            return response()->json(['message' => 'Unauthorized.'], 403);
+        }
+
         return $next($request);
     }
 }
