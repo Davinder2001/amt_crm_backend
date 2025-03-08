@@ -46,13 +46,13 @@ class AuthController extends Controller
         ], 201);
     }
 
+
     public function adminRegister(AdminRegisterRequest $request): JsonResponse
     {
         $data = $request->validated();
     
         try {
             $result = $this->registrationService->register($data);
-            // Automatically assign the 'admin' role to the new user.
             $result['user']->assignRole('admin');
     
             return response()->json([
@@ -66,6 +66,7 @@ class AuthController extends Controller
             return response()->json(['error' => $e->getMessage()], 422);
         }
     }
+
 
     public function login(Request $request): JsonResponse
     {
@@ -98,6 +99,7 @@ class AuthController extends Controller
         ]);
     }
     
+
     public function logout(Request $request): JsonResponse
     {
         $request->user()->currentAccessToken()->delete();

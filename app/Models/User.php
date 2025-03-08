@@ -20,7 +20,7 @@ class User extends Authenticatable
         'email',
         'password',
         'company_id',
-        'number', // Added mobile number field
+        'number',
     ];
 
     protected $hidden = [

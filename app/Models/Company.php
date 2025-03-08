@@ -30,6 +30,6 @@ class Company extends Model
             ? ((int) str_replace('AMT', '', $lastId) + 1)
             : 1;
 
-        return 'AMT' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+        return 'AMT' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
     }
 }

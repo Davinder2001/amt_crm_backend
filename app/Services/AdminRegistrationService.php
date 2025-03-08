@@ -14,7 +14,6 @@ class AdminRegistrationService
 {
     public function register(array $data)
     {
-        // Generate slug and check if company slug already exists
         $slug = Str::slug($data['company_name']);
         if (Company::where('company_slug', $slug)->exists()) {
             throw ValidationException::withMessages([
@@ -23,7 +22,6 @@ class AdminRegistrationService
         }
 
         return DB::transaction(function () use ($data, $slug) {
-            // Create company
             $company = Company::create([
                 'company_id'          => Company::generateCompanyId(),
                 'company_name'        => $data['company_name'],
@@ -32,7 +30,6 @@ class AdminRegistrationService
                 'verification_status' => 'pending',
             ]);
 
-            // Create admin user
             $user = User::create([
                 'name'       => $data['name'],
                 'email'      => $data['email'],
@@ -41,7 +38,6 @@ class AdminRegistrationService
                 'company_id' => $company->id,
             ]);
 
-            // Insert role record
             DB::table('roles')->insert([
                 'name'        => 'Admin',
                 'guard_name'  => 'web',

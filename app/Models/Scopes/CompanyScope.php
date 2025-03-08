@@ -11,7 +11,6 @@ class CompanyScope implements Scope
 {
     public function apply(Builder $builder, Model $model)
     {
-        // Check if user is authenticated first
         if (Auth::check()) {
             $companyId = Auth::user()->company_id;
 
