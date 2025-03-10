@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Task;
 use Illuminate\Http\Request;
+use App\Http\Resources\TaskResource;
 use Illuminate\Support\Facades\Validator;
 
 class TaskController extends Controller
@@ -12,9 +13,9 @@ class TaskController extends Controller
     public function index()
     {
         $tasks = Task::all();
-        return response()->json($tasks, 200);
+        return TaskResource::collection($tasks);
     }
-
+    
     public function store(Request $request)
     {
         $authUser = $request->user();
