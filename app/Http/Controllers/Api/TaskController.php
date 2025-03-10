@@ -15,6 +15,7 @@ class TaskController extends Controller
         $tasks = Task::all();
         return TaskResource::collection($tasks);
     }
+
     
     public function store(Request $request)
     {
@@ -30,7 +31,6 @@ class TaskController extends Controller
             return response()->json($validator->errors(), 422);
         }
 
-        // Merge the authenticated user's id for assigned_by and company_id from the auth user's company
         $data = array_merge($request->all(), [
             'assigned_by' => $authUser->id,
             'company_id'  => $authUser->company_id,
@@ -39,6 +39,7 @@ class TaskController extends Controller
         $task = Task::create($data);
         return response()->json($task, 201);
     }
+
 
     public function show($id)
     {
@@ -50,6 +51,7 @@ class TaskController extends Controller
 
         return response()->json($task, 200);
     }
+
 
     public function update(Request $request, $id)
     {
@@ -73,6 +75,7 @@ class TaskController extends Controller
         $task->update($request->all());
         return response()->json($task, 200);
     }
+    
 
     public function destroy($id)
     {

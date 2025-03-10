@@ -8,36 +8,29 @@ use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\API\PermissionController;
 use App\Http\Controllers\API\TaskController;
 
-
-// fuuuuuu
-
 Route::prefix('v1')->group(function () {
-    
-    // Public routes (no session needed)
+
+    // **Public API Routes (No Authentication Required)**
     Route::middleware(['api'])->group(function () {
         Route::post('login', [AuthController::class, 'login']);
         Route::post('c-login', [AuthController::class, 'companyLogin']);
         Route::post('register', [AuthController::class, 'register']);
         Route::post('admin-register', [AuthController::class, 'adminRegister']);
     });
-    
-    
-    // Protected routes (using Sanctum only)
-    Route::middleware(['web', 'auth:sanctum'])->group(function () {
+
+    // **Protected Routes (Require Sanctum Authentication)**
+    Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
         Route::apiResource('permissions', PermissionController::class);
-        
-        
-        // Assign permissions 
+
+        // **Role & Permission Management**
         Route::post('users/{id}/assign-role', [RolePermissionController::class, 'assignRole']);
         Route::post('users/{id}/remove-role', [RolePermissionController::class, 'removeRole']);
         Route::put('users/{id}/update-role', [RolePermissionController::class, 'updateRole']);
         Route::post('roles/{id}/assign-permission', [RolePermissionController::class, 'assignPermissionToRole']);
         Route::post('roles/{id}/remove-permission', [RolePermissionController::class, 'removePermissionFromRole']);
 
-
-
-        // Users Routes
+        // **User Management**
         Route::get('user', [UserController::class, 'authUser']);
         Route::get('users', [UserController::class, 'index'])->middleware('permission:View User');
         Route::post('users', [UserController::class, 'store']);
@@ -45,23 +38,19 @@ Route::prefix('v1')->group(function () {
         Route::put('users/{user}', [UserController::class, 'update']);
         Route::delete('users/{user}', [UserController::class, 'destroy']);
 
-
-
-        // Roles Routes 
+        // **Role Management**
         Route::get('roles', [RoleController::class, 'index']);
         Route::post('roles', [RoleController::class, 'store']);
         Route::get('roles/{role}', [RoleController::class, 'show']);
         Route::put('roles/{role}', [RoleController::class, 'update']);
         Route::delete('roles/{role}', [RoleController::class, 'destroy']);
-        
 
-        // Tasks Route
+        // **Task Management**
         Route::post('tasks', [TaskController::class, 'store']);
         Route::get('tasks', [TaskController::class, 'index']);
         Route::get('tasks/{id}', [TaskController::class, 'show']);
         Route::put('tasks/{id}', [TaskController::class, 'update']);
         Route::delete('tasks/{id}', [TaskController::class, 'destroy']);
-
     });
 
 });
