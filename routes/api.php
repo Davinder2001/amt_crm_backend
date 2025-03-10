@@ -10,6 +10,7 @@ use App\Http\Controllers\API\TaskController;
 
 Route::prefix('v1')->group(function () {
 
+
     // **Public API Routes (No Authentication Required)**
     Route::middleware(['api'])->group(function () {
         Route::post('login', [AuthController::class, 'login']);
@@ -18,10 +19,12 @@ Route::prefix('v1')->group(function () {
         Route::post('admin-register', [AuthController::class, 'adminRegister']);
     });
 
+    
     // **Protected Routes (Require Sanctum Authentication)**
     Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
         Route::apiResource('permissions', PermissionController::class);
+
 
         // **Role & Permission Management**
         Route::post('users/{id}/assign-role', [RolePermissionController::class, 'assignRole']);
@@ -29,6 +32,7 @@ Route::prefix('v1')->group(function () {
         Route::put('users/{id}/update-role', [RolePermissionController::class, 'updateRole']);
         Route::post('roles/{id}/assign-permission', [RolePermissionController::class, 'assignPermissionToRole']);
         Route::post('roles/{id}/remove-permission', [RolePermissionController::class, 'removePermissionFromRole']);
+
 
         // **User Management**
         Route::get('user', [UserController::class, 'authUser']);
@@ -38,6 +42,7 @@ Route::prefix('v1')->group(function () {
         Route::put('users/{user}', [UserController::class, 'update']);
         Route::delete('users/{user}', [UserController::class, 'destroy']);
 
+
         // **Role Management**
         Route::get('roles', [RoleController::class, 'index']);
         Route::post('roles', [RoleController::class, 'store']);
@@ -45,12 +50,14 @@ Route::prefix('v1')->group(function () {
         Route::put('roles/{role}', [RoleController::class, 'update']);
         Route::delete('roles/{role}', [RoleController::class, 'destroy']);
 
+
         // **Task Management**
         Route::post('tasks', [TaskController::class, 'store']);
         Route::get('tasks', [TaskController::class, 'index']);
         Route::get('tasks/{id}', [TaskController::class, 'show']);
         Route::put('tasks/{id}', [TaskController::class, 'update']);
         Route::delete('tasks/{id}', [TaskController::class, 'destroy']);
+
     });
 
 });
