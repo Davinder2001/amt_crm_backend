@@ -67,6 +67,3 @@ Route::prefix('v1')->group(function () {
     });
 
 });
-
-
-// End and updated 
