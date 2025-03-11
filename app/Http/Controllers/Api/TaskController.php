@@ -34,6 +34,7 @@ class TaskController extends Controller
         $data = array_merge($request->all(), [
             'assigned_by' => $authUser->id,
             'company_id'  => $authUser->company_id,
+            'status'      => 'pending', // Default status when creating a task
         ]);
 
         $task = Task::create($data);
@@ -66,6 +67,7 @@ class TaskController extends Controller
             'assigned_by' => 'sometimes|required|exists:users,id',
             'assigned_to' => 'sometimes|required|exists:users,id',
             'deadline'    => 'nullable|date',
+            'status'      => 'sometimes|required|in:pending,in_progress,completed,verified', // Added status validation
         ]);
 
         if ($validator->fails()) {

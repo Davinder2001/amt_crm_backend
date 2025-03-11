@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\RolePermissionController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\API\PermissionController;
 use App\Http\Controllers\API\TaskController;
+use App\Http\Controllers\API\EmployeeController;
 
 Route::prefix('v1')->group(function () {
 
@@ -58,6 +59,15 @@ Route::prefix('v1')->group(function () {
         Route::put('tasks/{id}', [TaskController::class, 'update']);
         Route::delete('tasks/{id}', [TaskController::class, 'destroy']);
 
+
+        
     });
+    
+    // **Task Management**
+    Route::get('employees', [EmployeeController::class, 'index']);
+    Route::post('employees', [EmployeeController::class, 'store']);
+    Route::get('employees/{id}', [EmployeeController::class, 'show']);
+    Route::put('employees/{id}', [EmployeeController::class, 'update']);
+    Route::delete('employees/{id}', [EmployeeController::class, 'destroy']);
 
 });

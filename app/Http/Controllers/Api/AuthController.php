@@ -50,7 +50,7 @@ class AuthController extends Controller
     public function adminRegister(AdminRegisterRequest $request): JsonResponse
     {
         $data = $request->validated();
-    
+        
         try {
             $result = $this->registrationService->register($data);
             $result['user']->assignRole('admin');

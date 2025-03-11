@@ -1,14 +1,15 @@
 <?php
 
 namespace App\Models;
-
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\Company;
+use App\Models\UserMeta;
 use App\Models\Scopes\CompanyScope;
 
 class User extends Authenticatable
@@ -32,6 +33,9 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password'          => 'hashed',
     ];
+
+    // Eager load meta data automatically with user queries
+    protected $with = ['meta'];
 
     /**
      * Boot the model and add the CompanyScope to all queries.
@@ -63,5 +67,22 @@ class User extends Authenticatable
     public function getCompanyNameAttribute(): ?string
     {
         return $this->company->company_name ?? null;
+    }
+
+    /**
+     * Relationship with UserMeta model (One user can have multiple meta entries).
+     */
+    public function meta(): HasMany
+    {
+        return $this->hasMany(UserMeta::class);
+    }
+
+    /**
+     * Retrieve a specific meta value for a user.
+     */
+    public function getMetaValue($key, $default = null)
+    {
+        $meta = $this->meta->firstWhere('meta_key', $key);
+        return $meta ? $meta->meta_value : $default;
     }
 }

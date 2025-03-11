@@ -13,14 +13,14 @@ class CreateTasksTable extends Migration
             $table->string('name');
             $table->unsignedBigInteger('assigned_by');
             $table->unsignedBigInteger('assigned_to');
-            $table->unsignedBigInteger('company_id'); // New column for company ID
+            $table->unsignedBigInteger('company_id');
             $table->date('deadline')->nullable();
+            $table->string('status')->default('pending');
             $table->timestamps();
 
-            // Foreign key constraints
             $table->foreign('assigned_by')->references('id')->on('users')->onDelete('cascade');
             $table->foreign('assigned_to')->references('id')->on('users')->onDelete('cascade');
-            $table->foreign('company_id')->references('id')->on('companies')->onDelete('cascade'); // Company foreign key
+            $table->foreign('company_id')->references('id')->on('companies')->onDelete('cascade');
         });
     }
 

@@ -20,7 +20,7 @@ class AdminRegistrationService
                 'company_name' => ['Company slug already exists. Please choose a different company name.']
             ]);
         }
-
+        
         return DB::transaction(function () use ($data, $slug) {
             $company = Company::create([
                 'company_id'          => Company::generateCompanyId(),
@@ -35,6 +35,7 @@ class AdminRegistrationService
                 'email'      => $data['email'],
                 'password'   => Hash::make($data['password']),
                 'role'       => 'admin',
+                'number' => $data['number'],
                 'company_id' => $company->id,
             ]);
 
