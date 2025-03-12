@@ -9,6 +9,7 @@ use App\Http\Controllers\API\PermissionController;
 use App\Http\Controllers\API\TaskController;
 use App\Http\Controllers\API\EmployeeController;
 
+
 Route::prefix('v1')->group(function () {
 
 
@@ -18,6 +19,15 @@ Route::prefix('v1')->group(function () {
         Route::post('c-login', [AuthController::class, 'companyLogin']);
         Route::post('register', [AuthController::class, 'register']);
         Route::post('admin-register', [AuthController::class, 'adminRegister']);
+
+
+
+        Route::post('/password/forgot', [AuthController::class, 'sendResetOtp']);
+        Route::post('/password/verify-otp', [AuthController::class, 'verifyOtp']);
+
+
+
+
     });
 
     
@@ -69,5 +79,4 @@ Route::prefix('v1')->group(function () {
         
     });
     
-
 });
