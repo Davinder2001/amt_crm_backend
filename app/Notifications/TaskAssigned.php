@@ -12,6 +12,7 @@ class TaskAssigned extends Notification
     protected $task;
     protected $assignedBy;
 
+    
     /**
      * Create a new notification instance.
      */
@@ -21,13 +22,15 @@ class TaskAssigned extends Notification
         $this->assignedBy = $assignedBy;
     }
 
+
     /**
      * Get the notification's delivery channels.
      */
     public function via($notifiable): array
     {
-        return ['database']; // Storing notification in the database
+        return ['database'];
     }
+
 
     /**
      * Get the array representation of the notification.
@@ -38,7 +41,7 @@ class TaskAssigned extends Notification
             'title' => 'Task Assigned',
             'message' => "A new task '{$this->task->title}' has been assigned to you.",
             'task_id' => $this->task->id,
-            'assigned_by' => $this->assignedBy->name, // Now we pass the user from the controller
+            'assigned_by' => $this->assignedBy->name,
         ];
     }
 }

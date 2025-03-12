@@ -19,22 +19,18 @@ Route::prefix('v1')->group(function () {
         Route::post('c-login', [AuthController::class, 'companyLogin']);
         Route::post('register', [AuthController::class, 'register']);
         Route::post('admin-register', [AuthController::class, 'adminRegister']);
-
-
-
         Route::post('/password/forgot', [AuthController::class, 'sendResetOtp']);
         Route::post('/password/verify-otp', [AuthController::class, 'verifyOtp']);
-
-
-
-
+        
     });
-
+    
+    
     
     // **Protected Routes (Require Sanctum Authentication)**
     Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
         Route::apiResource('permissions', PermissionController::class);
+        Route::post('/password/change', [AuthController::class, 'resetPassword']);
 
 
         // **Role & Permission Management**
@@ -70,13 +66,13 @@ Route::prefix('v1')->group(function () {
         Route::delete('tasks/{id}', [TaskController::class, 'destroy']);
 
         
-        // **Task Management**
-        Route::get('employees', [EmployeeController::class, 'index']);
-        Route::post('employees', [EmployeeController::class, 'store']);
-        Route::get('employees/{id}', [EmployeeController::class, 'show']);
-        Route::put('employees/{id}', [EmployeeController::class, 'update']);
-        Route::delete('employees/{id}', [EmployeeController::class, 'destroy']);
         
     });
+    // **Task Management**
+    Route::get('employees', [EmployeeController::class, 'index']);
+    Route::post('employees', [EmployeeController::class, 'store']);
+    Route::get('employees/{id}', [EmployeeController::class, 'show']);
+    Route::put('employees/{id}', [EmployeeController::class, 'update']);
+    Route::delete('employees/{id}', [EmployeeController::class, 'destroy']);
     
 });

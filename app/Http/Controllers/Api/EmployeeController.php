@@ -15,7 +15,7 @@ class EmployeeController extends Controller
      */
     public function index()
     {
-        $employees = User::where('user_type', 'employee')->with(['role', 'company'])->get();
+        $employees = User::where('user_type', 'employee')->with(['roles.permissions', 'company'])->get();
 
         return response()->json([
             'message'    => 'Employees retrieved successfully.',
@@ -44,7 +44,7 @@ class EmployeeController extends Controller
             'company_id' => $request->user()->company_id,
             'phone'      => $data['phone'],
             'role_id'    => $data['role_id'],
-            'user_type'  => 'employee', // Set user type as 'employee'
+            'user_type'  => 'employee',
         ]);
 
         return response()->json([

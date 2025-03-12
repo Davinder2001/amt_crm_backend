@@ -10,6 +10,8 @@ use Illuminate\Validation\ValidationException;
 use App\Services\AdminRegistrationService;
 use App\Http\Requests\AdminRegisterRequest;
 use App\Models\User;
+
+use Illuminate\Support\Facades\Auth;
 use App\Http\Resources\UserResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Mail;
@@ -23,6 +25,7 @@ class AuthController extends Controller
     {
         $this->registrationService = $registrationService;
     }
+
 
     public function register(Request $request): JsonResponse
     {
@@ -55,6 +58,7 @@ class AuthController extends Controller
         ], 201);
     }
 
+
     public function adminRegister(AdminRegisterRequest $request): JsonResponse
     {
         $data = $request->validated();
@@ -74,6 +78,7 @@ class AuthController extends Controller
             return response()->json(['error' => $e->getMessage()], 422);
         }
     }
+
 
     public function login(Request $request): JsonResponse
     {
@@ -103,11 +108,13 @@ class AuthController extends Controller
         ]);
     }
 
+
     public function logout(Request $request): JsonResponse
     {
         $request->user()->currentAccessToken()->delete();
         return response()->json(['message' => 'Logged out successfully.']);
     }
+
 
     public function sendResetOtp(Request $request): JsonResponse
     {
@@ -119,8 +126,6 @@ class AuthController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        // dd('asasasa');
-
         $otp = rand(100000, 999999);
         Cache::put('otp_' . $request->email, $otp, now()->addMinutes(10));
 
@@ -131,6 +136,7 @@ class AuthController extends Controller
 
         return response()->json(['message' => 'OTP sent successfully.']);
     }
+
 
     public function verifyOtp(Request $request): JsonResponse
     {
@@ -149,17 +155,32 @@ class AuthController extends Controller
         if (!$storedOtp || $storedOtp != $request->otp) {
             return response()->json(['error' => 'Invalid OTP.'], 400);
         }
-    
-        // OTP is correct, proceed with password reset
+
         $user = User::where('email', $request->email)->first();
         $user->update([
             'password' => Hash::make($request->password),
         ]);
     
-        // Clear OTP from cache after successful password change
         Cache::forget('otp_' . $request->email);
     
         return response()->json(['message' => 'OTP verified and password reset successfully.']);
     }
+    
 
+    public function resetPassword(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+        
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $data = $validator->validated();
+        $user = Auth::user(); 
+        $user->update(['password' => Hash::make($data['password'])]);
+        return response()->json(['message' => 'Password reset successfully.']);
+    }
+    
 }
