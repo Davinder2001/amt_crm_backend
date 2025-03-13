@@ -14,7 +14,7 @@ class SuperAdminSeeder extends Seeder
             'name' => 'Super Admin',
             'email' => 'superadmin@example.com',
             'number' => '7894561230',
-            'user_type' => 'super-admin',
+            // 'user_type' => 'super-admin',
             'password' => Hash::make('superadminpassword'),
             'created_at' => now(),
             'updated_at' => now(),

@@ -11,9 +11,15 @@ class RoleController extends Controller
 {
     public function index()
     {
-        $roles = Role::with('permissions')->get();
-        return response()->json($roles);
+        $roles = Role::withCount('permissions')->get();
+    
+        return response()->json([
+            'message'   => 'Roles retrieved successfully.',
+            'roles'     => $roles,
+            'total'     => $roles->count(),
+        ], 200);
     }
+    
 
     public function store(Request $request)
     {
@@ -44,6 +50,7 @@ class RoleController extends Controller
     public function update(Request $request, Role $role)
     {
 
+        
         $data = $request->validate([
             'name'         => 'required|string|unique:roles,name,' . $role->id,
             'guard_name'   => 'nullable|string',

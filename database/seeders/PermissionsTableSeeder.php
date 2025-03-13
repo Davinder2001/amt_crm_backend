@@ -12,10 +12,16 @@ class PermissionsTableSeeder extends Seeder
      */
     public function run(): void
     {
-        // Create default permissions
-        Permission::firstOrCreate(['name' => 'view articles']);
-        Permission::firstOrCreate(['name' => 'create articles']);
-        Permission::firstOrCreate(['name' => 'edit articles']);
-        Permission::firstOrCreate(['name' => 'delete articles']);
+        // Permissions for Users
+        Permission::firstOrCreate(['name' => 'view users']);
+        Permission::firstOrCreate(['name' => 'add users']);
+        Permission::firstOrCreate(['name' => 'edit users']);
+        Permission::firstOrCreate(['name' => 'delete users']);
+
+        // Permissions for Roles
+        Permission::firstOrCreate(['name' => 'view roles']);
+        Permission::firstOrCreate(['name' => 'add roles']);
+        Permission::firstOrCreate(['name' => 'edit roles']);
+        Permission::firstOrCreate(['name' => 'delete roles']);
     }
 }

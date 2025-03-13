@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Models;
+
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -22,6 +23,7 @@ class User extends Authenticatable
         'password',
         'company_id',
         'number',
+        'user_type',
     ];
 
     protected $hidden = [
@@ -51,6 +53,14 @@ class User extends Authenticatable
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class, 'company_id', 'id');
+    }
+
+    /**
+     * Relationship with roles (Spatie package).
+     */
+    public function role(): BelongsTo
+    {
+        return $this->belongsTo(\Spatie\Permission\Models\Role::class, 'role_id');
     }
 
     /**

@@ -22,7 +22,7 @@ class CheckPermission
             return response()->json(['message' => 'Unauthorized.'], 403);
         }
         
-        if ($request->user()->hasRole('Admin')) {
+        if ($request->user()->hasRole('admin')) {
             return $next($request);
         }
 
