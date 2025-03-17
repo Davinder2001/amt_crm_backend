@@ -29,3 +29,5 @@ class UserResource extends JsonResource
         ];
     }
 }
+
+
