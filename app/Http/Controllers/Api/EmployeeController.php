@@ -37,7 +37,7 @@ class EmployeeController extends Controller
                 'email'    => 'required|string|email|max:255|unique:users',
                 'password' => 'required|string|min:8',
                 'number'   => 'required|string|max:20',
-                'role'     => 'required|exists:roles,name', // Ensure role exists
+                'role'     => 'required|exists:roles,name',
             ]);
 
             // Check if the phone number is already in use
@@ -52,7 +52,6 @@ class EmployeeController extends Controller
                 ], 400);
             }
 
-            // Create the employee
             $employee = User::create([
                 'name'       => $data['name'],
                 'email'      => $data['email'],
@@ -62,7 +61,6 @@ class EmployeeController extends Controller
                 'user_type'  => 'employee',
             ]);
 
-            // Assign role using Spatie
             $employee->assignRole($data['role']);
 
             return response()->json([
@@ -103,12 +101,11 @@ class EmployeeController extends Controller
         $employee = User::where('user_type', 'employee')->findOrFail($id);
 
         try {
-            // Validate input data
             $validator = Validator::make($request->all(), [
                 'name'     => 'sometimes|string|max:255',
                 'email'    => 'sometimes|string|email|max:255|unique:users,email,' . $employee->id,
                 'password' => 'sometimes|string|min:8',
-                'role'     => 'required|exists:roles,name', // Role is required when updating
+                'role'     => 'required|exists:roles,name',
                 'number'   => 'sometimes|string|max:20',
             ]);
 
@@ -125,17 +122,13 @@ class EmployeeController extends Controller
                 $data['password'] = Hash::make($data['password']);
             }
 
-            // Ensure role is provided
             if (!isset($data['role'])) {
                 return response()->json([
                     'message' => 'Role is required when updating an employee.',
                 ], 400);
             }
 
-            // Update employee details
             $employee->update(Arr::except($data, ['role']));
-
-            // Update role
             $employee->syncRoles($data['role']);
 
             return response()->json([

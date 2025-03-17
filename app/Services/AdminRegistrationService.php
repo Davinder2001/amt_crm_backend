@@ -22,6 +22,7 @@ class AdminRegistrationService
         }
         
         return DB::transaction(function () use ($data, $slug) {
+            // Create the company first.
             $company = Company::create([
                 'company_id'          => Company::generateCompanyId(),
                 'company_name'        => $data['company_name'],
@@ -30,15 +31,28 @@ class AdminRegistrationService
                 'verification_status' => 'pending',
             ]);
 
+            // Generate a unique UID for the new user.
+            $lastUser = User::orderBy('id', 'desc')->first();
+            if ($lastUser && $lastUser->uid) {
+                $lastNumber = (int) substr($lastUser->uid, 3);
+                $newNumber  = $lastNumber + 1;
+            } else {
+                $newNumber = 1;
+            }
+            $uid = 'AMT' . str_pad($newNumber, 6, '0', STR_PAD_LEFT);
+
+            // Create the admin user with the generated UID.
             $user = User::create([
+                'uid'        => $uid,
                 'name'       => $data['name'],
                 'email'      => $data['email'],
                 'password'   => Hash::make($data['password']),
                 'role'       => 'admin',
-                'number' => $data['number'],
+                'number'     => $data['number'],
                 'company_id' => $company->id,
             ]);
 
+            // Insert a new role for this company.
             DB::table('roles')->insert([
                 'name'        => 'Admin',
                 'guard_name'  => 'web',

@@ -7,64 +7,78 @@ use App\Models\User;
 use App\Http\Resources\UserResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
 
 class UserController extends Controller
 {
     /**
-     * Display a listing of the users.
+     * Display a listing of the users with role "user".
      */
     public function index()
     {
-        $users = User::with(['roles.permissions', 'company'])->get();
-    
+        // Retrieve all users with their roles.
+        $users = User::with('roles')->get();
+
         return response()->json([
             'message' => 'Users retrieved successfully.',
             'users'   => UserResource::collection($users),
             'total'   => $users->count(),
         ], 200);
     }
-    
 
+    /**
+     * Store a newly created user.
+     */
+    public function store(Request $request)
+    {
+        // Validate the incoming request without a UID field.
+        $validator = Validator::make($request->all(), [
+            'name'     => 'required|string|max:255',
+            'email'    => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:8',
+            'number'   => 'required|string|max:20',
+        ]);
 
-  /**
- * Store a newly created user.
- */
-public function store(Request $request)
-{
-    $data = $request->validate([
-        'name'     => 'required|string|max:255',
-        'email'    => 'required|string|email|max:255|unique:users',
-        'password' => 'required|string|min:8',
-        'number'   => 'required|string|max:20', 
-        'role'     => 'sometimes|string|exists:roles,name',
-    ]);
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation error.',
+                'errors'  => $validator->errors()
+            ], 422);
+        }
 
-    $user = User::create([
-        'name'       => $data['name'],
-        'email'      => $data['email'],
-        'password'   => Hash::make($data['password']),
-        'company_id' => $request->user()->company_id,
-        'number'     => $data['number'], 
-    ]);
+        // Always generate a unique UID based on the last user's UID.
+        $lastUser = User::orderBy('id', 'desc')->first();
+        if ($lastUser && $lastUser->uid) {
+            $lastNumber = (int) substr($lastUser->uid, 3);
+            $newNumber  = $lastNumber + 1;
+        } else {
+            $newNumber = 1;
+        }
+        $uid = 'AMT' . str_pad($newNumber, 6, '0', STR_PAD_LEFT);
 
-    if (!empty($data['role'])) {
-        $user->assignRole($data['role']);
+        $user = User::create([
+            'uid'      => $uid,
+            'name'     => $request->name,
+            'email'    => $request->email,
+            'password' => Hash::make($request->password),
+            'number'   => $request->number,
+        ]);
+
+        // Always assign the default role "user"
+        $user->assignRole('user');
+
+        return response()->json([
+            'message' => 'User created successfully.',
+            'user'    => new UserResource($user->load('roles')),
+        ], 201);
     }
-
-    return response()->json([
-        'message' => 'User created successfully.',
-        'user'    => new UserResource($user->load('roles')),
-    ], 201);
-}
-
-
 
     /**
      * Display the specified user.
      */
     public function show($id)
     {
-        $user = User::with(['roles.permissions', 'company'])->findOrFail($id);
+        $user = User::with('roles')->findOrFail($id);
 
         return response()->json([
             'message' => 'User retrieved successfully.',
@@ -79,22 +93,36 @@ public function store(Request $request)
     {
         $user = User::findOrFail($id);
 
-        $data = $request->validate([
+        // Do not allow updating the UID.
+        $validator = Validator::make($request->all(), [
             'name'     => 'sometimes|string|max:255',
             'email'    => 'sometimes|string|email|max:255|unique:users,email,' . $user->id,
             'password' => 'sometimes|string|min:8',
-            'role'     => 'sometimes|string|exists:roles,name',
+            'number'   => 'sometimes|string|max:20',
         ]);
 
-        if (!empty($data['password'])) {
-            $data['password'] = Hash::make($data['password']);
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation error.',
+                'errors'  => $validator->errors()
+            ], 422);
         }
 
-        $user->update(collect($data)->except('role')->toArray());
-
-        if (!empty($data['role'])) {
-            $user->syncRoles([$data['role']]);
+        $updateData = [];
+        if ($request->has('name')) {
+            $updateData['name'] = $request->name;
         }
+        if ($request->has('email')) {
+            $updateData['email'] = $request->email;
+        }
+        if ($request->has('password')) {
+            $updateData['password'] = Hash::make($request->password);
+        }
+        if ($request->has('number')) {
+            $updateData['number'] = $request->number;
+        }
+
+        $user->update($updateData);
 
         return response()->json([
             'message' => 'User updated successfully.',
@@ -114,51 +142,13 @@ public function store(Request $request)
     }
 
     /**
-     * Assign a role to a user.
-     */
-    public function assignRole(Request $request, $id)
-    {
-        $user = User::findOrFail($id);
-
-        $data = $request->validate([
-            'role' => 'required|string|exists:roles,name',
-        ]);
-
-        $user->assignRole($data['role']);
-
-        return response()->json([
-            'message' => 'Role assigned successfully.',
-            'user'    => new UserResource($user->load('roles')),
-        ]);
-    }
-
-    /**
-     * Update the role for a user.
-     */
-    public function updateRole(Request $request, $id)
-    {
-        $user = User::findOrFail($id);
-
-        $data = $request->validate([
-            'role' => 'required|string|exists:roles,name',
-        ]);
-
-        $user->syncRoles([$data['role']]);
-
-        return response()->json([
-            'message' => 'Role updated successfully.',
-            'user'    => new UserResource($user->load('roles')),
-        ]);
-    }
-
-    /**
      * Get the authenticated user.
      */
     public function authUser(Request $request)
     {
         return response()->json([
             'message' => 'Authenticated user retrieved successfully.',
-            'user' => new UserResource($request->user()->load(['roles.permissions', 'company'])),
+            'user'    => new UserResource($request->user()->load('roles')),
         ]);
     }
 }

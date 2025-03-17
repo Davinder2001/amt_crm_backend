@@ -15,6 +15,7 @@ class RolesTableSeeder extends Seeder
         // Create default roles if they do not already exist
         Role::firstOrCreate(['name' => 'admin']);
         Role::firstOrCreate(['name' => 'employee']);
+        Role::firstOrCreate(['company_id' => '121212121']);
         Role::firstOrCreate(['name' => 'user']);
     }
 }

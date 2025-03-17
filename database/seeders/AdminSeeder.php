@@ -15,7 +15,7 @@ class AdminSeeder extends Seeder
             'name' => 'Admin',
             'email' => 'admin@admin.com',
             'number' => '7018616800',
-            
+            'uid'     => '00000002',
             'company_id' => 2001, // Set company_id to 2001 for admin
             'password' => Hash::make('Password'), // Hash the password for security
         ]);

@@ -26,14 +26,14 @@ Route::prefix('v1')->group(function () {
     
     
     
-    // **Protected Routes (Require Sanctum Authentication)**
+    // **Protected Routes (Require Sanctum Authentication)** //
     Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
         Route::apiResource('permissions', PermissionController::class);
         Route::post('/password/change', [AuthController::class, 'resetPassword']);
 
 
-        // **Role & Permission Management**
+        // **Role & Permission Management** //
         Route::post('users/{id}/assign-role', [RolePermissionController::class, 'assignRole']);
         Route::post('users/{id}/remove-role', [RolePermissionController::class, 'removeRole']);
         Route::put('users/{id}/update-role', [RolePermissionController::class, 'updateRole']);
@@ -41,7 +41,7 @@ Route::prefix('v1')->group(function () {
         Route::post('roles/{id}/remove-permission', [RolePermissionController::class, 'removePermissionFromRole']);
 
 
-        // **User Management**
+        // **User Management** //
         Route::get('user', [UserController::class, 'authUser']);
         Route::get('users', [UserController::class, 'index'])->middleware('permission:view users');
         Route::post('users', [UserController::class, 'store'])->middleware('permission:add users');
@@ -49,7 +49,7 @@ Route::prefix('v1')->group(function () {
         Route::put('users/{user}', [UserController::class, 'update'])->middleware('permission:edit users');
         Route::delete('users/{user}', [UserController::class, 'destroy'])->middleware('permission:delete users');
 
-        // **Role Management**
+        // **Role Management** //
         Route::get('roles', [RoleController::class, 'index'])->middleware('permission:view roles');
         Route::post('roles', [RoleController::class, 'store'])->middleware('permission:add roles');
         Route::get('roles/{role}', [RoleController::class, 'show'])->middleware('permission:view roles');
@@ -57,7 +57,7 @@ Route::prefix('v1')->group(function () {
         Route::delete('roles/{role}', [RoleController::class, 'destroy'])->middleware('permission:delete roles');
 
 
-        // **Task Management**
+        // **Task Management** //
         Route::post('tasks', [TaskController::class, 'store']);
         Route::get('tasks', [TaskController::class, 'index']);
         Route::get('tasks/{id}', [TaskController::class, 'show']);
