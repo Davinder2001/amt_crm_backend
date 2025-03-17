@@ -80,6 +80,7 @@ class AuthController extends Controller
     }
 
 
+    /*** Normal User Login ***/
     public function login(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -92,7 +93,39 @@ class AuthController extends Controller
         }
 
         $data = $validator->validated();
-        $user = User::where('number', $data['number'])->first();
+        $user = User::where('number', $data['number'])->where('user_type', 'user')->first();
+
+        
+        if (!$user || !Hash::check($data['password'], $user->password)) {
+            return response()->json(['error' => 'Invalid credentials.'], 401);
+        }
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return response()->json([
+            'message'      => 'Logged in successfully.',
+            'access_token' => $token,
+            'token_type'   => 'Bearer',
+            'user'         => new UserResource($user),
+        ]);
+    }
+
+
+
+    /*** Company Admin And Employee Login ***/
+    public function companyLogin(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'number'   => 'required|string',
+            'password' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $data = $validator->validated();
+        $user = User::where('number', $data['number'])->whereIn('user_type', ['employee', 'admin'])->first();
 
         if (!$user || !Hash::check($data['password'], $user->password)) {
             return response()->json(['error' => 'Invalid credentials.'], 401);
@@ -178,6 +211,7 @@ class AuthController extends Controller
         }
 
         $data = $validator->validated();
+        /** @var User $user */
         $user = Auth::user(); 
         $user->update(['password' => Hash::make($data['password'])]);
         return response()->json(['message' => 'Password reset successfully.']);

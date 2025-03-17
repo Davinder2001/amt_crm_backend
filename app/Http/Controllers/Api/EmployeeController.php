@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\UserMeta;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Resources\EmployeeResource;
+
 
 class EmployeeController extends Controller
 {
@@ -26,32 +28,34 @@ class EmployeeController extends Controller
         ], 200);
     }
 
-    /**
-     * Store a newly created employee.
-     */
+   
+    
     public function store(Request $request)
     {
         try {
             $data = $request->validate([
-                'name'     => 'required|string|max:255',
-                'email'    => 'required|string|email|max:255|unique:users',
-                'password' => 'required|string|min:8',
-                'number'   => 'required|string|max:20',
-                'role'     => 'required|exists:roles,name',
+                'name'         => 'required|string|max:255',
+                'email'        => 'required|string|email|max:255|unique:users',
+                'password'     => 'required|string|min:8',
+                'number'       => 'required|string|max:20',
+                'role'         => 'required|required|exists:roles,name',
+                'dateOfHire'   => 'required|nullable|date',
+                'joiningDate'  => 'required|nullable|date',
+                'shiftTimings' => 'required|nullable|string'
             ]);
-
-            // Check if the phone number is already in use
+    
             $existingUser = User::where('number', $data['number'])
                 ->where('user_type', 'employee')
                 ->where('user_status', 'active')
                 ->first();
-
+    
             if ($existingUser) {
                 return response()->json([
                     'message' => 'This phone number is already in use by an active employee.',
                 ], 400);
             }
-
+    
+            // Create the employee
             $employee = User::create([
                 'name'       => $data['name'],
                 'email'      => $data['email'],
@@ -60,9 +64,26 @@ class EmployeeController extends Controller
                 'number'     => $data['number'],
                 'user_type'  => 'employee',
             ]);
-
+    
             $employee->assignRole($data['role']);
-
+    
+            // Save extra meta data if provided.
+            $metaFields = [
+                'dateOfHire'   => $data['dateOfHire'] ?? null,
+                'joiningDate'  => $data['joiningDate'] ?? null,
+                'shiftTimings' => $data['shiftTimings'] ?? null,
+            ];
+    
+            foreach ($metaFields as $metaKey => $metaValue) {
+                if (!is_null($metaValue)) {
+                    UserMeta::create([
+                        'user_id'    => $employee->id,
+                        'meta_key'   => $metaKey,
+                        'meta_value' => $metaValue,
+                    ]);
+                }
+            }
+    
             return response()->json([
                 'message'  => 'Employee created successfully.',
                 'employee' => new EmployeeResource($employee->load('roles')),
@@ -79,6 +100,7 @@ class EmployeeController extends Controller
             ], 500);
         }
     }
+    
 
     /**
      * Display the specified employee.
