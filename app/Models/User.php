@@ -24,6 +24,7 @@ class User extends Authenticatable
         'company_id',
         'number',
         'user_type',
+        'uid',
     ];
 
     protected $hidden = [
@@ -95,4 +96,30 @@ class User extends Authenticatable
         $meta = $this->meta->firstWhere('meta_key', $key);
         return $meta ? $meta->meta_value : $default;
     }
+
+
+    /**
+     * Static method to generate a unique UID.
+     * This method retrieves the current maximum UID, extracts its numeric part,
+     * increments it, and returns a formatted UID string (e.g., AMT0000000001).
+     *
+     * @return string
+     */
+    public static function generateUid()
+    {
+        $lastUid = self::max('uid');
+        
+        if ($lastUid) {
+            // Extract numeric part from the UID (remove any non-digit characters)
+            $lastNumber = (int) preg_replace('/\D/', '', $lastUid);
+            $newNumber = $lastNumber + 1;
+        } else {
+            $newNumber = 1;
+        }
+        
+        // Format the UID with the prefix 'AMT' and pad the number to 10 digits
+        return 'AMT' . str_pad($newNumber, 10, '0', STR_PAD_LEFT);
+    }
+
+
 }

@@ -31,27 +31,41 @@ class AuthController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'name'     => 'required|string|max:255',
-            'email'    => 'required|email|max:255|unique:users,email',
+            'email'    => 'required|email|max:255',
             'password' => 'required|string|min:8',
             'number'   => 'required|string|max:20',
         ]);
-
+    
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
-
+    
         $data = $validator->validated();
 
+        $alreadyUser = User::where('number', $data['number'])
+        ->where('user_type', 'user')
+        ->exists();
+
+        if($alreadyUser) {
+            return response()->json([
+                'errors' => ['number' => ['You are already register kindly login.']]
+            ], 422);
+        }
+
+
+    
         $user = User::create([
             'name'     => $data['name'],
             'email'    => $data['email'],
-            'number'    => $data['number'],
+            'number'   => $data['number'],
             'password' => Hash::make($data['password']),
-            'role'     => 'user',
+            'uid'      => User::generateUid(),
         ]);
-
+    
+        $user->assignRole('user');
+    
         $token = $user->createToken('auth_token')->plainTextToken;
-
+    
         return response()->json([
             'message'      => 'User registered successfully.',
             'access_token' => $token,
@@ -59,7 +73,7 @@ class AuthController extends Controller
             'user'         => new UserResource($user),
         ], 201);
     }
-
+    
 
     public function adminRegister(AdminRegisterRequest $request): JsonResponse
     {

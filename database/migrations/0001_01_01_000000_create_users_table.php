@@ -18,7 +18,8 @@ return new class extends Migration
             $table->string('email');
             $table->string('number');
             $table->string('uid')->unique()->nullable();
-            $table->enum('user_type', ['super-admin' , 'admin', 'employee', 'user'])->default('user');
+            // $table->enum('user_type', ['super-admin' , 'admin', 'employee', 'user'])->default('user');
+            $table->set('user_type', ['super-admin', 'admin', 'employee', 'user'])->default('user');
             $table->enum('user_status', ['active', 'inactive'])->default('active');
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');

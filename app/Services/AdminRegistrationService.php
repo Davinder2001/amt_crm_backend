@@ -22,26 +22,17 @@ class AdminRegistrationService
         }
         
         return DB::transaction(function () use ($data, $slug) {
-            // Create the company first.
-            $company = Company::create([
-                'company_id'          => Company::generateCompanyId(),
-                'company_name'        => $data['company_name'],
-                'company_slug'        => $slug,
-                'payment_status'      => 'pending',
-                'verification_status' => 'pending',
-            ]);
 
-            // Generate a unique UID for the new user.
-            $lastUser = User::orderBy('id', 'desc')->first();
-            if ($lastUser && $lastUser->uid) {
-                $lastNumber = (int) substr($lastUser->uid, 3);
-                $newNumber  = $lastNumber + 1;
-            } else {
-                $newNumber = 1;
+            $existingAdmin = User::where('number', $data['number'])
+                ->where('user_type', 'admin')
+                ->first();
+
+            if ($existingAdmin) {
+                dd('User already exists with UID: ' . $existingAdmin->uid);
             }
-            $uid = 'AMT' . str_pad($newNumber, 6, '0', STR_PAD_LEFT);
-
-            // Create the admin user with the generated UID.
+            
+            $uid = User::generateUid();
+        
             $user = User::create([
                 'uid'        => $uid,
                 'name'       => $data['name'],
@@ -49,10 +40,24 @@ class AdminRegistrationService
                 'password'   => Hash::make($data['password']),
                 'role'       => 'admin',
                 'number'     => $data['number'],
-                'company_id' => $company->id,
+                'user_type'  => 'admin',
             ]);
 
-            // Insert a new role for this company.
+            
+            $company = Company::create([
+                'company_id'          => Company::generateCompanyId(),
+                'company_name'        => $data['company_name'],
+                'company_slug'        => $slug,
+                'payment_status'      => 'pending',
+                'verification_status' => 'pending',
+                'admin_id'            => $user->id,  
+            ]);
+            
+            // dd($user);
+            $user->update([
+                'company_id' => $company->id,
+            ]);
+            
             DB::table('roles')->insert([
                 'name'        => 'Admin',
                 'guard_name'  => 'web',
@@ -60,7 +65,7 @@ class AdminRegistrationService
                 'created_at'  => Carbon::now(),
                 'updated_at'  => Carbon::now(),
             ]);
-
+            
             return ['user' => $user, 'company' => $company];
         });
     }
