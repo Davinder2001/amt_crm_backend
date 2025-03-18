@@ -33,4 +33,13 @@ class Company extends Model
 
         return 'AMT' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
     }
+        /**
+     * Relationship with the admin user.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    public function admin()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'admin_id');
+    }
 }

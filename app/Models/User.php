@@ -49,7 +49,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Relationship with the Company model.
+     * Relationship with the Company model where the user belongs to a company.
      */
     public function company(): BelongsTo
     {
@@ -97,7 +97,6 @@ class User extends Authenticatable
         return $meta ? $meta->meta_value : $default;
     }
 
-
     /**
      * Static method to generate a unique UID.
      * This method retrieves the current maximum UID, extracts its numeric part,
@@ -121,5 +120,13 @@ class User extends Authenticatable
         return 'AMT' . str_pad($newNumber, 10, '0', STR_PAD_LEFT);
     }
 
-
+    /**
+     * Relationship to get all companies where the user is the admin.
+     *
+     * This is the relationship you need for your login response.
+     */
+    public function companies(): HasMany
+    {
+        return $this->hasMany(Company::class, 'admin_id', 'id');
+    }
 }
