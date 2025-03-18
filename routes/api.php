@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\API\PermissionController;
 use App\Http\Controllers\API\TaskController;
 use App\Http\Controllers\API\EmployeeController;
+use App\Http\Controllers\API\CompanyController;
 
 
 Route::prefix('v1')->group(function () {
@@ -27,7 +28,7 @@ Route::prefix('v1')->group(function () {
     
     
     // **Protected Routes (Require Sanctum Authentication)** //
-    Route::middleware(['auth:sanctum'])->group(function () {
+    Route::middleware(['web' , 'auth:sanctum'])->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
         Route::apiResource('permissions', PermissionController::class);
         Route::post('/password/change', [AuthController::class, 'resetPassword']);
@@ -74,6 +75,11 @@ Route::prefix('v1')->group(function () {
         
     });
     
-});
 
-// Updated
+        Route::get('companies', [CompanyController::class, 'index']);
+        Route::get('companies/{id}', [CompanyController::class, 'show']);
+        Route::post('companies', [CompanyController::class, 'store']);
+        Route::put('companies/{id}', [CompanyController::class, 'update']);
+        Route::delete('companies/{id}', [CompanyController::class, 'destroy']);
+
+});

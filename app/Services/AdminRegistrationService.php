@@ -20,19 +20,31 @@ class AdminRegistrationService
                 'company_name' => ['Company slug already exists. Please choose a different company name.']
             ]);
         }
+
+
+
+        $getNumber = $data['number']; 
+        $alreadyUser = User::where('number', $getNumber)->first();
+        
+        if ($alreadyUser) {
+            throw ValidationException::withMessages([
+                'error' => ['Already a user login and upgrade the package']
+            ]);
+        }
+        
         
         return DB::transaction(function () use ($data, $slug) {
 
-            $existingAdmin = User::where('number', $data['number'])
-                ->where('user_type', 'admin')
-                ->first();
+            $company = Company::create([
+                'company_id'          => Company::generateCompanyId(),
+                'company_name'        => $data['company_name'],
+                'company_slug'        => $slug,
+                'payment_status'      => 'pending',
+                'verification_status' => 'pending',
+            ]);
 
-            if ($existingAdmin) {
-                dd('User already exists with UID: ' . $existingAdmin->uid);
-            }
-            
             $uid = User::generateUid();
-        
+
             $user = User::create([
                 'uid'        => $uid,
                 'name'       => $data['name'],
@@ -40,24 +52,10 @@ class AdminRegistrationService
                 'password'   => Hash::make($data['password']),
                 'role'       => 'admin',
                 'number'     => $data['number'],
-                'user_type'  => 'admin',
+                'company_id' => $company->id,
+                'user_type' => 'admin',
             ]);
 
-            
-            $company = Company::create([
-                'company_id'          => Company::generateCompanyId(),
-                'company_name'        => $data['company_name'],
-                'company_slug'        => $slug,
-                'payment_status'      => 'pending',
-                'verification_status' => 'pending',
-                'admin_id'            => $user->id,  
-            ]);
-            
-            // dd($user);
-            $user->update([
-                'company_id' => $company->id,
-            ]);
-            
             DB::table('roles')->insert([
                 'name'        => 'Admin',
                 'guard_name'  => 'web',
@@ -65,7 +63,7 @@ class AdminRegistrationService
                 'created_at'  => Carbon::now(),
                 'updated_at'  => Carbon::now(),
             ]);
-            
+
             return ['user' => $user, 'company' => $company];
         });
     }

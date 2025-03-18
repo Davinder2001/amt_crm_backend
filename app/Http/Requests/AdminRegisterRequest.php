@@ -19,7 +19,7 @@ class AdminRegisterRequest extends FormRequest
             'name'         => 'required|string|max:255',
             'email'        => 'required|email|max:255',
             'password'     => 'required|string|min:8',
-            'company_name' => 'required|string|max:255|unique:companies,company_name',
+            'company_name' => 'required|string|max:255',
             'number'       => 'required|string|max:20',
         ];
     }

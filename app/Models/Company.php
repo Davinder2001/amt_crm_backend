@@ -24,16 +24,14 @@ class Company extends Model
     public static function generateCompanyId(): string
     {
         $lastCompany = self::latest('id')->first();
-
         $lastId = $lastCompany ? $lastCompany->company_id : null;
-
-        $nextNumber = $lastId
-            ? ((int) str_replace('AMT', '', $lastId) + 1)
+        $nextNumber = $lastId 
+            ? ((int) str_replace('AMTCOM', '', $lastId) + 1)
             : 1;
-
-        return 'AMT' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
+        return 'AMTCOM' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
     }
-        /**
+
+    /**
      * Relationship with the admin user.
      *
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo

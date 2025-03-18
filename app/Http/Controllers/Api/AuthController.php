@@ -126,48 +126,50 @@ class AuthController extends Controller
         ]);
     }
 
-
-        /*** Company Admin And Employee Login ***/
-        public function companyLogin(Request $request): JsonResponse
-        {
-            $validator = Validator::make($request->all(), [
-                'number'   => 'required|string',
-                'password' => 'required|string',
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json(['errors' => $validator->errors()], 422);
-            }
-
-            $data = $validator->validated();
-
-            // Eager load 'companies' relationship. For an employee, this may return an empty collection.
-            $user = User::with('companies')
-                        ->where('number', $data['number'])
-                        ->whereIn('user_type', ['employee', 'admin'])
-                        ->first();
-
-            if (!$user || !Hash::check($data['password'], $user->password)) {
-                return response()->json(['error' => 'Invalid credentials.'], 401);
-            }
-
-            $token = $user->createToken('auth_token')->plainTextToken;
-
-            return response()->json([
-                'message'      => 'Logged in successfully.',
-                'access_token' => $token,
-                'token_type'   => 'Bearer',
-                'user'         => new UserResource($user),
-            ]);
+    public function companyLogin(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'number'   => 'required|string',
+            'password' => 'required|string',
+        ]);
+    
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
         }
-
+    
+        $data = $validator->validated();
+        
+        $user = User::with('companies')
+                    ->where('number', $data['number'])
+                    ->whereIn('user_type', ['employee', 'admin'])
+                    ->first();
+    
+        if (!$user || !Hash::check($data['password'], $user->password)) {
+            return response()->json(['error' => 'Invalid credentials.'], 401);
+        }
+    
+        $request->session()->regenerate();
+    
+        $token = $user->createToken('auth_token')->plainTextToken;
+    
+        return response()->json([
+            'message'      => 'Logged in successfully.',
+            'access_token' => $token,
+            'token_type'   => 'Bearer',
+            'user'         => new UserResource($user),
+        ]);
+    }
+    
 
     public function logout(Request $request): JsonResponse
     {
         $request->user()->currentAccessToken()->delete();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+    
         return response()->json(['message' => 'Logged out successfully.']);
     }
-
+    
 
     public function sendResetOtp(Request $request): JsonResponse
     {
