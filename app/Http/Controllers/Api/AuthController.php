@@ -143,6 +143,7 @@ class AuthController extends Controller
                     ->where('number', $data['number'])
                     ->whereIn('user_type', ['employee', 'admin'])
                     ->first();
+                    
     
         if (!$user || !Hash::check($data['password'], $user->password)) {
             return response()->json(['error' => 'Invalid credentials.'], 401);

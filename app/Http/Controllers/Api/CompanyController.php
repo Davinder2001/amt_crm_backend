@@ -61,50 +61,49 @@ class CompanyController extends Controller
    }
    public function selectedCompanies($id)
    {
-        $company = Company::find($id);
-       
-       
+       $company = Company::find($id);
+   
        if (!$company) {
            return response()->json(['error' => 'Company not found'], 404);
        }
-
+   
        session()->put('selected_company', [
            'id'   => $company->id,
            'name' => $company->company_name,
        ]);
-
+   
        $selectedCompany = session('selected_company');
        return response()->json([
            'message' => 'Selected company set successfully.',
            'selected_company' => $selectedCompany,
        ]);
    }
+   
+   public function getSelectedCompanies()
+   {
+       if (!Auth::check()) {
+           return response()->json(['error' => 'Unauthorized'], 401);
+       }
+       $user = Auth::user();
 
-
-public function getSelectedCompanies(Request $request)
-{
-    if (!Auth::check()) {
-        return response()->json(['error' => 'Unauthorized'], 401);
-    }
-    $user = Auth::user();
-
-    $selectedCompany = session('selected_company');
-
-    if (!$selectedCompany) {
-        return response()->json(['error' => 'No selected company set'], 404);
-    }
-
-    if ($user->company_id != $selectedCompany['id']) {
-        return response()->json([
-            'error' => 'You are not authorized to access this company.'
-        ], 403);
-    }
-
-    return response()->json([
-        'message' => 'Selected company retrieved successfully.',
-        'selected_company' => $selectedCompany,
-    ]);
-}
-
+       dd(session('selected_company'));
+   
+       $selectedCompany = session('selected_company');
+   
+       if (!$selectedCompany) {
+           return response()->json(['error' => 'No selected company set'], 404);
+       }
+   
+       if ($user->company_id != $selectedCompany['id']) {
+           return response()->json([
+               'error' => 'You are not authorized to access this company.'
+           ], 403);
+       }
+   
+       return response()->json([
+           'message' => 'Selected company retrieved successfully.',
+           'selected_company' => $selectedCompany,
+       ]);
+   }
    
 }
