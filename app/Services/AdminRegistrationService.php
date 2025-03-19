@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Carbon\Carbon;
+use Spatie\Permission\Models\Role;
 
 class AdminRegistrationService
 {
@@ -21,18 +22,15 @@ class AdminRegistrationService
             ]);
         }
 
-
-
-        $getNumber = $data['number']; 
+        $getNumber = $data['number'];
         $alreadyUser = User::where('number', $getNumber)->first();
-        
+
         if ($alreadyUser) {
             throw ValidationException::withMessages([
-                'error' => ['Already a user login and upgrade the package']
+                'error' => ['User already exists. Please login and upgrade the package.']
             ]);
         }
-        
-        
+
         return DB::transaction(function () use ($data, $slug) {
 
             $company = Company::create([
@@ -43,26 +41,32 @@ class AdminRegistrationService
                 'verification_status' => 'pending',
             ]);
 
+           
+
             $uid = User::generateUid();
 
             $user = User::create([
-                'uid'        => $uid,
-                'name'       => $data['name'],
-                'email'      => $data['email'],
-                'password'   => Hash::make($data['password']),
-                'role'       => 'admin',
-                'number'     => $data['number'],
-                'company_id' => $company->id,
+                'uid'      => $uid,
+                'name'     => $data['name'],
+                'email'    => $data['email'],
+                'password' => Hash::make($data['password']),
+                'number'   => $data['number'],
                 'user_type' => 'admin',
             ]);
 
+            $user->companies()->attach($company->id, ['role' => 'admin']);
+
+            $role = Role::firstOrCreate(['name' => 'admin']);
+
+            $user->assignRole($role);
             DB::table('roles')->insert([
                 'name'        => 'Admin',
                 'guard_name'  => 'web',
-                'company_id'  => $company->id,
+                'company_id'  => $company->id, 
                 'created_at'  => Carbon::now(),
                 'updated_at'  => Carbon::now(),
             ]);
+            
 
             return ['user' => $user, 'company' => $company];
         });

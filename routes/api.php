@@ -29,7 +29,7 @@ Route::prefix('v1')->group(function () {
     
     
     // **Protected Routes (Require Sanctum Authentication)** //
-    Route::middleware(['auth:sanctum', StartSession::class])->group(function () {
+    Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
         Route::apiResource('permissions', PermissionController::class);
         Route::post('/password/change', [AuthController::class, 'resetPassword']);

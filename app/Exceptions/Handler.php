@@ -25,7 +25,6 @@ class Handler extends ExceptionHandler
     protected $dontFlash = [
         'current_password',
         'password',
-        'password_confirmation',
     ];
 
     /**
@@ -47,7 +46,6 @@ class Handler extends ExceptionHandler
      */
     protected function unauthenticated($request, AuthenticationException $exception)
     {
-        // Always return a JSON response to prevent redirection to a non-existent login route.
-        return response()->json(['error' => 'Unauthenticated.'], 401);
+        return response()->json(['error' => 'Unauthenticated User.'], 401);
     }
 }

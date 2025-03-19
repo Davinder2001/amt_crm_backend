@@ -59,6 +59,8 @@ class CompanyController extends Controller
            'message' => 'Company deleted successfully.'
        ]);
    }
+
+
    public function selectedCompanies($id)
    {
        $company = Company::find($id);
@@ -67,26 +69,29 @@ class CompanyController extends Controller
            return response()->json(['error' => 'Company not found'], 404);
        }
    
+       // Store both company details and authenticated user ID in the session
        session()->put('selected_company', [
            'id'   => $company->id,
            'name' => $company->company_name,
+           'user_id' => Auth::id(), // Store the authenticated user's ID
        ]);
    
        $selectedCompany = session('selected_company');
+       
        return response()->json([
            'message' => 'Selected company set successfully.',
            'selected_company' => $selectedCompany,
        ]);
    }
    
-   public function getSelectedCompanies()
+   
+   public function getSelectedCompanies(Request $request)
    {
        if (!Auth::check()) {
            return response()->json(['error' => 'Unauthorized'], 401);
        }
+   
        $user = Auth::user();
-
-       dd(session('selected_company'));
    
        $selectedCompany = session('selected_company');
    
@@ -94,7 +99,8 @@ class CompanyController extends Controller
            return response()->json(['error' => 'No selected company set'], 404);
        }
    
-       if ($user->company_id != $selectedCompany['id']) {
+       // Check that the session's user ID matches the authenticated user's ID
+       if ($user->id !== $selectedCompany['user_id']) {
            return response()->json([
                'error' => 'You are not authorized to access this company.'
            ], 403);

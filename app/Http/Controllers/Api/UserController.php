@@ -16,7 +16,6 @@ class UserController extends Controller
      */
     public function index()
     {
-        // Retrieve all users with their roles.
         $users = User::with('roles')->get();
 
         return response()->json([
@@ -26,12 +25,12 @@ class UserController extends Controller
         ], 200);
     }
 
+    
     /**
      * Store a newly created user.
      */
     public function store(Request $request)
     {
-        // Validate the incoming request without a UID field.
         $validator = Validator::make($request->all(), [
             'name'     => 'required|string|max:255',
             'email'    => 'required|string|email|max:255|unique:users',
@@ -46,7 +45,6 @@ class UserController extends Controller
             ], 422);
         }
 
-        // Always generate a unique UID based on the last user's UID.
         $lastUser = User::orderBy('id', 'desc')->first();
         if ($lastUser && $lastUser->uid) {
             $lastNumber = (int) substr($lastUser->uid, 3);
@@ -64,7 +62,6 @@ class UserController extends Controller
             'number'   => $request->number,
         ]);
 
-        // Always assign the default role "user"
         $user->assignRole('user');
 
         return response()->json([
@@ -72,6 +69,7 @@ class UserController extends Controller
             'user'    => new UserResource($user->load('roles')),
         ], 201);
     }
+
 
     /**
      * Display the specified user.
@@ -86,6 +84,7 @@ class UserController extends Controller
         ]);
     }
 
+
     /**
      * Update the specified user.
      */
@@ -93,7 +92,6 @@ class UserController extends Controller
     {
         $user = User::findOrFail($id);
 
-        // Do not allow updating the UID.
         $validator = Validator::make($request->all(), [
             'name'     => 'sometimes|string|max:255',
             'email'    => 'sometimes|string|email|max:255|unique:users,email,' . $user->id,
@@ -130,6 +128,7 @@ class UserController extends Controller
         ]);
     }
 
+
     /**
      * Remove the specified user.
      */
@@ -141,16 +140,16 @@ class UserController extends Controller
         return response()->json(['message' => 'User deleted successfully.']);
     }
 
-/**
- * Get the authenticated user.
- */
-public function authUser(Request $request)
-{
-    return response()->json([
-        'message' => 'Authenticated user retrieved successfully.',
-        'user'    => new UserResource($request->user()->load('roles', 'companies')),
-    ]);
-}
 
-    
+    /**
+     * Get the authenticated user.
+     */
+    public function authUser(Request $request)
+    {
+        
+        return response()->json([
+            'message' => 'Authenticated user retrieved successfully.',
+            'user'    => new UserResource($request->user()->load('roles', 'companies')),
+        ]);
+    }
 }
