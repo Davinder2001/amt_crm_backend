@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Company;
+use Illuminate\Support\Facades\Auth;
 use App\Http\Resources\CompanyResource;
 
 
@@ -58,7 +59,7 @@ class CompanyController extends Controller
            'message' => 'Company deleted successfully.'
        ]);
    }
-   public function selectedCompanies(Request $request, $id)
+   public function selectedCompanies($id)
    {
         $company = Company::find($id);
        
@@ -78,5 +79,32 @@ class CompanyController extends Controller
            'selected_company' => $selectedCompany,
        ]);
    }
+
+
+public function getSelectedCompanies(Request $request)
+{
+    if (!Auth::check()) {
+        return response()->json(['error' => 'Unauthorized'], 401);
+    }
+    $user = Auth::user();
+
+    $selectedCompany = session('selected_company');
+
+    if (!$selectedCompany) {
+        return response()->json(['error' => 'No selected company set'], 404);
+    }
+
+    if ($user->company_id != $selectedCompany['id']) {
+        return response()->json([
+            'error' => 'You are not authorized to access this company.'
+        ], 403);
+    }
+
+    return response()->json([
+        'message' => 'Selected company retrieved successfully.',
+        'selected_company' => $selectedCompany,
+    ]);
+}
+
    
 }

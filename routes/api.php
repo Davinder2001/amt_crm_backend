@@ -81,7 +81,8 @@ Route::prefix('v1')->group(function () {
         Route::post('companies', [CompanyController::class, 'store']);
         Route::put('companies/{id}', [CompanyController::class, 'update']);
         Route::delete('companies/{id}', [CompanyController::class, 'destroy']);
-        Route::get('selectedCompanies/{id}', [CompanyController::class, 'selectedCompanies']);
+        Route::get('selectedCompanies', [CompanyController::class, 'getSelectedCompanies']);
+        Route::post('selectedCompanies/{id}', [CompanyController::class, 'selectedCompanies']);
         
     });
 });

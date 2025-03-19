@@ -35,10 +35,10 @@ class EmployeeController extends Controller
         try {
             $data = $request->validate([
                 'name'         => 'required|string|max:255',
-                'email'        => 'required|string|email|max:255|unique:users',
+                'email'        => 'required|string|email|max:255',
                 'password'     => 'required|string|min:8',
                 'number'       => 'required|string|max:20',
-                'role'         => 'required|required|exists:roles,name',
+                'role'         => 'required|exists:roles,name',
                 'dateOfHire'   => 'required|nullable|date',
                 'joiningDate'  => 'required|nullable|date',
                 'shiftTimings' => 'required|nullable|string'
@@ -55,21 +55,28 @@ class EmployeeController extends Controller
                 ], 400);
             }
     
+            // Retrieve company id from session
+            $companyId = session('selected_company.id');
+    
+            // Create employee with generated UID and company_id from session
             $employee = User::create([
                 'name'       => $data['name'],
                 'email'      => $data['email'],
                 'password'   => Hash::make($data['password']),
-                'company_id' => $request->user()->company_id ?? null,
+                'company_id' => $companyId,
                 'number'     => $data['number'],
                 'user_type'  => 'employee',
+                'uid'        => User::generateUid(),
             ]);
     
             $employee->assignRole($data['role']);
     
+            // Prepare meta fields including the company id from session
             $metaFields = [
                 'dateOfHire'   => $data['dateOfHire'] ?? null,
                 'joiningDate'  => $data['joiningDate'] ?? null,
                 'shiftTimings' => $data['shiftTimings'] ?? null,
+                'company_id'   => $companyId,
             ];
     
             foreach ($metaFields as $metaKey => $metaValue) {
@@ -98,6 +105,7 @@ class EmployeeController extends Controller
             ], 500);
         }
     }
+    
     
 
     /**
