@@ -9,21 +9,22 @@ use App\Http\Controllers\API\PermissionController;
 use App\Http\Controllers\API\TaskController;
 use App\Http\Controllers\API\EmployeeController;
 use App\Http\Controllers\API\CompanyController;
+use Illuminate\Session\Middleware\StartSession;
 
 
 Route::prefix('v1')->group(function () {
 
 
-    // **Public API Routes (No Authentication Required)**
-    Route::middleware(['api'])->group(function () {
+
+    Route::middleware(['api', StartSession::class])->group(function () {
         Route::post('login', [AuthController::class, 'login']);
         Route::post('c-login', [AuthController::class, 'companyLogin']);
         Route::post('register', [AuthController::class, 'register']);
         Route::post('admin-register', [AuthController::class, 'adminRegister']);
         Route::post('/password/forgot', [AuthController::class, 'sendResetOtp']);
         Route::post('/password/verify-otp', [AuthController::class, 'verifyOtp']);
-        
     });
+    
     
     
     

@@ -141,14 +141,16 @@ class UserController extends Controller
         return response()->json(['message' => 'User deleted successfully.']);
     }
 
-    /**
-     * Get the authenticated user.
-     */
-    public function authUser(Request $request)
-    {
-        return response()->json([
-            'message' => 'Authenticated user retrieved successfully.',
-            'user'    => new UserResource($request->user()->load('roles')),
-        ]);
-    }
+/**
+ * Get the authenticated user.
+ */
+public function authUser(Request $request)
+{
+    return response()->json([
+        'message' => 'Authenticated user retrieved successfully.',
+        'user'    => new UserResource($request->user()->load('roles', 'companies')),
+    ]);
+}
+
+    
 }
