@@ -55,7 +55,6 @@ class EmployeeController extends Controller
                 ], 400);
             }
     
-            // Create the employee
             $employee = User::create([
                 'name'       => $data['name'],
                 'email'      => $data['email'],
@@ -67,7 +66,6 @@ class EmployeeController extends Controller
     
             $employee->assignRole($data['role']);
     
-            // Save extra meta data if provided.
             $metaFields = [
                 'dateOfHire'   => $data['dateOfHire'] ?? null,
                 'joiningDate'  => $data['joiningDate'] ?? null,

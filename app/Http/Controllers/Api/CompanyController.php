@@ -58,4 +58,25 @@ class CompanyController extends Controller
            'message' => 'Company deleted successfully.'
        ]);
    }
+   public function selectedCompanies(Request $request, $id)
+   {
+        $company = Company::find($id);
+       
+       
+       if (!$company) {
+           return response()->json(['error' => 'Company not found'], 404);
+       }
+
+       session()->put('selected_company', [
+           'id'   => $company->id,
+           'name' => $company->company_name,
+       ]);
+
+       $selectedCompany = session('selected_company');
+       return response()->json([
+           'message' => 'Selected company set successfully.',
+           'selected_company' => $selectedCompany,
+       ]);
+   }
+   
 }

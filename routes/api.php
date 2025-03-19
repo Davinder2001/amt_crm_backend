@@ -29,7 +29,7 @@ Route::prefix('v1')->group(function () {
     
     
     // **Protected Routes (Require Sanctum Authentication)** //
-    Route::middleware(['web' , 'auth:sanctum'])->group(function () {
+    Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
         Route::apiResource('permissions', PermissionController::class);
         Route::post('/password/change', [AuthController::class, 'resetPassword']);
@@ -67,20 +67,21 @@ Route::prefix('v1')->group(function () {
         Route::delete('tasks/{id}', [TaskController::class, 'destroy']);
 
         
-        // **Task Management**
+        // **Task Management** //
         Route::get('employee', [EmployeeController::class, 'index']);
         Route::post('employee', [EmployeeController::class, 'store']);
         Route::get('employee/{id}', [EmployeeController::class, 'show']);
         Route::put('employee/{id}', [EmployeeController::class, 'update']);
         Route::delete('employee/{id}', [EmployeeController::class, 'destroy']);
         
-    });
-    
 
+       // ** Companey Management **//
         Route::get('companies', [CompanyController::class, 'index']);
         Route::get('companies/{id}', [CompanyController::class, 'show']);
         Route::post('companies', [CompanyController::class, 'store']);
         Route::put('companies/{id}', [CompanyController::class, 'update']);
         Route::delete('companies/{id}', [CompanyController::class, 'destroy']);
-
+        Route::get('selectedCompanies/{id}', [CompanyController::class, 'selectedCompanies']);
+        
+    });
 });
