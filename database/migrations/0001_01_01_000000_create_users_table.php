@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('email');
-            $table->string('number');
+            $table->string('number', 10);
             $table->string('uid')->unique()->nullable();
             $table->enum('user_type', ['super-admin' , 'admin', 'employee', 'user'])->default('user');
             $table->enum('user_status', ['active', 'inactive'])->default('active');
