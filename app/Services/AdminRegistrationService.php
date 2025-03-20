@@ -56,17 +56,16 @@ class AdminRegistrationService
 
             $user->companies()->attach($company->id, ['role' => 'admin']);
 
-            $role = Role::firstOrCreate(['name' => 'admin']);
 
-            $user->assignRole($role);
             DB::table('roles')->insert([
-                'name'        => 'Admin',
+                'name'        => 'admin',
                 'guard_name'  => 'web',
                 'company_id'  => $company->id, 
                 'created_at'  => Carbon::now(),
                 'updated_at'  => Carbon::now(),
             ]);
             
+            $user->assignRole('admin');
 
             return ['user' => $user, 'company' => $company];
         });

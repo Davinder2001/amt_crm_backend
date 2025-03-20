@@ -13,9 +13,10 @@ class CreateCompanyUserTable extends Migration
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('company_id')->constrained('companies')->onDelete('cascade');
             $table->enum('role', ['super_admin', 'admin', 'manager', 'staff'])->default('admin');
+            $table->boolean('status')->default(0);
             $table->timestamps();
 
-            $table->unique(['user_id', 'company_id']); // Optional: Prevent duplicate entries
+            $table->unique(['user_id', 'company_id']);
         });
     }
 
