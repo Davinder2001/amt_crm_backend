@@ -15,10 +15,7 @@ class CompanyScope implements Scope
         $user = Auth::user();
 
         if ($user) {
-            $activeCompany = CompanyUser::where('user_id', $user->id)
-                                        ->where('status', 1)
-                                        ->value('company_id');
-
+            $activeCompany = CompanyUser::where('user_id', $user->id)->where('status', 1)->value('company_id');
             if ($activeCompany) {
                 $builder->where($model->getTable() . '.company_id', $activeCompany);
             }

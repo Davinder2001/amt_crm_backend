@@ -83,6 +83,7 @@ class User extends Authenticatable
                     ->withTimestamps();
     }
 
+    
 
     public function company()
     {
