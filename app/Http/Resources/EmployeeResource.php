@@ -14,16 +14,17 @@ class EmployeeResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $company = $this->companies->first(); 
+        
         return [
             'id'            => $this->id,
             'name'          => $this->name,
             'email'         => $this->email,
             'number'        => $this->number,
             'user_type'     => $this->user_type,
-            'user_status'     => $this->user_status,
-            'company_id'    => $this->company_id,
-            'company_name'  => $this->company_name,
-            'company_slug'  => $this->company->company_slug,
+            'user_status'   => $this->user_status,
+            'company_id'    => $company ? $company->id : null,
+            'company_slug'  => $company ? $company->company_slug : null,
             'roles'         => RoleResource::collection($this->whenLoaded('roles')),
             'meta'          => $this->meta->pluck('meta_value', 'meta_key'),
         ];

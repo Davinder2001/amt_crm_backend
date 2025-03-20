@@ -83,6 +83,13 @@ class User extends Authenticatable
                     ->withTimestamps();
     }
 
+
+    public function company()
+    {
+        return $this->belongsTo(Company::class);
+    }
+
+
     /**
      * Fetch the role of the user in a specific company.
      */

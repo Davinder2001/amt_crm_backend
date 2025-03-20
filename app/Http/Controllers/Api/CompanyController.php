@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Company;
+use App\Services\SelectedCompanyService;
 use App\Models\CompanyUser;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Resources\CompanyResource;
@@ -88,19 +89,9 @@ class CompanyController extends Controller
    
    
    
-   public function getSelectedCompanies(Request $request)
+   public function getSelectedCompanies()
 {
-    if (!Auth::check()) {
-        return response()->json(['error' => 'Unauthorized'], 401);
-    }
-
-    $user = Auth::user();
-
-    // Get the active company for this user
-    $selectedCompany = CompanyUser::where('user_id', $user->id)
-                                  ->where('status', 1)
-                                  ->with('company') 
-                                  ->first();
+    $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
 
     if (!$selectedCompany) {
         return response()->json(['error' => 'No active company selected'], 404);

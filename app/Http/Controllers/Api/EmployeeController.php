@@ -5,11 +5,14 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\UserMeta;
+use App\Models\CompanyUser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Resources\EmployeeResource;
+use Illuminate\Support\Facades\Auth;
+
 
 
 class EmployeeController extends Controller
@@ -29,19 +32,18 @@ class EmployeeController extends Controller
     }
 
    
-    
     public function store(Request $request)
     {
         try {
             $data = $request->validate([
                 'name'         => 'required|string|max:255',
-                'email'        => 'required|string|email|max:255',
+                'email'        => 'required|string|email|max:255|unique:users,email',
                 'password'     => 'required|string|min:8',
-                'number'       => 'required|string|max:20',
+                'number'       => 'required|string|max:20|unique:users,number',
                 'role'         => 'required|exists:roles,name',
-                'dateOfHire'   => 'required|nullable|date',
-                'joiningDate'  => 'required|nullable|date',
-                'shiftTimings' => 'required|nullable|string'
+                'dateOfHire'   => 'nullable|date',
+                'joiningDate'  => 'nullable|date',
+                'shiftTimings' => 'nullable|string'
             ]);
     
             $existingUser = User::where('number', $data['number'])
@@ -55,28 +57,34 @@ class EmployeeController extends Controller
                 ], 400);
             }
     
-            // Retrieve company id from session
-            $companyId = session('selected_company.id');
+            $user = Auth::user();
+            $company = $user->companies()->first();
+
+            CompanyUser::where('user_id', $user->id)
+            ->where('company_id', $company->id)
+            ->where('role', 'employee')
+            ->update(['status' => 1]);
+ 
+            if (!$company) {
+                return response()->json(['message' => 'No associated company found for the authenticated user.'], 400);
+            }
     
-            // Create employee with generated UID and company_id from session
             $employee = User::create([
                 'name'       => $data['name'],
                 'email'      => $data['email'],
                 'password'   => Hash::make($data['password']),
-                'company_id' => $companyId,
                 'number'     => $data['number'],
                 'user_type'  => 'employee',
                 'uid'        => User::generateUid(),
             ]);
     
+            $employee->companies()->attach($company->id, ['role' => $data['role']]);    
             $employee->assignRole($data['role']);
-    
-            // Prepare meta fields including the company id from session
+            
             $metaFields = [
                 'dateOfHire'   => $data['dateOfHire'] ?? null,
                 'joiningDate'  => $data['joiningDate'] ?? null,
                 'shiftTimings' => $data['shiftTimings'] ?? null,
-                'company_id'   => $companyId,
             ];
     
             foreach ($metaFields as $metaKey => $metaValue) {
@@ -93,6 +101,7 @@ class EmployeeController extends Controller
                 'message'  => 'Employee created successfully.',
                 'employee' => new EmployeeResource($employee->load('roles')),
             ], 201);
+    
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'message' => 'Validation failed.',
@@ -105,6 +114,7 @@ class EmployeeController extends Controller
             ], 500);
         }
     }
+    
     
     
 
