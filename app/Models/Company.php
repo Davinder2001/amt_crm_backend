@@ -10,34 +10,18 @@ class Company extends Model
     use HasFactory;
 
     protected $fillable = [
-        'company_id',
         'company_name',
+        'company_id',
         'admin_id',
         'company_slug',
         'payment_status',
         'verification_status',
     ];
 
-    /**
-     * Automatically generate a sequential company ID.
-     */
-    public static function generateCompanyId(): string
+    public function users()
     {
-        $lastCompany = self::latest('id')->first();
-        $lastId = $lastCompany ? $lastCompany->company_id : null;
-        $nextNumber = $lastId 
-            ? ((int) str_replace('AMTCOM', '', $lastId) + 1)
-            : 1;
-        return 'AMTCOM' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
+        return $this->hasMany(User::class);
     }
 
-    /**
-     * Relationship with the admin user.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
-     */
-    public function admin()
-    {
-        return $this->belongsTo(\App\Models\User::class, 'admin_id');
-    }
 }
+

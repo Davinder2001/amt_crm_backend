@@ -26,12 +26,22 @@ class RoleController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name'          => 'required|string|unique:roles,name',
+            'name'          => 'required|string',
             'guard_name'    => 'nullable|string',
             'permissions'   => 'nullable|array',
             'permissions.*' => 'string|exists:permissions,name',
         ]);
+        
+            $roleExists = Role::where('name', $request->name)
+            ->where('company_id', $request->company_id)
+            ->exists();
 
+        if ($roleExists) {
+            return response()->json([
+                'message' => 'Validation failed.',
+                'errors'  => ['A role with this name already exists for this company.'],
+            ], 422);
+        }
         if ($validator->fails()) {
             return response()->json([
                 'message' => 'Validation failed.',
@@ -39,11 +49,12 @@ class RoleController extends Controller
             ], 422);
         }
 
-        $company = SelectedCompanyService::getSelectedCompanyOrFail();
 
+        $company = SelectedCompanyService::getCompanyIdOrFail();
+    
         $data = $validator->validated();
         $data['guard_name'] = $data['guard_name'] ?? 'web';
-        $data['company_id'] = $company->id;
+        $data['company_id'] = $company;
 
         $role = Role::create($data);
 

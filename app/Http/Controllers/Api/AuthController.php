@@ -10,7 +10,6 @@ use Illuminate\Validation\ValidationException;
 use App\Services\AdminRegistrationService;
 use App\Http\Requests\AdminRegisterRequest;
 use App\Models\User;
-
 use Illuminate\Support\Facades\Auth;
 use App\Http\Resources\UserResource;
 use Illuminate\Http\JsonResponse;
@@ -35,25 +34,23 @@ class AuthController extends Controller
             'password' => 'required|string|min:8',
             'number'   => 'required|string|max:20',
         ]);
-    
+
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
-    
+
         $data = $validator->validated();
 
         $alreadyUser = User::where('number', $data['number'])
-        ->where('user_type', 'user')
-        ->exists();
+            ->where('user_type', 'user')
+            ->exists();
 
-        if($alreadyUser) {
+        if ($alreadyUser) {
             return response()->json([
                 'errors' => ['number' => ['You are already register kindly login.']]
             ], 422);
         }
 
-
-    
         $user = User::create([
             'name'     => $data['name'],
             'email'    => $data['email'],
@@ -61,11 +58,10 @@ class AuthController extends Controller
             'password' => Hash::make($data['password']),
             'uid'      => User::generateUid(),
         ]);
-    
+
         $user->assignRole('user');
-    
         $token = $user->createToken('auth_token')->plainTextToken;
-    
+
         return response()->json([
             'message'      => 'User registered successfully.',
             'access_token' => $token,
@@ -73,30 +69,28 @@ class AuthController extends Controller
             'user'         => new UserResource($user),
         ], 201);
     }
-    
 
-    public function adminRegister(AdminRegisterRequest $request): JsonResponse
-    {
-        $data = $request->validated();
+        public function adminRegister(AdminRegisterRequest $request): JsonResponse
+        {
+            $data = $request->validated();
 
-        try {
-            $result = $this->registrationService->register($data);
-            $result['user']->assignRole('admin');
+            try {
+                $result = $this->registrationService->register($data);
+                $result['user']->assignRole('admin');
 
-            return response()->json([
-                'message' => 'Admin registered successfully. Company and role assigned.',
-                'user'    => new UserResource($result['user']->load('roles')),
-                'company' => $result['company'],
-            ], 201);
-        } catch (ValidationException $e) {
-            return response()->json(['errors' => $e->errors()], 422);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 422);
+                return response()->json([
+                    'message' => 'Admin registered successfully. Company and role assigned.',
+                    'user'    => new UserResource($result['user']->load('roles')),
+                    'company' => $result['company'],
+                ], 201);
+            } catch (ValidationException $e) {
+                return response()->json(['errors' => $e->errors()], 422);
+            } catch (\Exception $e) {
+                return response()->json(['error' => $e->getMessage()], 422);
+            }
         }
-    }
 
 
-    /*** Normal User Login ***/
     public function login(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -111,7 +105,6 @@ class AuthController extends Controller
         $data = $validator->validated();
         $user = User::where('number', $data['number'])->where('user_type', 'user')->first();
 
-        
         if (!$user || !Hash::check($data['password'], $user->password)) {
             return response()->json(['error' => 'Invalid credentials.'], 401);
         }
@@ -132,27 +125,24 @@ class AuthController extends Controller
             'number'   => 'required|string',
             'password' => 'required|string',
         ]);
-    
+
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
-    
+
         $data = $validator->validated();
-        
         $user = User::with('companies')
-                    ->where('number', $data['number'])
-                    ->whereIn('user_type', ['employee', 'admin'])
-                    ->first();
-                    
-    
+            ->where('number', $data['number'])
+            ->whereIn('user_type', ['employee', 'admin'])
+            ->first();
+
         if (!$user || !Hash::check($data['password'], $user->password)) {
             return response()->json(['error' => 'Invalid credentials.'], 401);
         }
-    
+
         $request->session()->regenerate();
-    
         $token = $user->createToken('auth_token')->plainTextToken;
-    
+
         return response()->json([
             'message'      => 'Logged in successfully.',
             'access_token' => $token,
@@ -160,17 +150,15 @@ class AuthController extends Controller
             'user'         => new UserResource($user),
         ]);
     }
-    
 
     public function logout(Request $request): JsonResponse
     {
         $request->user()->currentAccessToken()->delete();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-    
+
         return response()->json(['message' => 'Logged out successfully.']);
     }
-    
 
     public function sendResetOtp(Request $request): JsonResponse
     {
@@ -186,13 +174,11 @@ class AuthController extends Controller
         Cache::put('otp_' . $request->email, $otp, now()->addMinutes(10));
 
         Mail::raw("Your password reset OTP is: $otp", function ($message) use ($request) {
-            $message->to($request->email)
-                ->subject('Password Reset OTP');
+            $message->to($request->email)->subject('Password Reset OTP');
         });
 
         return response()->json(['message' => 'OTP sent successfully.']);
     }
-
 
     public function verifyOtp(Request $request): JsonResponse
     {
@@ -201,42 +187,40 @@ class AuthController extends Controller
             'otp'      => 'required|integer',
             'password' => 'required|string|min:8|confirmed',
         ]);
-    
+
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
-    
+
         $storedOtp = Cache::get('otp_' . $request->email);
-    
+
         if (!$storedOtp || $storedOtp != $request->otp) {
             return response()->json(['error' => 'Invalid OTP.'], 400);
         }
 
         $user = User::where('email', $request->email)->first();
-        $user->update([
-            'password' => Hash::make($request->password),
-        ]);
-    
+        $user->update(['password' => Hash::make($request->password)]);
         Cache::forget('otp_' . $request->email);
-    
+
         return response()->json(['message' => 'OTP verified and password reset successfully.']);
     }
-    
 
     public function resetPassword(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
             'password' => 'required|string|min:8|confirmed',
         ]);
-        
+    
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
-
+    
         $data = $validator->validated();
-        /** @var User $user */
-        $user = Auth::user(); 
-        $user->update(['password' => Hash::make($data['password'])]);
+    
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+            $user->update(['password' => Hash::make($data['password'])]);
+    
         return response()->json(['message' => 'Password reset successfully.']);
     }
     

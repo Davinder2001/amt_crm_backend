@@ -16,6 +16,9 @@ class EmployeeResource extends JsonResource
     {
         $company = $this->companies->first(); 
 
+        // dd($company);
+
+
         return [
             'id'            => $this->id,
             'name'          => $this->name,
@@ -23,11 +26,13 @@ class EmployeeResource extends JsonResource
             'number'        => $this->number,
             'user_type'     => $this->user_type,
             'user_status'   => $this->user_status,
-            'company_name'    => $company ? $company->name : null,
+            'company_name'  => $company ? $company->company_name : null,
             'company_id'    => $company ? $company->id : null,
             'company_slug'  => $company ? $company->company_slug : null,
             'roles'         => RoleResource::collection($this->whenLoaded('roles')),
-            'meta'          => $this->meta->pluck('meta_value', 'meta_key'),
+            'meta'          => $this->whenLoaded('meta', function () {
+                                  return $this->meta ? $this->meta->pluck('meta_value', 'meta_key') : [];
+                              }, []),
         ];
     }
 }

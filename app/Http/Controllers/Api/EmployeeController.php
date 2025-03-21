@@ -6,96 +6,67 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\UserMeta;
 use App\Models\CompanyUser;
+use \App\Services\EmployeeCreateService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Resources\EmployeeResource;
 use Illuminate\Support\Facades\Auth;
+use App\Services\UserUidService;
+use App\Services\SelectedCompanyService;
+
 
 
 
 class EmployeeController extends Controller
 {
+
+    protected $selectcompanyService;
+
+    public function __construct(SelectedCompanyService $selectcompanyService)
+    {
+        $this->selectcompanyService = $selectcompanyService;
+    }
+
+
+
     /**
      * Display a listing of employees.
      */
     public function index()
     {
-        $employees = User::where('user_type', 'employee')->with(['roles.permissions', 'company'])->get();
 
+        $employees = User::where('user_type', 'admin')
+        ->with(['roles.permissions', 'companies', 'meta'])
+        ->get();
+        
         return response()->json([
             'message'   => 'Employees retrieved successfully.',
             'employees' => EmployeeResource::collection($employees),
             'total'     => $employees->count(),
         ], 200);
     }
+    
 
    
-    public function store(Request $request)
+    public function store(Request $request, EmployeeCreateService $userCreateService)
     {
         try {
+            // Only perform request validation in the controller.
             $data = $request->validate([
                 'name'         => 'required|string|max:255',
                 'email'        => 'required|string|email|max:255|unique:users,email',
                 'password'     => 'required|string|min:8',
-                'number'       => 'required|string|max:20|unique:users,number',
+                'number'       => 'required|string|max:20',
                 'role'         => 'required|exists:roles,name',
                 'dateOfHire'   => 'nullable|date',
                 'joiningDate'  => 'nullable|date',
                 'shiftTimings' => 'nullable|string'
             ]);
     
-            $existingUser = User::where('number', $data['number'])
-                ->where('user_type', 'employee')
-                ->where('user_status', 'active')
-                ->first();
-    
-            if ($existingUser) {
-                return response()->json([
-                    'message' => 'This phone number is already in use by an active employee.',
-                ], 400);
-            }
-    
-            $user = Auth::user();
-            $company = $user->companies()->first();
-
-            CompanyUser::where('user_id', $user->id)
-            ->where('company_id', $company->id)
-            ->where('role', 'employee')
-            ->update(['status' => 1]);
- 
-            if (!$company) {
-                return response()->json(['message' => 'No associated company found for the authenticated user.'], 400);
-            }
-    
-            $employee = User::create([
-                'name'       => $data['name'],
-                'email'      => $data['email'],
-                'password'   => Hash::make($data['password']),
-                'number'     => $data['number'],
-                'user_type'  => 'employee',
-                'uid'        => User::generateUid(),
-            ]);
-    
-            $employee->companies()->attach($company->id, ['role' => $data['role']]);    
-            $employee->assignRole($data['role']);
-            
-            $metaFields = [
-                'dateOfHire'   => $data['dateOfHire'] ?? null,
-                'joiningDate'  => $data['joiningDate'] ?? null,
-                'shiftTimings' => $data['shiftTimings'] ?? null,
-            ];
-    
-            foreach ($metaFields as $metaKey => $metaValue) {
-                if (!is_null($metaValue)) {
-                    UserMeta::create([
-                        'user_id'    => $employee->id,
-                        'meta_key'   => $metaKey,
-                        'meta_value' => $metaValue,
-                    ]);
-                }
-            }
+            // Delegate employee creation and association to the service.
+            $employee = $userCreateService->createEmployee($data);
     
             return response()->json([
                 'message'  => 'Employee created successfully.',
@@ -107,6 +78,7 @@ class EmployeeController extends Controller
                 'message' => 'Validation failed.',
                 'errors'  => $e->errors(),
             ], 422);
+    
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Something went wrong. Please try again.',
@@ -114,7 +86,6 @@ class EmployeeController extends Controller
             ], 500);
         }
     }
-    
     
     
 

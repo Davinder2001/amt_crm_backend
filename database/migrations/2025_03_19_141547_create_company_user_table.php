@@ -15,8 +15,6 @@ class CreateCompanyUserTable extends Migration
             $table->enum('user_type', ['super_admin', 'admin', 'staff'])->nullable();
             $table->boolean('status')->default(0);
             $table->timestamps();
-
-            $table->unique(['user_id', 'company_id']);
         });
     }
 

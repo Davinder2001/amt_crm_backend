@@ -14,7 +14,7 @@ class CompanyUser extends Model
     protected $fillable = [
         'user_id',
         'company_id',
-        'role',
+        'user_type',
         'created_at',
         'updated_at',
     ];
@@ -29,4 +29,5 @@ class CompanyUser extends Model
     {
         return $this->belongsTo(Company::class, 'company_id');
     }
+    
 }
