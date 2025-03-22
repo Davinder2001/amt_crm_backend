@@ -4,17 +4,15 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Models\UserMeta;
-use App\Models\CompanyUser;
 use \App\Services\EmployeeCreateService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Resources\EmployeeResource;
-use Illuminate\Support\Facades\Auth;
-use App\Services\UserUidService;
+use App\Http\Resources\SalaryResource;
 use App\Services\SelectedCompanyService;
+use Barryvdh\DomPDF\Facade as PDF;
 
 
 
@@ -37,7 +35,7 @@ class EmployeeController extends Controller
     public function index()
     {
 
-        $employees = User::where('user_type', 'admin')
+        $employees = User::where('user_type', 'employee')
         ->with(['roles.permissions', 'companies', 'meta'])
         ->get();
         
@@ -162,4 +160,50 @@ class EmployeeController extends Controller
 
         return response()->json(['message' => 'Employee deleted successfully.']);
     }
+
+
+    public function salarySlip($id)
+    {
+
+        $employee = User::where('user_type', 'employee')
+            ->with(['roles.permissions', 'companies', 'meta'])
+            ->find($id); 
+
+        if (!$employee) {
+            return response()->json([
+                'message' => 'Employee not found.'
+            ], 404);
+        }
+    
+        return response()->json([
+            'message'   => 'Employee retrieved successfully.',
+            'employee'  => new SalaryResource($employee),
+        ], 200);
+    }
+
+    // public function downloadSalarySlipPdf($id)
+    // {
+
+    //     $employee = User::where('user_type', 'employee')
+    //         ->with(['roles.permissions', 'companies', 'meta'])
+    //         ->find($id); 
+
+    //     if (!$employee) {
+    //         return response()->json([
+    //             'message' => 'Employee not found.'
+    //         ], 404);
+    //     }
+
+    //     $pdfData = [
+    //         'employee' => $employee,
+    //         'salaryDetails' => $employee->salaryDetails(), 
+    //     ];
+
+    //     $pdf = PDF::loadView('pdf.salary-slip', $pdfData);
+
+    //     return $pdf->download('salary-slip-' . $employee->id . '.pdf');
+    // }
+
+    
+
 }

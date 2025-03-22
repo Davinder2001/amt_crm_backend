@@ -12,16 +12,71 @@ class PermissionsTableSeeder extends Seeder
      */
     public function run(): void
     {
-        // Permissions for Users
-        Permission::firstOrCreate(['name' => 'view users']);
-        Permission::firstOrCreate(['name' => 'add users']);
-        Permission::firstOrCreate(['name' => 'edit users']);
-        Permission::firstOrCreate(['name' => 'delete users']);
+        // ================================
+        // User Management Permissions
+        // ================================
+        $userPermissions = [
+            'view users',
+            'add users',
+            'edit users',
+            'delete users',
+        ];
+        foreach ($userPermissions as $permission) {
+            Permission::firstOrCreate(['name' => $permission]);
+        }
 
-        // Permissions for Roles
-        Permission::firstOrCreate(['name' => 'view roles']);
-        Permission::firstOrCreate(['name' => 'add roles']);
-        Permission::firstOrCreate(['name' => 'edit roles']);
-        Permission::firstOrCreate(['name' => 'delete roles']);
+        // ================================
+        // Role Management Permissions
+        // ================================
+        $rolePermissions = [
+            'view roles',
+            'add roles',
+            'edit roles',
+            'delete roles',
+        ];
+        foreach ($rolePermissions as $permission) {
+            Permission::firstOrCreate(['name' => $permission]);
+        }
+
+        // ================================
+        // Task Management Permissions
+        // ================================
+        $taskPermissions = [
+            'view task',
+            'add task',
+            'update task',
+            'delete task',
+        ];
+        foreach ($taskPermissions as $permission) {
+            Permission::firstOrCreate(['name' => $permission]);
+        }
+
+        // ================================
+        // Employee Management Permissions
+        // ================================
+        $employeePermissions = [
+            'view employee',
+            'add employee',
+            'update employee',
+            'delete employee',
+            'view employee salary',
+            'download employee salary',
+        ];
+        foreach ($employeePermissions as $permission) {
+            Permission::firstOrCreate(['name' => $permission]);
+        }
+
+        // ================================
+        // Company Management Permissions
+        // ================================
+        $companyPermissions = [
+            'view company',
+            'add company',
+            'update company',
+            'delete company',
+        ];
+        foreach ($companyPermissions as $permission) {
+            Permission::firstOrCreate(['name' => $permission]);
+        }
     }
 }

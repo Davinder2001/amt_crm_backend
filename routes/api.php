@@ -60,27 +60,30 @@ Route::prefix('v1')->group(function () {
 
 
         // **Task Management** //
-        Route::post('tasks', [TaskController::class, 'store']);
-        Route::get('tasks', [TaskController::class, 'index']);
-        Route::get('tasks/{id}', [TaskController::class, 'show']);
-        Route::put('tasks/{id}', [TaskController::class, 'update']);
-        Route::delete('tasks/{id}', [TaskController::class, 'destroy']);
+        Route::get('tasks', [TaskController::class, 'index'])->middleware('permission:view task');
+        Route::post('tasks', [TaskController::class, 'store'])->middleware('permission:add task');
+        Route::get('tasks/{id}', [TaskController::class, 'show'])->middleware('permission:view task');
+        Route::put('tasks/{id}', [TaskController::class, 'update'])->middleware('permission:update task');
+        Route::delete('tasks/{id}', [TaskController::class, 'destroy'])->middleware('permission:delete task');
 
         
         // **Task Management** //
-        Route::get('employee', [EmployeeController::class, 'index']);
-        Route::post('employee', [EmployeeController::class, 'store']);
-        Route::get('employee/{id}', [EmployeeController::class, 'show']);
-        Route::put('employee/{id}', [EmployeeController::class, 'update']);
-        Route::delete('employee/{id}', [EmployeeController::class, 'destroy']);
+        Route::get('employee', [EmployeeController::class, 'index'])->middleware('permission:view employee');
+        Route::post('employee', [EmployeeController::class, 'store'])->middleware('permission:add employee');
+        Route::get('employee/{id}', [EmployeeController::class, 'show'])->middleware('permission:view employee');
+        Route::put('employee/{id}', [EmployeeController::class, 'update'])->middleware('permission:update employee');
+        Route::delete('employee/{id}', [EmployeeController::class, 'destroy'])->middleware('permission:delete employee');
+        Route::get('employee/salarySlip/{id}', [EmployeeController::class, 'salarySlip'])->middleware('permission:view employee salary');
+        Route::get('employee/salary-slip-pdf/{id}', [EmployeeController::class, 'downloadSalarySlipPdf'])->middleware('permission:download employee salary');
+
         
 
        // ** Companey Management **//
-        Route::get('companies', [CompanyController::class, 'index']);
-        Route::get('companies/{id}', [CompanyController::class, 'show']);
-        Route::post('companies', [CompanyController::class, 'store']);
-        Route::put('companies/{id}', [CompanyController::class, 'update']);
-        Route::delete('companies/{id}', [CompanyController::class, 'destroy']);
+        Route::get('companies', [CompanyController::class, 'index'])->middleware('permission:view company');
+        Route::get('companies/{id}', [CompanyController::class, 'show'])->middleware('permission:view company');
+        Route::post('companies', [CompanyController::class, 'store'])->middleware('permission:add company');
+        Route::put('companies/{id}', [CompanyController::class, 'update'])->middleware('permission:update company');
+        Route::delete('companies/{id}', [CompanyController::class, 'destroy'])->middleware('permission:delete company');
         Route::get('selectedCompanies', [CompanyController::class, 'getSelectedCompanies']);
         Route::post('selectedCompanies/{id}', [CompanyController::class, 'selectedCompanies']);
         

@@ -68,4 +68,15 @@ class User extends Authenticatable
         return $this->hasMany(UserMeta::class);
     }
 
+
+    public function salaryDetails()
+    {
+        
+        return [
+            'basic' => 50000,
+            'hra' => 10000,
+            'allowances' => 5000,
+            'total' => 50000 + 10000 + 5000,
+        ];
+    }
 }
