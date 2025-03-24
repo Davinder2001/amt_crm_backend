@@ -143,4 +143,26 @@ class AttendanceController extends Controller
         ], 200);
     }
 
+    public function getAllAttendance(Request $request): JsonResponse
+    {
+
+        $date = $request->query('date'); // e.g., 2025-03-24
+
+        if ($date) {
+            $attendances = Attendance::with('user')
+                ->where('attendance_date', $date)
+                ->orderBy('user_id')
+                ->get();
+        } else {
+            $attendances = Attendance::with('user')
+                ->orderBy('attendance_date', 'desc')
+                ->get();
+        }
+
+        return response()->json([
+            'attendances' => $attendances
+        ], 200);
+    }
+
+
 }
