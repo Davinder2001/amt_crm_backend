@@ -24,11 +24,8 @@ class CheckPermission
             return response()->json(['message' => 'Unauthorized.'], 403);
         }
 
-        // For debugging, you can see all roles:
-        // dd($user->getRoleNames());
-
-        // If user is an admin, skip the permission checks
-        if ($user->hasRole('admin')) {
+        // Allow if user has either 'admin' or 'super-admin' role
+        if ($user->hasRole(['admin', 'super-admin'])) {
             return $next($request);
         }
 
@@ -40,3 +37,4 @@ class CheckPermission
         return $next($request);
     }
 }
+

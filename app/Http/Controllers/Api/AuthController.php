@@ -131,10 +131,12 @@ class AuthController extends Controller
         }
 
         $data = $validator->validated();
-        $user = User::with('companies')
-            ->where('number', $data['number'])
-            ->whereIn('user_type', ['employee', 'admin'])
-            ->first();
+        $user = User::with(['companies', 'roles'])
+        ->where('number', $data['number'])
+        ->whereIn('user_type', ['employee', 'admin', 'super-admin'])
+        ->first();
+    
+
 
         if (!$user || !Hash::check($data['password'], $user->password)) {
             return response()->json(['error' => 'Invalid credentials.'], 401);
@@ -154,9 +156,6 @@ class AuthController extends Controller
     public function logout(Request $request): JsonResponse
     {
         $request->user()->currentAccessToken()->delete();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
         return response()->json(['message' => 'Logged out successfully.']);
     }
 

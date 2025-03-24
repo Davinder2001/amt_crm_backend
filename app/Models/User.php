@@ -62,6 +62,11 @@ class User extends Authenticatable
     {
         return $this->hasMany(UserMeta::class);
     }
+    
+    public function attendances()
+    {
+        return $this->hasMany(Attendance::class);
+    }
 
 
     public function salaryDetails()

@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\EmployeeController;
+use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\CompanyController;
 use Illuminate\Session\Middleware\StartSession;
 
@@ -86,6 +87,11 @@ Route::prefix('v1')->group(function () {
         Route::delete('companies/{id}', [CompanyController::class, 'destroy'])->middleware('permission:delete company');
         Route::get('selectedCompanies', [CompanyController::class, 'getSelectedCompanies']);
         Route::post('selectedCompanies/{id}', [CompanyController::class, 'selectedCompanies']);
+
+
+        Route::post('/attendance', [AttendanceController::class, 'recordAttendance']);
+        Route::get('/attendance/{id}', [AttendanceController::class, 'getAttendance']);
+    
         
     });
 });

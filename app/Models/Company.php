@@ -23,5 +23,11 @@ class Company extends Model
         return $this->hasMany(User::class);
     }
 
+    public function attendances()
+    {
+        return $this->hasMany(Attendance::class);
+    }
+
+
 }
 

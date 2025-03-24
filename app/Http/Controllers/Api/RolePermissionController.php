@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use App\Models\User;
 use Spatie\Permission\Models\Role;
 use Illuminate\Http\JsonResponse;
@@ -13,13 +14,24 @@ class RolePermissionController extends Controller
     /**
      * Assign a role to the specified user.
      */
-    public function assignRole(Request $request, User $user): JsonResponse
+    public function assignRole(Request $request, User $user, $id): JsonResponse
     {
-        $data = $request->validate([
+
+        dd($id);
+        $validator = Validator::make($request->all(), [
             'role' => 'required|string|exists:roles,name',
         ]);
 
-        $user->assignRole($data['role']);
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation errors',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        $data = $validator->validated();
+        $roles = $user->assignRole($data['role']);
+
 
         return response()->json([
             'message' => 'Role assigned successfully',
@@ -32,10 +44,18 @@ class RolePermissionController extends Controller
      */
     public function removeRole(Request $request, User $user): JsonResponse
     {
-        $data = $request->validate([
+        $validator = Validator::make($request->all(), [
             'role' => 'required|string|exists:roles,name',
         ]);
 
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation errors',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        $data = $validator->validated();
         $user->removeRole($data['role']);
 
         return response()->json([
@@ -49,10 +69,18 @@ class RolePermissionController extends Controller
      */
     public function assignPermissionToRole(Request $request, Role $role): JsonResponse
     {
-        $data = $request->validate([
+        $validator = Validator::make($request->all(), [
             'permission' => 'required|string|exists:permissions,name',
         ]);
 
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation errors',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        $data = $validator->validated();
         $role->givePermissionTo($data['permission']);
 
         return response()->json([
@@ -66,10 +94,18 @@ class RolePermissionController extends Controller
      */
     public function removePermissionFromRole(Request $request, Role $role): JsonResponse
     {
-        $data = $request->validate([
+        $validator = Validator::make($request->all(), [
             'permission' => 'required|string|exists:permissions,name',
         ]);
 
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation errors',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        $data = $validator->validated();
         $role->revokePermissionTo($data['permission']);
 
         return response()->json([
@@ -83,10 +119,18 @@ class RolePermissionController extends Controller
      */
     public function updateRole(Request $request, User $user): JsonResponse
     {
-        $data = $request->validate([
+        $validator = Validator::make($request->all(), [
             'role' => 'required|string|exists:roles,name',
         ]);
 
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation errors',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        $data = $validator->validated();
         $user->syncRoles([$data['role']]);
 
         return response()->json([
