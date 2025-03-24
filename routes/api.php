@@ -5,10 +5,10 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\RolePermissionController;
 use App\Http\Controllers\Api\RoleController;
-use App\Http\Controllers\API\PermissionController;
-use App\Http\Controllers\API\TaskController;
-use App\Http\Controllers\API\EmployeeController;
-use App\Http\Controllers\API\CompanyController;
+use App\Http\Controllers\Api\PermissionController;
+use App\Http\Controllers\Api\TaskController;
+use App\Http\Controllers\Api\EmployeeController;
+use App\Http\Controllers\Api\CompanyController;
 use Illuminate\Session\Middleware\StartSession;
 
 
