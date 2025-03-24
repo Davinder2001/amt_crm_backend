@@ -45,6 +45,7 @@ class CompanyController extends Controller
         return new CompanyResource($company);
     }
 
+    
     public function destroy($id)
     {
         Company::findOrFail($id)->delete();
