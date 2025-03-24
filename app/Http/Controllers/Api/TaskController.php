@@ -21,6 +21,8 @@ class TaskController extends Controller
     {
         $authUser = $request->user();
 
+        $activeCompanyId = request()->attributes->get('activeCompanyId');
+
         $validator = Validator::make($request->all(), [
             'name'        => 'required|string|max:255',
             'assigned_to' => 'required|exists:users,id',
@@ -33,7 +35,7 @@ class TaskController extends Controller
 
         $data = array_merge($request->all(), [
             'assigned_by' => $authUser->id,
-            'company_id'  => $authUser->company_id,
+            'company_id'  => $activeCompanyId,
             'status'      => 'pending', // Default status when creating a task
         ]);
 

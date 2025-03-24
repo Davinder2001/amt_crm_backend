@@ -58,13 +58,15 @@ Route::prefix('v1')->group(function () {
         Route::put('roles/{role}', [RoleController::class, 'update'])->middleware('permission:edit roles');
         Route::delete('roles/{role}', [RoleController::class, 'destroy'])->middleware('permission:delete roles');
 
-
+        
         // **Task Management** //
         Route::get('tasks', [TaskController::class, 'index'])->middleware('permission:view task');
-        Route::post('tasks', [TaskController::class, 'store'])->middleware('permission:add task');
-        Route::get('tasks/{id}', [TaskController::class, 'show'])->middleware('permission:view task');
-        Route::put('tasks/{id}', [TaskController::class, 'update'])->middleware('permission:update task');
-        Route::delete('tasks/{id}', [TaskController::class, 'destroy'])->middleware('permission:delete task');
+        Route::middleware(['setActiveCompany'])->group(function () {
+            Route::post('tasks', [TaskController::class, 'store'])->middleware('permission:add task');
+        });
+            Route::get('tasks/{id}', [TaskController::class, 'show'])->middleware('permission:view task');
+            Route::put('tasks/{id}', [TaskController::class, 'update'])->middleware('permission:update task');
+            Route::delete('tasks/{id}', [TaskController::class, 'destroy'])->middleware('permission:delete task');
 
         
         // **Task Management** //
