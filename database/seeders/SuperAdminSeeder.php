@@ -18,6 +18,7 @@ class SuperAdminSeeder extends Seeder
             'password' => Hash::make('superadminpassword'),
             'created_at' => now(),
             'updated_at' => now(),
+            
         ]);
     }
 }
