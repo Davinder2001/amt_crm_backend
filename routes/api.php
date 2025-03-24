@@ -29,7 +29,7 @@ Route::prefix('v1')->group(function () {
     
     
     // **Protected Routes (Require Sanctum Authentication)** //
-    Route::middleware(['auth:sanctum'])->group(function () {
+    Route::middleware(['auth:sanctum', 'setActiveCompany'])->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
         Route::apiResource('permissions', PermissionController::class);
         Route::post('/password/change', [AuthController::class, 'resetPassword']);
@@ -61,12 +61,10 @@ Route::prefix('v1')->group(function () {
         
         // **Task Management** //
         Route::get('tasks', [TaskController::class, 'index'])->middleware('permission:view task');
-        Route::middleware(['setActiveCompany'])->group(function () {
-            Route::post('tasks', [TaskController::class, 'store'])->middleware('permission:add task');
-        });
-            Route::get('tasks/{id}', [TaskController::class, 'show'])->middleware('permission:view task');
-            Route::put('tasks/{id}', [TaskController::class, 'update'])->middleware('permission:update task');
-            Route::delete('tasks/{id}', [TaskController::class, 'destroy'])->middleware('permission:delete task');
+        Route::post('tasks', [TaskController::class, 'store'])->middleware('permission:add task');
+        Route::get('tasks/{id}', [TaskController::class, 'show'])->middleware('permission:view task');
+        Route::put('tasks/{id}', [TaskController::class, 'update'])->middleware('permission:update task');
+        Route::delete('tasks/{id}', [TaskController::class, 'destroy'])->middleware('permission:delete task');
 
         
         // **Task Management** //

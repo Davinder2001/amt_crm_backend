@@ -56,12 +56,7 @@ class User extends Authenticatable
                     ->withPivot('user_type')
                     ->withTimestamps();
     }
-
-
-    // public function companies()
-    // {
-    //     return $this->belongsToMany(Company::class);
-    // }
+    
 
     public function meta()
     {

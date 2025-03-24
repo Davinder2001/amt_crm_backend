@@ -9,20 +9,19 @@ use Illuminate\Support\Facades\Auth;
 
 class SetActiveCompany
 {
-    public function handle(Request $request, Closure $next)
-    {
-        if (Auth::check()) {
+    public function handle($request, Closure $next)
+        {
             $user = Auth::user();
-            $activeCompanyId = CompanyUser::where('user_id', $user->id)
-                ->where('status', 1)
-                ->value('company_id');
 
-            if ($activeCompanyId) {
-                // Set globally in request context
-                $request->attributes->set('activeCompanyId', $activeCompanyId);
+            if ($user) {
+                $activeCompany = $user->companies()->wherePivot('status', 1)->first();
+
+                if ($activeCompany) {
+                    app()->instance('active_company_id', $activeCompany->id);
+                }
             }
+
+            return $next($request);
         }
 
-        return $next($request);
-    }
 }
