@@ -28,7 +28,6 @@ class EmployeeResource extends JsonResource
             'company_slug'  => $company ? $company->company_slug : null,
             'roles'         => RoleResource::collection($this->whenLoaded('roles')),
 
-            // ✅ Fetch from employeeDetail relationship instead of meta
             'employee_details' => $this->whenLoaded('employeeDetail', function () {
                 return [
                     'salary'       => $this->employeeDetail->salary ?? null,

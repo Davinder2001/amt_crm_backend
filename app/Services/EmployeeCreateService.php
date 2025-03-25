@@ -59,7 +59,6 @@ class EmployeeCreateService
 
         $employee->assignRole($data['role']);
 
-        // Create employee details with the initial salary
         EmployeeDetail::create([
             'user_id'      => $employee->id,
             'salary'       => $data['salary'] ?? 0,
@@ -68,7 +67,6 @@ class EmployeeCreateService
             'shiftTimings' => $data['shiftTimings'] ?? null,
         ]);
 
-        // Log the initial salary as history
         SalaryHistory::create([
             'user_id'         => $employee->id,
             'previous_salary' => 0,
@@ -79,6 +77,7 @@ class EmployeeCreateService
 
         return $employee;
     }
+
 
     /**
      * Update existing employee data and handle salary change logging.
@@ -101,7 +100,6 @@ class EmployeeCreateService
             $employee->syncRoles($data['role']);
         }
 
-        // Update employee details
         $employeeDetail = EmployeeDetail::firstOrNew(['user_id' => $employee->id]);
         $previousSalary = $employeeDetail->salary;
 
@@ -111,7 +109,6 @@ class EmployeeCreateService
         $employeeDetail->shiftTimings = $data['shiftTimings'] ?? $employeeDetail->shiftTimings;
         $employeeDetail->save();
 
-        // If salary changed, log it in history
         if (isset($data['salary']) && $data['salary'] != $previousSalary) {
             SalaryHistory::create([
                 'user_id'         => $employee->id,

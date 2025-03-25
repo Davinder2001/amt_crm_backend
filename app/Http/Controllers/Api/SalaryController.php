@@ -13,20 +13,14 @@ class SalaryController extends Controller
     
     public function index()
     {
-        $employees = User::with(['roles.permissions', 'companies', 'employeeDetail', 'salaryHistories'])
-            ->where('user_type', 'employee')
-            ->get();
-
+        $employees = User::with(['roles.permissions', 'companies', 'employeeDetail', 'salaryHistories'])->where('user_type', 'employee')->get();
         return SalaryResource::collection($employees);
     }
 
 
     public function show($id)
     {
-        $employee = User::with(['roles.permissions', 'companies', 'employeeDetail', 'salaryHistories'])
-            ->where('user_type', 'employee')
-            ->findOrFail($id);
-
+        $employee = User::with(['roles.permissions', 'companies', 'employeeDetail', 'salaryHistories'])->where('user_type', 'employee')->findOrFail($id);
         return new SalaryResource($employee);
     }
 

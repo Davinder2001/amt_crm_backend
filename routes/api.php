@@ -17,7 +17,7 @@ use Illuminate\Session\Middleware\StartSession;
 Route::prefix('v1')->group(function () {
 
 
-
+    // **  Guest user routes  ** //
     Route::middleware(['api', StartSession::class])->group(function () {
         Route::post('login', [AuthController::class, 'login']);
         Route::post('c-login', [AuthController::class, 'companyLogin']);
@@ -90,15 +90,16 @@ Route::prefix('v1')->group(function () {
         Route::post('selectedCompanies/{id}', [CompanyController::class, 'selectedCompanies']);
 
 
+       // ** Attendence Management **//
         Route::post('/attendance', [AttendanceController::class, 'recordAttendance']);
         Route::get('/attendance/{id}', [AttendanceController::class, 'getAttendance']);
         Route::get('/attendances', [AttendanceController::class, 'getAllAttendance']);
 
+
+       // ** Salary Management **//
         Route::get('employees/salary', [SalaryController::class, 'index']);
         Route::get('employee/{id}/salary', [SalaryController::class, 'show']);
         Route::get('employee/{id}/salary-increment', [SalaryController::class, 'increment']);
-
-    
-        
+            
     });
 });

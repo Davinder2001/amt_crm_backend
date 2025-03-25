@@ -22,8 +22,7 @@ class SalaryResource extends JsonResource
             'company_id'    => $company ? $company->id : null,
             'company_slug'  => $company ? $company->company_slug : null,
             'roles'         => RoleResource::collection($this->whenLoaded('roles')),
-
-            // ✅ Salary Block
+            
             'employee_salary' => [
                 'current_salary' => $this->employeeDetail->salary ?? 0,
                 'salary_history' => SalaryHistoryResource::collection($this->whenLoaded('salaryHistories')),

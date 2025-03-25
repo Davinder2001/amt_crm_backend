@@ -13,8 +13,6 @@ use Illuminate\Support\Facades\Validator;
 use App\Http\Resources\EmployeeResource;
 use App\Http\Resources\SalaryResource;
 use App\Services\SelectedCompanyService;
-use Barryvdh\DomPDF\Facade as PDF;
-
 
 
 
@@ -64,10 +62,6 @@ class EmployeeController extends Controller
             ]);
     
 
-
-
-            
-            // Create the employee with all details
             $employee = $userCreateService->createEmployee($data);
     
             return response()->json([
@@ -88,6 +82,7 @@ class EmployeeController extends Controller
             ], 500);
         }
     }
+
     
 
     /**
@@ -209,6 +204,7 @@ class EmployeeController extends Controller
         ], 200);
     }
 
+    
     // public function downloadSalarySlipPdf($id)
     // {
 
