@@ -31,11 +31,10 @@ class EmployeeController extends Controller
     /**
      * Display a listing of employees.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $employees = User::where('user_type', 'employee')
-            ->with(['roles.permissions', 'companies', 'employeeDetail']) 
-            ->get();
+        $userType = $request->user_type; 
+        $employees = User::where('user_type', $userType)->with(['roles.permissions', 'companies', 'employeeDetail'])->get();
     
         return response()->json([
             'message'   => 'Employees retrieved successfully.',
@@ -204,7 +203,7 @@ class EmployeeController extends Controller
         ], 200);
     }
 
-    
+
     // public function downloadSalarySlipPdf($id)
     // {
 

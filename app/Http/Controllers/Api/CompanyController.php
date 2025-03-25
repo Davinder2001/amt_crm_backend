@@ -64,12 +64,11 @@ class CompanyController extends Controller
         }
 
         CompanyUser::where('user_id', $user->id)->update(['status' => 0]);
-        CompanyUser::where('user_id', $user->id)
-                   ->where('company_id', $id)
-                   ->update(['status' => 1]);
+        CompanyUser::where('user_id', $user->id)->where('company_id', $id)->update(['status' => 1]);
 
         return response()->json(['message' => 'Company selected successfully']);
     }
+
 
     public function getSelectedCompanies()
     {

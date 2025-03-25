@@ -69,16 +69,18 @@ Route::prefix('v1')->group(function () {
         Route::delete('tasks/{id}', [TaskController::class, 'destroy'])->middleware('permission:delete task');
 
         
-        // **Task Management** //
-        Route::get('employee', [EmployeeController::class, 'index'])->middleware('permission:view employee');
-        Route::post('employee', [EmployeeController::class, 'store'])->middleware('permission:add employee');
-        Route::get('employee/{id}', [EmployeeController::class, 'show'])->middleware('permission:view employee');
-        Route::put('employee/{id}', [EmployeeController::class, 'update'])->middleware('permission:update employee');
-        Route::delete('employee/{id}', [EmployeeController::class, 'destroy'])->middleware('permission:delete employee');
-        Route::get('employee/salarySlip/{id}', [EmployeeController::class, 'salarySlip'])->middleware('permission:view employee salary');
-        Route::get('employee/salary-slip-pdf/{id}', [EmployeeController::class, 'downloadSalarySlipPdf'])->middleware('permission:download employee salary');
-
-        
+        Route::middleware(['injectUserType:employee'])->group(function () {
+            
+            // **Employee Management** //
+            Route::get('employee', [EmployeeController::class, 'index'])->middleware('permission:view employee');
+            Route::post('employee', [EmployeeController::class, 'store'])->middleware('permission:add employee');
+            Route::get('employee/{id}', [EmployeeController::class, 'show'])->middleware('permission:view employee');
+            Route::put('employee/{id}', [EmployeeController::class, 'update'])->middleware('permission:update employee');
+            Route::delete('employee/{id}', [EmployeeController::class, 'destroy'])->middleware('permission:delete employee');
+            Route::get('employee/salarySlip/{id}', [EmployeeController::class, 'salarySlip'])->middleware('permission:view employee salary');
+            Route::get('employee/salary-slip-pdf/{id}', [EmployeeController::class, 'downloadSalarySlipPdf'])->middleware('permission:download employee salary');
+            
+        });
 
        // ** Companey Management **//
         Route::get('companies', [CompanyController::class, 'index'])->middleware('permission:view company');

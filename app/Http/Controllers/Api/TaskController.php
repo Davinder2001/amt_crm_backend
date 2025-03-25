@@ -20,7 +20,6 @@ class TaskController extends Controller
     public function store(Request $request)
     {
         $authUser = $request->user();
-
         $activeCompanyId = request()->attributes->get('activeCompanyId');
 
         $validator = Validator::make($request->all(), [
@@ -36,7 +35,7 @@ class TaskController extends Controller
         $data = array_merge($request->all(), [
             'assigned_by' => $authUser->id,
             'company_id'  => $activeCompanyId,
-            'status'      => 'pending', // Default status when creating a task
+            'status'      => 'pending',
         ]);
 
         $task = Task::create($data);
@@ -69,7 +68,7 @@ class TaskController extends Controller
             'assigned_by' => 'sometimes|required|exists:users,id',
             'assigned_to' => 'sometimes|required|exists:users,id',
             'deadline'    => 'nullable|date',
-            'status'      => 'sometimes|required|in:pending,in_progress,completed,verified', // Added status validation
+            'status'      => 'sometimes|required|in:pending,in_progress,completed,verified',
         ]);
 
         if ($validator->fails()) {
