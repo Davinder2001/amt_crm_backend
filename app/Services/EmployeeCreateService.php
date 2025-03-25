@@ -4,7 +4,8 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Models\CompanyUser;
-use App\Models\UserMeta;
+use App\Models\EmployeeDetail;
+use App\Models\SalaryHistory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Exception;
@@ -20,35 +21,27 @@ class EmployeeCreateService
     }
 
     /**
-     * Create a new employee, associate with a company,
-     * assign a role, and add additional meta data.
-     *
-     * @param array $data
-     * @return \App\Models\User
-     * @throws \Illuminate\Validation\ValidationException
-     * @throws \Exception
+     * Create a new employee, associate with a company, assign a role,
+     * and add employee details.
      */
     public function createEmployee(array $data)
     {
-        // Check for duplicate employee based on phone number.
         $existingUser = User::where('number', $data['number'])
-            ->where('user_type', 'employee')
-            ->where('user_status', 'active')
-            ->first();
-
+        ->whereIn('user_type', ['employee', 'admin'])
+        ->where('user_status', 'active')
+        ->first();
+    
         if ($existingUser) {
             throw ValidationException::withMessages([
                 'number' => ['This phone number is already in use by an active employee.']
             ]);
         }
 
-        // Retrieve the company associated with the authenticated user.
         $company = $this->selectCompanyService->getSelectedCompanyOrFail();
         if (!$company) {
             throw new Exception('No associated company found for the authenticated user.');
         }
 
-        // Create the employee record.
         $employee = User::create([
             'name'      => $data['name'],
             'email'     => $data['email'],
@@ -57,7 +50,6 @@ class EmployeeCreateService
             'user_type' => 'employee',
         ]);
 
-        // Associate the employee with the company using the pivot table.
         CompanyUser::create([
             'user_id'    => $employee->id,
             'company_id' => $company->id,
@@ -65,24 +57,69 @@ class EmployeeCreateService
             'status'     => 1,
         ]);
 
-        // Assign the specified role.
         $employee->assignRole($data['role']);
 
-        // Save additional meta data.
-        $metaFields = [
-            'dateOfHire'   => $data['dateOfHire']   ?? null,
-            'joiningDate'  => $data['joiningDate']  ?? null,
+        // Create employee details with the initial salary
+        EmployeeDetail::create([
+            'user_id'      => $employee->id,
+            'salary'       => $data['salary'] ?? 0,
+            'dateOfHire'   => $data['dateOfHire'] ?? null,
+            'joiningDate'  => $data['joiningDate'] ?? null,
             'shiftTimings' => $data['shiftTimings'] ?? null,
-        ];
+        ]);
 
-        foreach ($metaFields as $metaKey => $metaValue) {
-            if (!is_null($metaValue)) {
-                UserMeta::create([
-                    'user_id'    => $employee->id,
-                    'meta_key'   => $metaKey,
-                    'meta_value' => $metaValue,
-                ]);
-            }
+        // Log the initial salary as history
+        SalaryHistory::create([
+            'user_id'         => $employee->id,
+            'previous_salary' => 0,
+            'new_salary'      => $data['salary'],
+            'increment_date'  => now(),
+            'reason'          => 'Initial Salary',
+        ]);
+
+        return $employee;
+    }
+
+    /**
+     * Update existing employee data and handle salary change logging.
+     */
+    public function updateEmployee(User $employee, array $data)
+    {
+        $employee->update([
+            'name'   => $data['name'] ?? $employee->name,
+            'email'  => $data['email'] ?? $employee->email,
+            'number' => $data['number'] ?? $employee->number,
+        ]);
+
+        if (isset($data['password'])) {
+            $employee->update([
+                'password' => Hash::make($data['password']),
+            ]);
+        }
+
+        if (isset($data['role'])) {
+            $employee->syncRoles($data['role']);
+        }
+
+        // Update employee details
+        $employeeDetail = EmployeeDetail::firstOrNew(['user_id' => $employee->id]);
+        $previousSalary = $employeeDetail->salary;
+
+        $employeeDetail->salary       = $data['salary'] ?? $employeeDetail->salary;
+        $employeeDetail->dateOfHire   = $data['dateOfHire'] ?? $employeeDetail->dateOfHire;
+        $employeeDetail->joiningDate  = $data['joiningDate'] ?? $employeeDetail->joiningDate;
+        $employeeDetail->shiftTimings = $data['shiftTimings'] ?? $employeeDetail->shiftTimings;
+        $employeeDetail->save();
+
+        // If salary changed, log it in history
+        if (isset($data['salary']) && $data['salary'] != $previousSalary) {
+            SalaryHistory::create([
+                'user_id'         => $employee->id,
+                'previous_salary' => $previousSalary,
+                'new_salary'      => $data['salary'],
+                'increment_date'  => now(),
+                'reason'          => $data['reason'] ?? 'Salary Updated',
+            ]);
         }
 
         return $employee;

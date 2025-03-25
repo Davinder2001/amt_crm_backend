@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\EmployeeController;
 use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\CompanyController;
+use App\Http\Controllers\Api\SalaryController;
 use Illuminate\Session\Middleware\StartSession;
 
 
@@ -92,6 +93,11 @@ Route::prefix('v1')->group(function () {
         Route::post('/attendance', [AttendanceController::class, 'recordAttendance']);
         Route::get('/attendance/{id}', [AttendanceController::class, 'getAttendance']);
         Route::get('/attendances', [AttendanceController::class, 'getAllAttendance']);
+
+        Route::get('employees/salary', [SalaryController::class, 'index']);
+        Route::get('employee/{id}/salary', [SalaryController::class, 'show']);
+        Route::get('employee/{id}/salary-increment', [SalaryController::class, 'increment']);
+
     
         
     });

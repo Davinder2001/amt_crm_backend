@@ -79,4 +79,16 @@ class User extends Authenticatable
             'total' => 50000 + 10000 + 5000,
         ];
     }
+
+    public function employeeDetail()
+    {
+        return $this->hasOne(EmployeeDetail::class, 'user_id', 'id');
+    }
+    
+    public function salaryHistories()
+    {
+        return $this->hasMany(SalaryHistory::class, 'user_id', 'id')->latest();
+    }
+
 }
+

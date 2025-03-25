@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\UserMeta;
 use \App\Services\EmployeeCreateService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -34,11 +35,10 @@ class EmployeeController extends Controller
      */
     public function index()
     {
-
         $employees = User::where('user_type', 'employee')
-        ->with(['roles.permissions', 'companies', 'meta'])
-        ->get();
-        
+            ->with(['roles.permissions', 'companies', 'employeeDetail']) 
+            ->get();
+    
         return response()->json([
             'message'   => 'Employees retrieved successfully.',
             'employees' => EmployeeResource::collection($employees),
@@ -46,29 +46,33 @@ class EmployeeController extends Controller
         ], 200);
     }
     
+    
 
-   
     public function store(Request $request, EmployeeCreateService $userCreateService)
     {
         try {
-            // Only perform request validation in the controller.
             $data = $request->validate([
                 'name'         => 'required|string|max:255',
-                'email'        => 'required|string|email|max:255|unique:users,email',
+                'email'        => 'required|string|email|max:255',
                 'password'     => 'required|string|min:8',
                 'number'       => 'required|string|max:20',
                 'role'         => 'required|exists:roles,name',
+                'salary'       => 'required|numeric|min:0',
                 'dateOfHire'   => 'nullable|date',
                 'joiningDate'  => 'nullable|date',
                 'shiftTimings' => 'nullable|string'
             ]);
     
-            // Delegate employee creation and association to the service.
+
+
+
+            
+            // Create the employee with all details
             $employee = $userCreateService->createEmployee($data);
     
             return response()->json([
                 'message'  => 'Employee created successfully.',
-                'employee' => new EmployeeResource($employee->load('roles')),
+                'employee' => new EmployeeResource($employee->load('roles', 'employeeDetail')),
             ], 201);
     
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -85,7 +89,6 @@ class EmployeeController extends Controller
         }
     }
     
-    
 
     /**
      * Display the specified employee.
@@ -100,48 +103,72 @@ class EmployeeController extends Controller
         ]);
     }
 
+
+
     /**
      * Update the specified employee.
      */
+
     public function update(Request $request, $id)
     {
         $employee = User::where('user_type', 'employee')->findOrFail($id);
-
+    
         try {
             $validator = Validator::make($request->all(), [
-                'name'     => 'sometimes|string|max:255',
-                'email'    => 'sometimes|string|email|max:255|unique:users,email,' . $employee->id,
-                'password' => 'sometimes|string|min:8',
-                'role'     => 'required|exists:roles,name',
-                'number'   => 'sometimes|string|max:20',
+                'name'         => 'sometimes|string|max:255',
+                'email'        => 'sometimes|string|email|max:255',
+                'password'     => 'sometimes|string|min:8',
+                'role'         => 'required|exists:roles,name',
+                'number'       => 'sometimes|string|max:20',
+                'salary'       => 'sometimes|numeric|min:0',
+                'dateOfHire'   => 'sometimes|date',
+                'joiningDate'  => 'sometimes|date',
+                'shiftTimings' => 'sometimes|string',
             ]);
-
+    
             if ($validator->fails()) {
                 return response()->json([
                     'message' => 'Validation failed.',
                     'errors'  => $validator->errors(),
                 ], 422);
             }
-
+    
             $data = $validator->validated();
-
+  
             if (!empty($data['password'])) {
                 $data['password'] = Hash::make($data['password']);
             }
-
+    
             if (!isset($data['role'])) {
                 return response()->json([
                     'message' => 'Role is required when updating an employee.',
                 ], 400);
             }
-
-            $employee->update(Arr::except($data, ['role']));
+    
+            $employee->update(Arr::except($data, ['role', 'salary', 'dateOfHire', 'joiningDate', 'shiftTimings']));
+    
             $employee->syncRoles($data['role']);
-
+            $metaFields = [
+                'salary'       => $data['salary']       ?? null,
+                'dateOfHire'   => $data['dateOfHire']   ?? null,
+                'joiningDate'  => $data['joiningDate']  ?? null,
+                'shiftTimings' => $data['shiftTimings'] ?? null,
+            ];
+    
+            foreach ($metaFields as $metaKey => $metaValue) {
+                if (!is_null($metaValue)) {
+                    UserMeta::updateOrCreate(
+                        ['user_id' => $employee->id, 'meta_key' => $metaKey],
+                        ['meta_value' => $metaValue]
+                    );
+                }
+            }
+    
             return response()->json([
                 'message'  => 'Employee updated successfully.',
                 'employee' => new EmployeeResource($employee->load('roles')),
             ], 200);
+    
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Something went wrong. Please try again.',
@@ -149,6 +176,7 @@ class EmployeeController extends Controller
             ], 500);
         }
     }
+    
 
     /**
      * Remove the specified employee.

@@ -16,9 +16,6 @@ class EmployeeResource extends JsonResource
     {
         $company = $this->companies->first(); 
 
-        // dd($company);
-
-
         return [
             'id'            => $this->id,
             'name'          => $this->name,
@@ -30,9 +27,16 @@ class EmployeeResource extends JsonResource
             'company_id'    => $company ? $company->id : null,
             'company_slug'  => $company ? $company->company_slug : null,
             'roles'         => RoleResource::collection($this->whenLoaded('roles')),
-            'meta'          => $this->whenLoaded('meta', function () {
-                                  return $this->meta ? $this->meta->pluck('meta_value', 'meta_key') : [];
-                              }, []),
+
+            // ✅ Fetch from employeeDetail relationship instead of meta
+            'employee_details' => $this->whenLoaded('employeeDetail', function () {
+                return [
+                    'salary'       => $this->employeeDetail->salary ?? null,
+                    'dateOfHire'   => $this->employeeDetail->dateOfHire ?? null,
+                    'joiningDate'  => $this->employeeDetail->joiningDate ?? null,
+                    'shiftTimings' => $this->employeeDetail->shiftTimings ?? null,
+                ];
+            }, []),
         ];
     }
 }
