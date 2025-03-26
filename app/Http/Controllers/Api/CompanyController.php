@@ -17,6 +17,7 @@ class CompanyController extends Controller
         return CompanyResource::collection(Company::all());
     }
 
+
     public function show($id)
     {
         return new CompanyResource(Company::findOrFail($id));
@@ -59,16 +60,28 @@ class CompanyController extends Controller
     public function selectedCompanies($id)
     {
         $user = Auth::user();
-        if (!CompanyUser::where('user_id', $user->id)->where('company_id', $id)->exists()) {
+    
+        $companyUser = CompanyUser::where('user_id', $user->id)
+            ->where('company_id', $id)
+            ->with('company')
+            ->first();
+    
+        if (!$companyUser) {
             return response()->json(['error' => 'Unauthorized company'], 403);
         }
-
+    
+        // ✅ Check if company relation exists and is verified
+        if (!$companyUser->company || $companyUser->company->verification_status !== 'verified') {
+            return response()->json(['error' => 'Company is not verified.'], 403);
+        }
+    
+        // ✅ Clear all statuses and select the verified company
         CompanyUser::where('user_id', $user->id)->update(['status' => 0]);
         CompanyUser::where('user_id', $user->id)->where('company_id', $id)->update(['status' => 1]);
-
+    
         return response()->json(['message' => 'Company selected successfully']);
     }
-
+    
 
     public function getSelectedCompanies()
     {

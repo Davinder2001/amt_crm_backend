@@ -10,6 +10,7 @@ use Illuminate\Validation\ValidationException;
 use App\Services\AdminRegistrationService;
 use App\Http\Requests\AdminRegisterRequest;
 use App\Models\User;
+use App\Models\Company;
 use App\Models\CompanyUser;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Resources\UserResource;
@@ -182,12 +183,17 @@ class AuthController extends Controller
         $userCompanies = CompanyUser::where('user_id', $user->id)->get();
         
         if ($userCompanies->count() === 1) {
-    
-            CompanyUser::where('user_id', $user->id)->update(['status' => 0]);
-            CompanyUser::where('user_id', $user->id)
-                ->where('company_id', $userCompanies->first()->company_id)
-                ->update(['status' => 1]);
+            $singleCompany = $userCompanies->first();
+            $company = $singleCompany->company ?? $singleCompany->load('company')->company;
+        
+            if ($company && $company->verification_status === 'verified') {
+                CompanyUser::where('user_id', $user->id)->update(['status' => 0]);
+                CompanyUser::where('user_id', $user->id)
+                    ->where('company_id', $singleCompany->company_id)
+                    ->update(['status' => 1]);
+            }
         }
+        
     
         $request->session()->regenerate();
         $token = $user->createToken('auth_token')->plainTextToken;
@@ -203,12 +209,19 @@ class AuthController extends Controller
 
 
 
-    
     public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()->delete();
+        $user = $request->user();
+   
+        CompanyUser::query()
+            ->where('user_id', $user->id)
+            ->update(['status' => 0]);
+    
+        $user->currentAccessToken()->delete();
+    
         return response()->json(['message' => 'Logged out successfully.']);
     }
+
 
     public function sendResetOtp(Request $request): JsonResponse
     {

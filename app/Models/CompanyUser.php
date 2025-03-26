@@ -19,7 +19,6 @@ class CompanyUser extends Model
         'updated_at',
     ];
 
-    // Define relationships
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
