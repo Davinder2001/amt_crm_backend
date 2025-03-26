@@ -73,14 +73,24 @@ class CompanyController extends Controller
     public function getSelectedCompanies()
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+    
         if (!$selectedCompany) {
             return response()->json(['error' => 'No active company selected'], 404);
         }
-
+    
+        if (isset($selectedCompany->super_admin) && $selectedCompany->super_admin === true) {
+            return response()->json([
+                'message'           => 'Selected company retrieved successfully.',
+                'selected_company'  => 'Super Admin',
+                'company_user_role' => 'super-admin',
+            ]);
+        }
+    
         return response()->json([
-            'message'          => 'Selected company retrieved successfully.',
-            'selected_company' => $selectedCompany->company ?? null,
-            'company_user_role'=> $selectedCompany->role,
+            'message'           => 'Selected company retrieved successfully.',
+            'selected_company'  => $selectedCompany->company ?? null,
+            'company_user_role' => $selectedCompany->role,
         ]);
     }
+    
 }

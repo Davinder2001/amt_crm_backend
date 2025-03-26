@@ -10,13 +10,19 @@ class CompanyScope implements Scope
 {
     public function apply(Builder $builder, Model $model)
     {
+        $user = Auth::user();
+
+        if (!$user) {
+            return;
+        }
+
+        if ($user->hasRole('super-admin')) {
+            return;
+        }
+
         if (app()->has('active_company_id')) {
             $activeCompanyId = app('active_company_id');
-            $userId = Auth::id();
-            
-
-            // $get = $builder->where($model->getTable() . '.company_id', $activeCompanyId);
-            // dd($get);
+            $userId = $user->id;
 
             if (in_array('company_id', $model->getFillable()) || $model->getTable() === 'companies') {
                 $builder->whereExists(function ($query) use ($userId, $activeCompanyId) {

@@ -10,6 +10,7 @@ use Illuminate\Validation\ValidationException;
 use App\Services\AdminRegistrationService;
 use App\Http\Requests\AdminRegisterRequest;
 use App\Models\User;
+use App\Models\CompanyUser;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Resources\UserResource;
 use Illuminate\Http\JsonResponse;
@@ -119,32 +120,78 @@ class AuthController extends Controller
         ]);
     }
 
+
+    // public function companyLogin(Request $request): JsonResponse
+    // {
+    //     $validator = Validator::make($request->all(), [
+    //         'number'   => 'required|string',
+    //         'password' => 'required|string',
+    //     ]);
+
+    //     if ($validator->fails()) {
+    //         return response()->json(['errors' => $validator->errors()], 422);
+    //     }
+
+    //     $data = $validator->validated();
+    //     $user = User::with(['companies', 'roles'])
+    //     ->where('number', $data['number'])
+    //     ->whereIn('user_type', ['employee', 'admin', 'super-admin'])
+    //     ->first();
+    
+
+
+    //     if (!$user || !Hash::check($data['password'], $user->password)) {
+    //         return response()->json(['error' => 'Invalid credentials.'], 401);
+    //     }
+
+    //     $request->session()->regenerate();
+    //     $token = $user->createToken('auth_token')->plainTextToken;
+
+    //     return response()->json([
+    //         'message'      => 'Logged in successfully.',
+    //         'access_token' => $token,
+    //         'token_type'   => 'Bearer',
+    //         'user'         => new UserResource($user),
+    //     ]);
+    // }
+
+
+
     public function companyLogin(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
             'number'   => 'required|string',
             'password' => 'required|string',
         ]);
-
+    
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
-
-        $data = $validator->validated();
-        $user = User::with(['companies', 'roles'])
-        ->where('number', $data['number'])
-        ->whereIn('user_type', ['employee', 'admin', 'super-admin'])
-        ->first();
     
-
-
+        $data = $validator->validated();
+    
+        $user = User::with(['companies', 'roles'])
+            ->where('number', $data['number'])
+            ->whereIn('user_type', ['employee', 'admin', 'super-admin'])
+            ->first();
+    
         if (!$user || !Hash::check($data['password'], $user->password)) {
             return response()->json(['error' => 'Invalid credentials.'], 401);
         }
-
+    
+        $userCompanies = CompanyUser::where('user_id', $user->id)->get();
+        
+        if ($userCompanies->count() === 1) {
+    
+            CompanyUser::where('user_id', $user->id)->update(['status' => 0]);
+            CompanyUser::where('user_id', $user->id)
+                ->where('company_id', $userCompanies->first()->company_id)
+                ->update(['status' => 1]);
+        }
+    
         $request->session()->regenerate();
         $token = $user->createToken('auth_token')->plainTextToken;
-
+    
         return response()->json([
             'message'      => 'Logged in successfully.',
             'access_token' => $token,
@@ -153,6 +200,10 @@ class AuthController extends Controller
         ]);
     }
 
+
+
+
+    
     public function logout(Request $request): JsonResponse
     {
         $request->user()->currentAccessToken()->delete();

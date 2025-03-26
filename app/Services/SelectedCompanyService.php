@@ -15,6 +15,16 @@ class SelectedCompanyService
 
         $user = Auth::user();
 
+        if ($user->hasRole('super-admin')) {
+            return (object) [
+                'super_admin' => true,
+                'company_id' => null,
+                'role' => 'super-admin',
+                'selected_company' => 'super-admin'
+            ];
+        }
+        
+
         $selectedCompany = CompanyUser::where('user_id', $user->id)
             ->where('status', 1)
             ->with('company')
@@ -27,9 +37,13 @@ class SelectedCompanyService
         return $selectedCompany;
     }
 
-    // Optional - Shortcut to get only company_id
     public static function getCompanyIdOrFail()
     {
-        return self::getSelectedCompanyOrFail()->company_id;
+        $company = self::getSelectedCompanyOrFail();
+        if ($company instanceof \Illuminate\Http\JsonResponse) {
+            return $company; 
+        }
+
+        return $company->company_id;
     }
 }

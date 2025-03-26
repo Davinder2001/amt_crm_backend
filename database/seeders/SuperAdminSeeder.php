@@ -3,22 +3,26 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use App\Models\User;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\DB;
+use Spatie\Permission\Models\Role;
 
 class SuperAdminSeeder extends Seeder
 {
     public function run()
     {
-        DB::table('users')->insert([
-            'name' => 'Super Admin',
-            'email' => 'superadmin@example.com',
-            'number' => '7894561230',
-            'uid' => '00000001',
-            'password' => Hash::make('superadminpassword'),
-            'created_at' => now(),
-            'updated_at' => now(),
-            
+
+        Role::firstOrCreate(['name' => 'super-admin']);
+
+        $user = User::create([
+            'name'      => 'Super Admin',
+            'email'     => 'superadmin@example.com',
+            'number'    => '7894561230',
+            'uid'       => '00000001',
+            'user_type' => 'super-admin',
+            'password'  => Hash::make('superadminpassword'),
         ]);
+
+        $user->assignRole('super-admin');
     }
 }
