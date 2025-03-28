@@ -49,10 +49,10 @@ class EmployeeCreateService
             'number'    => $data['number'],
             'user_type' => 'employee',
         ]);
-
+        
         CompanyUser::create([
             'user_id'    => $employee->id,
-            'company_id' => $company->id,
+            'company_id' => $company->company_id,
             'user_type'  => 'staff',
             'status'     => 1,
         ]);
