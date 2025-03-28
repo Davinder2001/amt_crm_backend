@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Attendance;
 use Carbon\Carbon;
+use App\Http\Resources\AttendanceResource;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
@@ -34,7 +35,7 @@ class AttendanceController extends Controller
         ]);
 
         if (!$attendance->exists) {
-             $validator = Validator::make($request->all(), [
+            $validator = Validator::make($request->all(), [
                 'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             ]);
 
@@ -51,6 +52,7 @@ class AttendanceController extends Controller
             $attendance->clock_in       = Carbon::now();
             $attendance->clock_in_image = $clockInImagePath;
             $attendance->status         = 'present';
+            $attendance->approval_status = 'pending'; // Set approval status to pending by default
             $attendance->save();
 
             return response()->json([
@@ -60,7 +62,6 @@ class AttendanceController extends Controller
         }
 
         if ($attendance->clock_in && !$attendance->clock_out) {
- 
             $validator = Validator::make($request->all(), [
                 'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             ]);
@@ -101,7 +102,7 @@ class AttendanceController extends Controller
             $attendance = Attendance::where('user_id', $user->id)->where('attendance_date', $date)->first();
 
             if (!$attendance) {
-                return response()->json([
+                return response()->json([ 
                     'message' => 'No attendance found for the specified date.'
                 ], 404);
             }
@@ -116,25 +117,95 @@ class AttendanceController extends Controller
             ->get();
 
         return response()->json([
-            'attendances' => $attendances
+            'attendance' => new AttendanceResource($attendances),
         ], 200);
     }
 
     public function getAllAttendance(Request $request): JsonResponse
     {
-
         $date = $request->query('date');
-
+    
         if ($date) {
-            $attendances = Attendance::with('user')->where('attendance_date', $date)->orderBy('user_id')->get();
+            $attendances = Attendance::with('user')
+                ->where('attendance_date', $date)
+                ->orderBy('user_id')
+                ->get();
         } else {
             $attendances = Attendance::with('user')
                 ->orderBy('attendance_date', 'desc')
                 ->get();
         }
+    
+        return response()->json([
+            'attendance' => AttendanceResource::collection($attendances),
+            'app_url'    => config('app.url'),
+        ], 200);
+    }
+    
+    
+    /**
+     * Approve the attendance.
+     */
+    public function approveAttendance(Request $request, $id): JsonResponse
+    {
+        $attendance = Attendance::find($id);
+
+        if (!$attendance) {
+            return response()->json([
+                'message' => 'Attendance not found.'
+            ], 404);
+        }
+
+        // Update the approval_status to 'approved'
+        $attendance->approval_status = 'approved';
+        $attendance->save();
 
         return response()->json([
-            'attendances' => $attendances
+            'message'    => 'Attendance approved successfully.',
+            'attendance' => [
+                'id'                => $attendance->id,
+                'user_id'           => $attendance->user_id,
+                'attendance_date'   => $attendance->attendance_date,
+                'approval_status'   => $attendance->approval_status,
+                'status'            => $attendance->status,
+                'clock_in'          => $attendance->clock_in,
+                'clock_out'         => $attendance->clock_out,
+                'clock_in_image'    => $attendance->clock_in_image,
+                'clock_out_image'   => $attendance->clock_out_image,
+            ]
+        ], 200);
+    }
+
+    /**
+     * Reject the attendance.
+     */
+    public function rejectAttendance(Request $request, $id): JsonResponse
+    {
+        $attendance = Attendance::find($id);
+
+        if (!$attendance) {
+            return response()->json([
+                'message' => 'Attendance not found.'
+            ], 404);
+        }
+
+        // Update the approval_status to 'rejected'
+        $attendance->approval_status = 'rejected';
+        $attendance->save();
+
+        return response()->json([
+            'message'    => 'Attendance rejected successfully.',
+            'attendance' => [
+                'id'                => $attendance->id,
+                'user_id'           => $attendance->user_id,
+                'attendance_date'   => $attendance->attendance_date,
+                'approval_status'   => $attendance->approval_status,
+                'status'            => $attendance->status,
+                'clock_in'          => $attendance->clock_in,
+                'clock_out'         => $attendance->clock_out,
+                'clock_in_image'    => $attendance->clock_in_image,
+                'clock_out_image'   => $attendance->clock_out_image,
+            ]
         ], 200);
     }
 }

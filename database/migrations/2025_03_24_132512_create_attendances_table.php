@@ -18,6 +18,7 @@ class CreateAttendancesTable extends Migration
             $table->timestamp('clock_out')->nullable();
             $table->string('clock_out_image')->nullable(); // Added column for clock out image
             $table->string('status')->nullable();
+            $table->enum('approval_status', ['pending', 'approved', 'rejected'])->default('pending'); // Using enum for approval status
             $table->timestamps();
 
             // Add foreign keys and unique index for daily records

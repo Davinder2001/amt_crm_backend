@@ -96,6 +96,9 @@ Route::prefix('v1')->group(function () {
         Route::post('/attendance', [AttendanceController::class, 'recordAttendance']);
         Route::get('/attendance/{id}', [AttendanceController::class, 'getAttendance']);
         Route::get('/attendances', [AttendanceController::class, 'getAllAttendance']);
+        Route::put('/attendance/approve/{id}', [AttendanceController::class, 'approveAttendance']);
+        Route::put('/attendance/reject/{id}', [AttendanceController::class, 'rejectAttendance']);
+
 
 
        // ** Salary Management **//
