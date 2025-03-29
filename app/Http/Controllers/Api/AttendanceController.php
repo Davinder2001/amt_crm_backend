@@ -46,13 +46,18 @@ class AttendanceController extends Controller
                 ], 422);
             }
     
-            $clockInImagePath = $request->file('image')->store('attendance_images', 'public');
+            // Save directly to public/images/attendance_images
+            $image = $request->file('image');
+            $imageName = uniqid('attendance_', true) . '.' . $image->getClientOriginalExtension();
+            $image->move(public_path('images/attendance_images'), $imageName);
     
-            $attendance->company_id     = $company->id;
-            $attendance->clock_in       = Carbon::now();
-            $attendance->clock_in_image = $clockInImagePath;
-            $attendance->status         = 'present';
-            $attendance->approval_status = 'pending'; // Set approval status to pending by default
+            $clockInImagePath = 'images/attendance_images/' . $imageName;
+    
+            $attendance->company_id       = $company->id;
+            $attendance->clock_in         = Carbon::now();
+            $attendance->clock_in_image   = $clockInImagePath;
+            $attendance->status           = 'present';
+            $attendance->approval_status  = 'pending';
             $attendance->save();
     
             return response()->json([
@@ -73,10 +78,15 @@ class AttendanceController extends Controller
                 ], 422);
             }
     
-            $clockOutImagePath = $request->file('image')->store('attendance_images', 'public');
+            // Save directly to public/images/attendance_images
+            $image = $request->file('image');
+            $imageName = uniqid('attendance_', true) . '.' . $image->getClientOriginalExtension();
+            $image->move(public_path('images/attendance_images'), $imageName);
     
-            $attendance->clock_out      = Carbon::now();
-            $attendance->clock_out_image = $clockOutImagePath;
+            $clockOutImagePath = 'images/attendance_images/' . $imageName;
+    
+            $attendance->clock_out        = Carbon::now();
+            $attendance->clock_out_image  = $clockOutImagePath;
             $attendance->save();
     
             return response()->json([
