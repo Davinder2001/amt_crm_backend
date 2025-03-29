@@ -45,6 +45,7 @@ class AttendanceController extends Controller
                     'errors'  => $validator->errors(),
                 ], 422);
             }
+            
     
             // Save directly to public/images/attendance_images
             $image = $request->file('image');
