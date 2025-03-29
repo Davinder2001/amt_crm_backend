@@ -53,8 +53,8 @@ return [
     */
 
     'url' => env('APP_URL', 'http://localhost'),
-    'image_uri' => env('IMAGE_URI', 'http://localhost:8000'),
-    // 'image_uri' => env('IMAGE_URI', 'https://amt.sparkweb.sbs/Images'),
+    // 'image_uri' => env('IMAGE_URI', 'http://localhost:8000'),
+    'image_uri' => env('IMAGE_URI', 'https://amt.sparkweb.sbs/Images'),
 
 
     /*
