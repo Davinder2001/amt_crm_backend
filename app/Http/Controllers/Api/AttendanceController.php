@@ -20,75 +20,76 @@ class AttendanceController extends Controller
     {
         $user = $request->user();
         $company = $user->companies()->first();
-
+    
         if (!$company) {
             return response()->json([
                 'message' => 'User is not associated with any company.'
             ], 422);
         }
-
+    
         $today = Carbon::today()->toDateString();
-
+    
         $attendance = Attendance::firstOrNew([
             'user_id'         => $user->id,
             'attendance_date' => $today,
         ]);
-
+    
         if (!$attendance->exists) {
             $validator = Validator::make($request->all(), [
                 'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             ]);
-
+    
             if ($validator->fails()) {
                 return response()->json([
                     'message' => 'Validation errors.',
                     'errors'  => $validator->errors(),
                 ], 422);
             }
-
+    
             $clockInImagePath = $request->file('image')->store('attendance_images', 'public');
-
+    
             $attendance->company_id     = $company->id;
             $attendance->clock_in       = Carbon::now();
             $attendance->clock_in_image = $clockInImagePath;
             $attendance->status         = 'present';
             $attendance->approval_status = 'pending'; // Set approval status to pending by default
             $attendance->save();
-
+    
             return response()->json([
                 'message'    => 'Clocked in successfully.',
                 'attendance' => $attendance,
             ]);
         }
-
+    
         if ($attendance->clock_in && !$attendance->clock_out) {
             $validator = Validator::make($request->all(), [
                 'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             ]);
-
+    
             if ($validator->fails()) {
                 return response()->json([
                     'message' => 'Validation errors.',
                     'errors'  => $validator->errors(),
                 ], 422);
             }
-
+    
             $clockOutImagePath = $request->file('image')->store('attendance_images', 'public');
-
+    
             $attendance->clock_out      = Carbon::now();
             $attendance->clock_out_image = $clockOutImagePath;
             $attendance->save();
-
+    
             return response()->json([
                 'message'    => 'Clocked out successfully.',
                 'attendance' => $attendance,
             ]);
         }
-
+    
         return response()->json([
             'message' => 'Attendance already recorded for today.'
         ], 422);
     }
+    
     
     /**
      * Retrieve attendance records for the logged-in user.
