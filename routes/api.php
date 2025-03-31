@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\EmployeeController;
 use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\SalaryController;
+use App\Http\Controllers\Api\ShiftsController;
 use Illuminate\Session\Middleware\StartSession;
 
 
@@ -106,5 +107,14 @@ Route::prefix('v1')->group(function () {
         Route::get('employee/{id}/salary', [SalaryController::class, 'show']);
         Route::get('employee/{id}/salary-increment', [SalaryController::class, 'increment']);
             
+
+
+        
+        
+        
     });
+    Route::get('shifts', [ShiftsController::class, 'index']);
+    Route::post('shifts', [ShiftsController::class, 'store']);
+    Route::put('shifts', [ShiftsController::class, 'update']);
+    Route::get('shifts', [ShiftsController::class, 'show']);
 });

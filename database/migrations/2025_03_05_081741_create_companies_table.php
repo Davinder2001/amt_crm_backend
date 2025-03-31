@@ -14,7 +14,6 @@ return new class extends Migration
         Schema::create('companies', function (Blueprint $table) {
             $table->id();
             $table->string('company_name')->unique();
-            $table->unsignedBigInteger('admin_id')->nullable();
             $table->string('company_id')->unique();
             $table->string('company_slug')->unique();
             $table->enum('payment_status', ['pending', 'completed', 'failed'])->default('pending');

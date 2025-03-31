@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Validator;
 
 class AttendanceController extends Controller
 {
+
     /**
      * Record attendance for the current day.
      */
@@ -45,17 +46,19 @@ class AttendanceController extends Controller
                     'errors'  => $validator->errors(),
                 ], 422);
             }
-            
-    
-            // Save directly to public/images/attendance_images
+
+
+       
             $image = $request->file('image');
             $imageName = uniqid('attendance_', true) . '.' . $image->getClientOriginalExtension();
             $image->move(public_path('images/attendance_images'), $imageName);
     
             $clockInImagePath = 'images/attendance_images/' . $imageName;
-    
+            
+            $time = Carbon::now('Asia/Kolkata')->format('h:i A'); 
+
             $attendance->company_id       = $company->id;
-            $attendance->clock_in         = Carbon::now();
+            $attendance->clock_in         = $time;
             $attendance->clock_in_image   = $clockInImagePath;
             $attendance->status           = 'present';
             $attendance->approval_status  = 'pending';
@@ -79,7 +82,6 @@ class AttendanceController extends Controller
                 ], 422);
             }
     
-            // Save directly to public/images/attendance_images
             $image = $request->file('image');
             $imageName = uniqid('attendance_', true) . '.' . $image->getClientOriginalExtension();
             $image->move(public_path('images/attendance_images'), $imageName);
@@ -101,6 +103,7 @@ class AttendanceController extends Controller
         ], 422);
     }
     
+
     
     /**
      * Retrieve attendance records for the logged-in user.
@@ -133,6 +136,10 @@ class AttendanceController extends Controller
         ], 200);
     }
 
+
+    /**
+     * Get the attendance.
+     */
     public function getAllAttendance(Request $request): JsonResponse
     {
         $date = $request->query('date');
@@ -168,25 +175,14 @@ class AttendanceController extends Controller
             ], 404);
         }
 
-        // Update the approval_status to 'approved'
         $attendance->approval_status = 'approved';
         $attendance->save();
 
         return response()->json([
             'message'    => 'Attendance approved successfully.',
-            'attendance' => [
-                'id'                => $attendance->id,
-                'user_id'           => $attendance->user_id,
-                'attendance_date'   => $attendance->attendance_date,
-                'approval_status'   => $attendance->approval_status,
-                'status'            => $attendance->status,
-                'clock_in'          => $attendance->clock_in,
-                'clock_out'         => $attendance->clock_out,
-                'clock_in_image'    => $attendance->clock_in_image,
-                'clock_out_image'   => $attendance->clock_out_image,
-            ]
         ], 200);
     }
+
 
     /**
      * Reject the attendance.
@@ -201,7 +197,6 @@ class AttendanceController extends Controller
             ], 404);
         }
 
-        // Update the approval_status to 'rejected'
         $attendance->approval_status = 'rejected';
         $attendance->save();
 

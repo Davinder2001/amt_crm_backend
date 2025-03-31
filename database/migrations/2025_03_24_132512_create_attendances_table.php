@@ -13,15 +13,14 @@ class CreateAttendancesTable extends Migration
             $table->unsignedBigInteger('user_id');
             $table->unsignedBigInteger('company_id');
             $table->date('attendance_date');
-            $table->timestamp('clock_in')->nullable();
-            $table->string('clock_in_image')->nullable(); // Added column for clock in image
-            $table->timestamp('clock_out')->nullable();
-            $table->string('clock_out_image')->nullable(); // Added column for clock out image
-            $table->string('status')->nullable();
-            $table->enum('approval_status', ['pending', 'approved', 'rejected'])->default('pending'); // Using enum for approval status
+            $table->string('clock_in')->nullable();
+            $table->string('clock_in_image')->nullable(); 
+            $table->string('clock_out')->nullable();
+            $table->string('clock_out_image')->nullable();
+            $table->enum('status', ['present', 'absent', 'leave'])->nullable();
+            $table->enum('approval_status', ['pending', 'approved', 'rejected'])->default('pending');
             $table->timestamps();
-
-            // Add foreign keys and unique index for daily records
+            
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->foreign('company_id')->references('id')->on('companies')->onDelete('cascade');
             $table->unique(['user_id', 'attendance_date'], 'unique_daily_attendance');
