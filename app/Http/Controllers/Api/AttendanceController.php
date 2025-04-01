@@ -88,7 +88,9 @@ class AttendanceController extends Controller
     
             $clockOutImagePath = 'images/attendance_images/' . $imageName;
     
-            $attendance->clock_out        = Carbon::now();
+            $time = Carbon::now('Asia/Kolkata')->format('h:i A'); 
+
+            $attendance->clock_out        = $time;
             $attendance->clock_out_image  = $clockOutImagePath;
             $attendance->save();
     
@@ -104,6 +106,47 @@ class AttendanceController extends Controller
     }
     
 
+    public function applyForLeave(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $company = $user->companies()->first();
+    
+        if (!$company) {
+            return response()->json([
+                'message' => 'User is not associated with any company.'
+            ], 422);
+        }
+    
+        // Get today's date for attendance reference
+        $today = Carbon::today()->toDateString();
+    
+        // Check if an attendance record already exists for today
+        $attendance = Attendance::firstOrNew([
+            'user_id'         => $user->id,
+            'attendance_date' => $today,
+        ]);
+    
+        if ($attendance->exists) {
+            return response()->json([
+                'message' => 'Attendance already recorded for today.'
+            ], 422);
+        }
+    
+        $attendance->company_id      = $company->id;
+        $attendance->status          = 'leave';
+        $attendance->approval_status = 'pending';
+        $attendance->clock_out        = '-';
+        $attendance->clock_out_image  = null;
+        $attendance->clock_in         = '-';
+        $attendance->clock_in_image   = null;
+        $attendance->save();
+    
+        return response()->json([
+            'message' => 'Leave applied successfully.',
+            'leave'   => $attendance,
+        ]);
+    }
+    
     
     /**
      * Retrieve attendance records for the logged-in user.

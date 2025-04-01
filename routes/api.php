@@ -12,6 +12,8 @@ use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\SalaryController;
 use App\Http\Controllers\Api\ShiftsController;
+use App\Http\Controllers\Api\ItemsController;
+use App\Http\Controllers\Api\StoreVendorController;
 use Illuminate\Session\Middleware\StartSession;
 
 
@@ -99,6 +101,8 @@ Route::prefix('v1')->group(function () {
         Route::get('/attendances', [AttendanceController::class, 'getAllAttendance']);
         Route::put('/attendance/approve/{id}', [AttendanceController::class, 'approveAttendance']);
         Route::put('/attendance/reject/{id}', [AttendanceController::class, 'rejectAttendance']);
+        Route::post('/apply-for-leave', [AttendanceController::class, 'applyForLeave']);
+
 
 
 
@@ -107,13 +111,38 @@ Route::prefix('v1')->group(function () {
         Route::get('employee/{id}/salary', [SalaryController::class, 'show']);
         Route::get('employee/{id}/salary-increment', [SalaryController::class, 'increment']);
             
-
+        // ** Shifts Management **//
         Route::get('shifts', [ShiftsController::class, 'index']);
         Route::post('shifts', [ShiftsController::class, 'store']);
         Route::put('shifts', [ShiftsController::class, 'update']);
         Route::get('shifts/{id}', [ShiftsController::class, 'show']);
 
         
+
+
+        // ** Store Management **//
+        Route::prefix('store')->group(function () {
+            Route::post('/add-items', [ItemsController::class, 'store']);
+            Route::get('/items', [ItemsController::class, 'index']);
+            Route::get('/items/{id}', [ItemsController::class, 'show']);
+            Route::put('/items/{id}', [ItemsController::class, 'update']);
+            Route::delete('/items/{id}', [ItemsController::class, 'destroy']);
+
+
+            Route::get('vendors', [StoreVendorController::class, 'index']);
+            Route::post('vendors', [StoreVendorController::class, 'store']);
+            Route::get('vendors/{id}', [StoreVendorController::class, 'show']);
+            Route::put('vendors/{id}', [StoreVendorController::class, 'update']);
+            Route::delete('vendors/{id}', [StoreVendorController::class, 'destroy']);
+        
+
+
+
+            
+        });
+        
+
+
         
         
     });
