@@ -26,6 +26,7 @@ class EmployeeCreateService
      */
     public function createEmployee(array $data)
     {
+        // dd($data);
         $existingUser = User::where('number', $data['number'])
         ->whereIn('user_type', ['employee', 'admin'])
         ->where('user_status', 'active')
@@ -60,11 +61,34 @@ class EmployeeCreateService
         $employee->assignRole($data['role']);
 
         EmployeeDetail::create([
-            'user_id'      => $employee->id,
-            'salary'       => $data['salary'] ?? 0,
-            'dateOfHire'   => $data['dateOfHire'] ?? null,
-            'joiningDate'  => $data['joiningDate'] ?? null,
-            'shiftTimings' => $data['shiftTimings'] ?? null,
+            'user_id'                     => $employee->id,
+            'salary'                      => $data['salary'] ?? 0,
+            'dateOfHire'                => $data['dateOfHire'] ?? null,
+            'joiningDate'                => $data['joiningDate'] ?? null,
+            'shiftTimings'               => $data['shiftTimings'] ?? null,
+            'address'                => $data['address'] ?? null,
+            'nationality'                 => $data['nationality'] ?? null,
+            'dob'                         => $data['dob'] ?? null,
+            'religion'                    => $data['religion'] ?? null,
+            'maritalStatus'              => $data['maritalStatus'] ?? null,
+            'passportNo'                 => $data['passportNo'] ?? null,
+            'emergencyContact'           => $data['emergencyContact'] ?? null,
+            'emergencyContactRelation'  => $data['emergencyContactRelation'] ?? null,
+            'currentSalary'              => $data['currentSalary'] ?? null,
+            'workLocation'               => $data['workLocation'] ?? null,
+            'joiningType'                => $data['joiningType'] ?? 'full-time',
+            'department'                  => $data['department'] ?? null,
+            'previousEmployer'           => $data['previousEmployer'] ?? null,
+            'medicalInfo'                => $data['medicalInfo'] ?? null,
+            'bankName'                   => $data['bankName'] ?? null,
+            'accountNo'                  => $data['accountNo'] ?? null,
+            'ifscCode'                   => $data['ifscCode'] ?? null,
+            'panNo'                      => $data['panNo'] ?? null,
+            'upiId'                      => $data['upiId'] ?? null,
+            'addressProof'               => $data['addressProof'] ?? null,
+            'profilePicture'             => $data['profilePicture'] ?? null,
+
+            
         ]);
 
         SalaryHistory::create([
