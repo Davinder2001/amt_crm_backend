@@ -47,7 +47,8 @@ Route::prefix('v1')->group(function () {
         Route::post('roles/{id}/assign-permission', [RolePermissionController::class, 'assignPermissionToRole']);
         Route::post('roles/{id}/remove-permission', [RolePermissionController::class, 'removePermissionFromRole']);
 
-
+    
+        
         // **User Management** //
         Route::get('user', [UserController::class, 'authUser']);
         Route::get('users', [UserController::class, 'index'])->middleware('permission:view users');
