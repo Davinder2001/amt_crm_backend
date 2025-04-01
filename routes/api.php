@@ -108,13 +108,13 @@ Route::prefix('v1')->group(function () {
         Route::get('employee/{id}/salary-increment', [SalaryController::class, 'increment']);
             
 
+        Route::get('shifts', [ShiftsController::class, 'index']);
+        Route::post('shifts', [ShiftsController::class, 'store']);
+        Route::put('shifts', [ShiftsController::class, 'update']);
+        Route::get('shifts/{id}', [ShiftsController::class, 'show']);
 
         
         
         
     });
-    Route::get('shifts', [ShiftsController::class, 'index']);
-    Route::post('shifts', [ShiftsController::class, 'store']);
-    Route::put('shifts', [ShiftsController::class, 'update']);
-    Route::get('shifts', [ShiftsController::class, 'show']);
 });
