@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\Item;
+use App\Models\StoreVendor;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
@@ -16,20 +17,18 @@ class ItemsController extends Controller
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
 
-        if (!$selectedCompany->super_admin) {
-            $items = Item::where('company_id', $selectedCompany->company_id)->get();
-        } else {
-            $items = Item::all();
-        }
+        $items = $selectedCompany->super_admin
+            ? Item::all()
+            : Item::where('company_id', $selectedCompany->company_id)->get();
 
         return response()->json($items);
     }
 
-    // Add a new item
+    // Store a new item
     public function store(Request $request): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-
+    
         $validator = Validator::make($request->all(), [
             'name'                => 'required|string|max:255',
             'quantity_count'      => 'required|integer',
@@ -43,26 +42,36 @@ class ItemsController extends Controller
             'vendor_name'         => 'nullable|string|max:255',
             'availability_stock'  => 'required|integer',
         ]);
-
+    
         if ($validator->fails()) {
             return response()->json([
                 'message' => 'Validation errors.',
                 'errors'  => $validator->errors(),
             ], 422);
         }
-
+    
         $data = $validator->validated();
         $data['company_id'] = $selectedCompany->company_id;
-
+    
+        $lastItemCode = Item::where('company_id', $data['company_id'])->max('item_code');
+        $data['item_code'] = $lastItemCode ? $lastItemCode + 1 : 1;
+    
+        if (!empty($data['vendor_name'])) {
+            StoreVendor::firstOrCreate([
+                'vendor_name' => $data['vendor_name'],
+                'company_id'  => $data['company_id'],
+            ]);
+        }
+    
         $item = Item::create($data);
-
+    
         return response()->json([
             'message' => 'Item added successfully.',
             'item'    => $item,
         ], 201);
     }
-
-    // Get a specific item by ID
+    
+    // Get a specific item
     public function show($id): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -79,7 +88,7 @@ class ItemsController extends Controller
         return response()->json($item);
     }
 
-    // Update an existing item
+    // Update item
     public function update(Request $request, $id): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -114,7 +123,14 @@ class ItemsController extends Controller
             ], 422);
         }
 
-        $item->update($validator->validated());
+        $data = $validator->validated();
+
+        if (empty($item->item_code)) {
+            $lastItemCode = Item::where('company_id', $item->company_id)->max('item_code');
+            $data['item_code'] = $lastItemCode ? $lastItemCode + 1 : 1;
+        }
+
+        $item->update($data);
 
         return response()->json([
             'message' => 'Item updated successfully.',
@@ -122,6 +138,7 @@ class ItemsController extends Controller
         ]);
     }
 
+    // Delete item
     public function destroy($id): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();

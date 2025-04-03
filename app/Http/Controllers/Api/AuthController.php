@@ -42,9 +42,7 @@ class AuthController extends Controller
 
             $data = $validator->validated();
 
-            $alreadyUser = User::where('number', $data['number'])
-                ->where('user_type', 'user')
-                ->exists();
+            $alreadyUser = User::where('number', $data['number'])->where('user_type', 'user')->exists();
 
             if ($alreadyUser) {
                 return response()->json([
@@ -136,7 +134,7 @@ class AuthController extends Controller
         $data = $validator->validated();
     
         $user = User::with(['companies', 'roles'])->where('number', $data['number'])->whereIn('user_type', ['employee', 'admin', 'super-admin'])->first();
-    
+        
         if (!$user || !Hash::check($data['password'], $user->password)) {
             return response()->json(['error' => 'Invalid credentials.'], 401);
         }
@@ -152,10 +150,18 @@ class AuthController extends Controller
                 CompanyUser::where('user_id', $user->id)->where('company_id', $singleCompany->company_id)->update(['status' => 1]);
             }
         }
-        
-    
-        $request->session()->regenerate();
-        $token = $user->createToken('auth_token')->plainTextToken;
+
+        $activeTokens = $user->tokens()->where('expires_at', '>', now());
+        if ($activeTokens->exists()) {
+            $activeTokens->update(['expires_at' => now()]);
+        }
+
+        $tokenResult = $user->createToken('auth_token');
+        $token = $tokenResult->plainTextToken;
+        $accessToken = $tokenResult->accessToken;
+        $accessToken->expires_at = now()->addHours(24);
+        $accessToken->save();
+
     
         return response()->json([
             'message'      => 'Logged in successfully.',

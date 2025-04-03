@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('store_items', function (Blueprint $table) {
             $table->id();
             $table->foreignId('company_id')->constrained('companies')->onDelete('cascade');
+            $table->string('item_code');
             $table->string('name'); 
             $table->integer('quantity_count');
             $table->string('measurement')->nullable();
