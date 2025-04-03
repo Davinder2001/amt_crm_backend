@@ -1,55 +1,64 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\UserController;
-use App\Http\Controllers\Api\RolePermissionController;
-use App\Http\Controllers\Api\RoleController;
-use App\Http\Controllers\Api\PermissionController;
-use App\Http\Controllers\Api\TaskController;
-use App\Http\Controllers\Api\EmployeeController;
-use App\Http\Controllers\Api\AttendanceController;
-use App\Http\Controllers\Api\CompanyController;
-use App\Http\Controllers\Api\SalaryController;
-use App\Http\Controllers\Api\ShiftsController;
-use App\Http\Controllers\Api\ItemsController;
-use App\Http\Controllers\Api\StoreVendorController;
 use Illuminate\Session\Middleware\StartSession;
-
+use App\Http\Controllers\Api\{
+    AuthController,
+    UserController,
+    RoleController,
+    RolePermissionController,
+    PermissionController,
+    TaskController,
+    EmployeeController,
+    AttendanceController,
+    CompanyController,
+    SalaryController,
+    ShiftsController,
+    ItemsController,
+    StoreVendorController
+};
 
 Route::prefix('v1')->group(function () {
 
-
-    // **  Guest user routes  ** //
+    // Guest Routes
     Route::middleware(['api', StartSession::class])->group(function () {
         Route::post('login', [AuthController::class, 'login']);
         Route::post('c-login', [AuthController::class, 'companyLogin']);
         Route::post('register', [AuthController::class, 'register']);
         Route::post('admin-register', [AuthController::class, 'adminRegister']);
-        Route::post('/password/forgot', [AuthController::class, 'sendResetOtp']);
-        Route::post('/password/verify-otp', [AuthController::class, 'verifyOtp']);
+        Route::post('password/forgot', [AuthController::class, 'sendResetOtp']);
+        Route::post('password/verify-otp', [AuthController::class, 'verifyOtp']);
     });
-    
-    
-    
-    
-    // **Protected Routes (Require Sanctum Authentication)** //
+
+    // Protected Routes
     Route::middleware(['auth:sanctum', 'setActiveCompany'])->group(function () {
+
+        // Auth
         Route::post('logout', [AuthController::class, 'logout']);
+        Route::post('password/change', [AuthController::class, 'resetPassword']);
+
+        // Permissions
         Route::apiResource('permissions', PermissionController::class);
-        Route::post('/password/change', [AuthController::class, 'resetPassword']);
 
+        // Roles & Role Permissions
+        Route::get('roles', [RoleController::class, 'index'])->middleware('permission:view roles');
+        Route::post('roles', [RoleController::class, 'store'])->middleware('permission:add roles');
+        Route::get('roles/{role}', [RoleController::class, 'show'])->middleware('permission:view roles');
+        Route::put('roles/{role}', [RoleController::class, 'update'])->middleware('permission:edit roles');
+        Route::delete('roles/{role}', [RoleController::class, 'destroy'])->middleware('permission:delete roles');
 
-        // **Role & Permission Management** //
-        Route::post('users/{id}/assign-role', [RolePermissionController::class, 'assignRole']);
-        Route::post('users/{id}/remove-role', [RolePermissionController::class, 'removeRole']);
-        Route::put('users/{id}/update-role', [RolePermissionController::class, 'updateRole']);
-        Route::post('roles/{id}/assign-permission', [RolePermissionController::class, 'assignPermissionToRole']);
-        Route::post('roles/{id}/remove-permission', [RolePermissionController::class, 'removePermissionFromRole']);
+        Route::prefix('roles/{id}')->group(function () {
+            Route::post('assign-permission', [RolePermissionController::class, 'assignPermissionToRole']);
+            Route::post('remove-permission', [RolePermissionController::class, 'removePermissionFromRole']);
+        });
 
-    
-        
-        // **User Management** //
+        Route::prefix('users/{id}')->group(function () {
+            Route::post('assign-role', [RolePermissionController::class, 'assignRole']);
+            Route::post('remove-role', [RolePermissionController::class, 'removeRole']);
+            Route::put('update-role', [RolePermissionController::class, 'updateRole']);
+        });
+
+        // Users
         Route::get('user', [UserController::class, 'authUser']);
         Route::get('users', [UserController::class, 'index'])->middleware('permission:view users');
         Route::post('users', [UserController::class, 'store'])->middleware('permission:add users');
@@ -57,94 +66,82 @@ Route::prefix('v1')->group(function () {
         Route::put('users/{user}', [UserController::class, 'update'])->middleware('permission:edit users');
         Route::delete('users/{user}', [UserController::class, 'destroy'])->middleware('permission:delete users');
 
-        // **Role Management** //
-        Route::get('roles', [RoleController::class, 'index'])->middleware('permission:view roles');
-        Route::post('roles', [RoleController::class, 'store'])->middleware('permission:add roles');
-        Route::get('roles/{role}', [RoleController::class, 'show'])->middleware('permission:view roles');
-        Route::put('roles/{role}', [RoleController::class, 'update'])->middleware('permission:edit roles');
-        Route::delete('roles/{role}', [RoleController::class, 'destroy'])->middleware('permission:delete roles');
-
-        
-        // **Task Management** //
-        Route::get('tasks', [TaskController::class, 'index'])->middleware('permission:view task');
-        Route::post('tasks', [TaskController::class, 'store'])->middleware('permission:add task');
-        Route::get('tasks/{id}', [TaskController::class, 'show'])->middleware('permission:view task');
-        Route::put('tasks/{id}', [TaskController::class, 'update'])->middleware('permission:update task');
-        Route::delete('tasks/{id}', [TaskController::class, 'destroy'])->middleware('permission:delete task');
-
-        
-        Route::middleware(['injectUserType:employee'])->group(function () {
-            
-            // **Employee Management** //
-            Route::get('employee', [EmployeeController::class, 'index'])->middleware('permission:view employee');
-            Route::post('employee', [EmployeeController::class, 'store'])->middleware('permission:add employee');
-            Route::get('employee/{id}', [EmployeeController::class, 'show'])->middleware('permission:view employee');
-            Route::put('employee/{id}', [EmployeeController::class, 'update'])->middleware('permission:update employee');
-            Route::delete('employee/{id}', [EmployeeController::class, 'destroy'])->middleware('permission:delete employee');
-            Route::get('employee/salarySlip/{id}', [EmployeeController::class, 'salarySlip'])->middleware('permission:view employee salary');
-            Route::get('employee/salary-slip-pdf/{id}', [EmployeeController::class, 'downloadSalarySlipPdf'])->middleware('permission:download employee salary');
-            
+        // Tasks
+        Route::prefix('tasks')->middleware('permission:view task')->group(function () {
+            Route::get('/', [TaskController::class, 'index']);
+            Route::get('{id}', [TaskController::class, 'show']);
         });
 
-       // ** Companey Management **//
-        Route::get('companies', [CompanyController::class, 'index'])->middleware('permission:view company');
-        Route::get('companies/{id}', [CompanyController::class, 'show'])->middleware('permission:view company');
-        Route::post('companies', [CompanyController::class, 'store'])->middleware('permission:add company');
-        Route::put('companies/{id}', [CompanyController::class, 'update'])->middleware('permission:update company');
-        Route::delete('companies/{id}', [CompanyController::class, 'destroy'])->middleware('permission:delete company');
+        Route::prefix('tasks')->group(function () {
+            Route::post('/', [TaskController::class, 'store'])->middleware('permission:add task');
+            Route::put('{id}', [TaskController::class, 'update'])->middleware('permission:update task');
+            Route::delete('{id}', [TaskController::class, 'destroy'])->middleware('permission:delete task');
+        });
+
+        // Employee Management
+        Route::middleware(['injectUserType:employee'])->group(function () {
+            Route::prefix('employee')->group(function () {
+                Route::get('/', [EmployeeController::class, 'index'])->middleware('permission:view employee');
+                Route::post('/', [EmployeeController::class, 'store'])->middleware('permission:add employee');
+                Route::get('{id}', [EmployeeController::class, 'show'])->middleware('permission:view employee');
+                Route::put('{id}', [EmployeeController::class, 'update'])->middleware('permission:update employee');
+                Route::delete('{id}', [EmployeeController::class, 'destroy'])->middleware('permission:delete employee');
+                Route::get('salarySlip/{id}', [EmployeeController::class, 'salarySlip'])->middleware('permission:view employee salary');
+                Route::get('salary-slip-pdf/{id}', [EmployeeController::class, 'downloadSalarySlipPdf'])->middleware('permission:download employee salary');
+            });
+        });
+
+        // Companies
+        Route::prefix('companies')->group(function () {
+            Route::get('/', [CompanyController::class, 'index'])->middleware('permission:view company');
+            Route::post('/', [CompanyController::class, 'store'])->middleware('permission:add company');
+            Route::get('{id}', [CompanyController::class, 'show'])->middleware('permission:view company');
+            Route::put('{id}', [CompanyController::class, 'update'])->middleware('permission:update company');
+            Route::delete('{id}', [CompanyController::class, 'destroy'])->middleware('permission:delete company');
+        });
+
         Route::get('selectedCompanies', [CompanyController::class, 'getSelectedCompanies']);
         Route::post('selectedCompanies/{id}', [CompanyController::class, 'selectedCompanies']);
 
+        // Attendance
+        Route::prefix('attendance')->group(function () {
+            Route::post('/', [AttendanceController::class, 'recordAttendance']);
+            Route::get('/{id}', [AttendanceController::class, 'getAttendance']);
+            Route::get('/all', [AttendanceController::class, 'getAllAttendance']);
+            Route::put('/approve/{id}', [AttendanceController::class, 'approveAttendance']);
+            Route::put('/reject/{id}', [AttendanceController::class, 'rejectAttendance']);
+        });
 
-       // ** Attendence Management **//
-        Route::post('/attendance', [AttendanceController::class, 'recordAttendance']);
-        Route::get('/attendance/{id}', [AttendanceController::class, 'getAttendance']);
-        Route::get('/attendances', [AttendanceController::class, 'getAllAttendance']);
-        Route::put('/attendance/approve/{id}', [AttendanceController::class, 'approveAttendance']);
-        Route::put('/attendance/reject/{id}', [AttendanceController::class, 'rejectAttendance']);
         Route::post('/apply-for-leave', [AttendanceController::class, 'applyForLeave']);
 
-
-
-
-       // ** Salary Management **//
+        // Salary
         Route::get('employees/salary', [SalaryController::class, 'index']);
         Route::get('employee/{id}/salary', [SalaryController::class, 'show']);
         Route::get('employee/{id}/salary-increment', [SalaryController::class, 'increment']);
-            
-        // ** Shifts Management **//
-        Route::get('shifts', [ShiftsController::class, 'index']);
-        Route::post('shifts', [ShiftsController::class, 'store']);
-        Route::put('shifts', [ShiftsController::class, 'update']);
-        Route::get('shifts/{id}', [ShiftsController::class, 'show']);
 
-        
+        // Shifts
+        Route::prefix('shifts')->group(function () {
+            Route::get('/', [ShiftsController::class, 'index']);
+            Route::post('/', [ShiftsController::class, 'store']);
+            Route::put('/', [ShiftsController::class, 'update']);
+            Route::get('{id}', [ShiftsController::class, 'show']);
+        });
 
-
-        // ** Store Management **//
+        // Store
         Route::prefix('store')->group(function () {
-            Route::post('/add-items', [ItemsController::class, 'store']);
-            Route::get('/items', [ItemsController::class, 'index']);
-            Route::get('/items/{id}', [ItemsController::class, 'show']);
-            Route::put('/items/{id}', [ItemsController::class, 'update']);
-            Route::delete('/items/{id}', [ItemsController::class, 'destroy']);
+            // Items
+            Route::post('add-items', [ItemsController::class, 'store']);
+            Route::get('items', [ItemsController::class, 'index']);
+            Route::get('items/{id}', [ItemsController::class, 'show']);
+            Route::put('items/{id}', [ItemsController::class, 'update']);
+            Route::delete('items/{id}', [ItemsController::class, 'destroy']);
 
-
+            // Vendors
             Route::get('vendors', [StoreVendorController::class, 'index']);
             Route::post('vendors', [StoreVendorController::class, 'store']);
             Route::get('vendors/{id}', [StoreVendorController::class, 'show']);
             Route::put('vendors/{id}', [StoreVendorController::class, 'update']);
             Route::delete('vendors/{id}', [StoreVendorController::class, 'destroy']);
-        
-
-
-
-            
         });
-        
-
-
-        
-        
     });
 });
