@@ -13,6 +13,7 @@ class Item extends Model
 
 
     protected $fillable = [
+        'item_code',
         'company_id',
         'name',
         'quantity_count',
@@ -25,7 +26,13 @@ class Item extends Model
         'category',
         'vendor_name',
         'availability_stock',
+        'images',
     ];
+
+    protected $casts = [
+        'images' => 'array', 
+    ];
+
 
     /**
      * Get the company that owns the item.

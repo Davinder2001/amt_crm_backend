@@ -15,7 +15,8 @@ use App\Http\Controllers\Api\{
     SalaryController,
     ShiftsController,
     ItemsController,
-    StoreVendorController
+    StoreVendorController,
+    ProductOcrController
 };
 
 Route::prefix('v1')->group(function () {
@@ -142,6 +143,13 @@ Route::prefix('v1')->group(function () {
             Route::get('vendors/{id}', [StoreVendorController::class, 'show']);
             Route::put('vendors/{id}', [StoreVendorController::class, 'update']);
             Route::delete('vendors/{id}', [StoreVendorController::class, 'destroy']);
+
+
+
+            
+            
+            
         });
     });
+    Route::post('/ocr/process', [ProductOcrController::class, 'extractTextFromImage']);
 });
