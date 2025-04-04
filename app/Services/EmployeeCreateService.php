@@ -131,6 +131,7 @@ class EmployeeCreateService
         $employeeDetail->dateOfHire   = $data['dateOfHire'] ?? $employeeDetail->dateOfHire;
         $employeeDetail->joiningDate  = $data['joiningDate'] ?? $employeeDetail->joiningDate;
         $employeeDetail->shiftTimings = $data['shiftTimings'] ?? $employeeDetail->shiftTimings;
+        $employeeDetail->address = $data['address'] ?? $employeeDetail->address;
         $employeeDetail->save();
 
         if (isset($data['salary']) && $data['salary'] != $previousSalary) {

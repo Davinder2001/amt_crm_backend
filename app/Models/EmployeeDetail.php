@@ -14,7 +14,29 @@ class EmployeeDetail extends Model
         'dateOfHire',
         'joiningDate',
         'shiftTimings',
+        'address',
+        'nationality',
+        'dob',
+        'religion',
+        'maritalStatus',
+        'passportNo',
+        'emergencyContact',
+        'emergencyContactRelation',
+        'currentSalary',
+        'workLocation',
+        'joiningType',
+        'department',
+        'previousEmployer',
+        'medicalInfo',
+        'bankName',
+        'accountNo',
+        'ifscCode',
+        'panNo',
+        'upiId',
+        'addressProof',
+        'profilePicture',
     ];
+    
 
     /**
      * Relationship: EmployeeDetail belongs to an Employee.

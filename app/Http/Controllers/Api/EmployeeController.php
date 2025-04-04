@@ -45,56 +45,58 @@ class EmployeeController extends Controller
     
     
 
+
     public function store(Request $request, EmployeeCreateService $userCreateService)
     {
-        try {
-            $data = $request->validate([
-                'name'                      => 'required|string|max:255',
-                'email'                     => 'required|string|email|max:255|unique:users,email',
-                'password'                  => 'required|string|min:8',
-                'number'                    => 'required|string|max:20|unique:users,number',
+        $validator = Validator::make($request->all(), [
+                'name'                      => 'required|string|min:3|max:50',
+                'email'                     => 'required|email|max:100',
+                'password'                  => 'required|string|min:8|max:30',
+                'number'                    => 'required|string|size:10', 
                 'role'                      => 'required|exists:roles,name',
                 'salary'                    => 'required|numeric|min:0',
-                'dateOfHire'                => 'nullable|date',
-                'joiningDate'               => 'nullable|date',
-                'shiftTimings'              => 'nullable|string|max:255',
-                'address'                   => 'nullable|string|max:500',
-                'nationality'               => 'nullable|string|max:100',
-                'dob'                       => 'nullable|date',
-                'religion'                  => 'nullable|string|max:100',
-                'maritalStatus'             => 'nullable|string|max:100',
-                'passportNo'                => 'nullable|string|max:50|unique:employee_details,passportNo',
-                'emergencyContact'          => 'nullable|string|max:20',
-                'emergencyContactRelation'  => 'nullable|string|max:50',
-                'currentSalary'             => 'nullable|numeric|min:0',
-                'workLocation'              => 'nullable|string|max:255',
+                'dateOfHire'                => 'required|date',
+                'joiningDate'               => 'required|date',
+                'shiftTimings'              => 'required|string|max:20',
+                'address'                   => 'required|string|min:5|max:100',
+                'nationality'               => 'required|string|min:3|max:30',
+                'dob'                       => 'required|date',
+                'religion'                  => 'required|string|min:3|max:30',
+                'maritalStatus'             => 'required|string|max:20', 
+                'passportNo'                => 'required|string|size:8', 
+                'emergencyContact'          => 'required|string|size:10',
+                'emergencyContactRelation'  => 'required|string|min:3|max:30',
+                'currentSalary'             => 'required|numeric|min:0',
+                'workLocation'              => 'required|string|min:3|max:100',
                 'joiningType'               => 'required|in:full-time,part-time,contract',
-                'department'                => 'nullable|string|max:255',
-                'previousEmployer'          => 'nullable|string|max:255',
-                'medicalInfo'               => 'nullable|string|max:500',
-                'bankName'                  => 'nullable|string|max:255',
-                'accountNo'                 => 'nullable|string|max:50|unique:employee_details,accountNo',
-                'ifscCode'                  => 'nullable|string|max:20',
-                'panNo'                     => 'nullable|string|max:20|unique:employee_details,panNo',
-                'upiId'                     => 'nullable|string|max:50',
-                'addressProof'              => 'nullable|string|max:255',
-                'profilePicture'            => 'nullable|string|max:255',
-            ]);
-    
+                'department'                => 'required|string|min:2|max:50',
+                'previousEmployer'          => 'required|string|min:3|max:50',
+                'medicalInfo'               => 'required|string|min:3|max:100',
+                'bankName'                  => 'required|string|min:2|max:50',
+                'accountNo'                 => 'required|string|min:9|max:18', 
+                'ifscCode'                  => 'required|string|size:11', 
+                'panNo'                     => 'required|string|size:10', 
+                'upiId'                     => 'required|string|min:8|max:50',
+                'addressProof'              => 'required|string|min:5|max:50', 
+                'profilePicture'            => 'required|string|max:255',
 
-            $employee = $userCreateService->createEmployee($data);
-    
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed.',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            $employee = $userCreateService->createEmployee($validator->validated());
+
             return response()->json([
                 'message'  => 'Employee created successfully.',
                 'employee' => new EmployeeResource($employee->load('roles', 'employeeDetail')),
             ], 201);
-    
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'message' => 'Validation failed.',
-                'errors'  => $e->errors(),
-            ], 422);
-    
+
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Something went wrong. Please try again.',
@@ -103,7 +105,6 @@ class EmployeeController extends Controller
         }
     }
 
-    
 
     /**
      * Display the specified employee.
