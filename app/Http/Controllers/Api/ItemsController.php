@@ -8,25 +8,18 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Storage;
 use App\Services\SelectedCompanyService;
 
 class ItemsController extends Controller
 {
-    // List all items
     public function index(): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-
-        $items = $selectedCompany->super_admin
-            ? Item::all()
-            : Item::where('company_id', $selectedCompany->company_id)->get();
-
+        $items = $selectedCompany->super_admin ? Item::all() : Item::where('company_id', $selectedCompany->company_id)->get();
         return response()->json($items);
     }
 
-    // Store a new item
+
     public function store(Request $request): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -43,7 +36,7 @@ class ItemsController extends Controller
             'category'            => 'nullable|string|max:255',
             'vendor_name'         => 'nullable|string|max:255',
             'availability_stock'  => 'required|integer',
-            'images.*'            => 'nullable|image|mimes:jpg,jpeg,png|max:5120', // Max 5MB per image
+            'images.*'            => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
         ]);
 
         if ($validator->fails()) {
@@ -66,7 +59,6 @@ class ItemsController extends Controller
             ]);
         }
 
-        // Handle image upload
         $imageLinks = [];
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $image) {
@@ -86,7 +78,7 @@ class ItemsController extends Controller
         ], 201);
     }
 
-    // Get a specific item
+
     public function show($id): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -103,7 +95,7 @@ class ItemsController extends Controller
         return response()->json($item);
     }
 
-    // Update item
+    
     public function update(Request $request, $id): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -141,7 +133,7 @@ class ItemsController extends Controller
 
         $data = $validator->validated();
 
-        // Handle optional new image uploads
+
         if ($request->hasFile('images')) {
             $newImages = [];
             foreach ($request->file('images') as $image) {
@@ -150,7 +142,6 @@ class ItemsController extends Controller
                 $newImages[] = asset('uploads/items/' . $filename);
             }
 
-            // Merge with existing images or replace (your choice)
             $existingImages = $item->images ?? [];
             $data['images'] = array_merge($existingImages, $newImages);
         }
@@ -168,7 +159,6 @@ class ItemsController extends Controller
         ]);
     }
 
-    // Delete item
     public function destroy($id): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -186,4 +176,69 @@ class ItemsController extends Controller
 
         return response()->json(['message' => 'Item deleted successfully.']);
     }
+  
+  
+    public function storeBulkItems(Request $request): JsonResponse
+    {
+        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+    
+        $validator = Validator::make($request->all(), [
+            'invoice_no'   => 'required|string|max:255',
+            'vendor_name'  => 'required|string|max:255',
+            'vendor_no'    => 'required|string|max:255',
+            'bill_photo'   => 'nullable',
+            'items'        => 'required|json',
+        ]);
+    
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation errors.',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+    
+        $data = $validator->validated();
+    
+        $vendor = StoreVendor::firstOrCreate([
+            'vendor_name' => $data['vendor_name'],
+            'company_id'  => $selectedCompany->company_id,
+        ], [
+            'vendor_no'   => $data['vendor_no'],
+        ]);
+    
+        $imagePath = null;
+        if ($request->hasFile('bill_photo')) {
+            $image = $request->file('bill_photo');
+            $filename = uniqid('bill_') . '.' . $image->getClientOriginalExtension();
+            $image->move(public_path('uploads/bills'), $filename);
+            $imagePath = 'uploads/bills/' . $filename;
+        }
+    
+        $items = json_decode($data['items'], true);
+    
+        foreach ($items as $itemData) {
+            \App\Models\Item::create([
+                'company_id'         => $selectedCompany->company_id,
+                'item_code'          => \App\Models\Item::where('company_id', $selectedCompany->company_id)->max('item_code') + 1 ?? 1,
+                'name'               => $itemData['name'],
+                'quantity_count'     => $itemData['quantity'],
+                'measurement'        => null,
+                'purchase_date'      => now(),
+                'date_of_manufacture'=> now(),
+                'brand_name'         => $data['vendor_name'],
+                'replacement'        => null,
+                'category'           => null,
+                'vendor_name'        => $data['vendor_name'],
+                'availability_stock' => $itemData['quantity'],
+                'images'             => $imagePath ? json_encode([$imagePath]) : null,
+            ]);
+        }
+    
+        return response()->json([
+            'message' => 'Bulk items stored successfully.',
+            'vendor'  => $vendor->vendor_name,
+            'count'   => count($items),
+        ]);
+    }
+
 }

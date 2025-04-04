@@ -104,6 +104,7 @@ Route::prefix('v1')->group(function () {
         Route::get('selectedCompanies', [CompanyController::class, 'getSelectedCompanies']);
         Route::post('selectedCompanies/{id}', [CompanyController::class, 'selectedCompanies']);
 
+
         // Attendance
         Route::prefix('attendance')->group(function () {
             Route::post('/', [AttendanceController::class, 'recordAttendance']);
@@ -140,6 +141,7 @@ Route::prefix('v1')->group(function () {
             Route::get('items/{id}', [ItemsController::class, 'show']);
             Route::put('items/{id}', [ItemsController::class, 'update']);
             Route::delete('items/{id}', [ItemsController::class, 'destroy']);
+            Route::post('bulk-items', [ItemsController::class, 'storeBulkItems']);
 
             // Vendors
             Route::get('vendors', [StoreVendorController::class, 'index']);
@@ -147,6 +149,8 @@ Route::prefix('v1')->group(function () {
             Route::get('vendors/{id}', [StoreVendorController::class, 'show']);
             Route::put('vendors/{id}', [StoreVendorController::class, 'update']);
             Route::delete('vendors/{id}', [StoreVendorController::class, 'destroy']);
+            Route::post('add-as-vendor', [StoreVendorController::class, 'addAsVendor']);
+
 
 
 
@@ -155,5 +159,11 @@ Route::prefix('v1')->group(function () {
             
         });
     });
-    Route::post('/ocr/process', [ProductOcrController::class, 'extractTextFromImage']);
+
+
+
+        Route::post('/ocr/process', [ProductOcrController::class, 'extractTextFromImage']);
+
+
+
 });

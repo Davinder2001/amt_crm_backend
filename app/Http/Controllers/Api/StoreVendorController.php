@@ -118,4 +118,13 @@ class StoreVendorController extends Controller
 
         return response()->json(['message' => 'Vendor deleted successfully.']);
     }
+
+     
+    
+    public function addAsVendor(Request $request){
+        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+
+        
+
+    }
 }
