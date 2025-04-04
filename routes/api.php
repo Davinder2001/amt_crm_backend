@@ -112,6 +112,10 @@ Route::prefix('v1')->group(function () {
             Route::put('/approve/{id}', [AttendanceController::class, 'approveAttendance']);
             Route::put('/reject/{id}', [AttendanceController::class, 'rejectAttendance']);
         });
+        
+        Route::get('attendances', [AttendanceController::class, 'getAllAttendance']);
+
+
 
         Route::post('/apply-for-leave', [AttendanceController::class, 'applyForLeave']);
 
