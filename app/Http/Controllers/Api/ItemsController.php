@@ -240,5 +240,4 @@ class ItemsController extends Controller
             'count'   => count($items),
         ]);
     }
-
 }

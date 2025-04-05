@@ -16,7 +16,9 @@ use App\Http\Controllers\Api\{
     ShiftsController,
     ItemsController,
     StoreVendorController,
-    ProductOcrController
+    ProductOcrController,
+    CatalogController,
+    InvoicesController
 };
 
 Route::prefix('v1')->group(function () {
@@ -151,13 +153,26 @@ Route::prefix('v1')->group(function () {
             Route::delete('vendors/{id}', [StoreVendorController::class, 'destroy']);
             Route::post('add-as-vendor', [StoreVendorController::class, 'addAsVendor']);
 
-
-
-
-            
-            
-            
         });
+
+
+        Route::prefix('catalog')->middleware('auth:sanctum')->group(function () {
+            Route::get('/', [CatalogController::class, 'index']);
+            Route::put('/add/{id}', [CatalogController::class, 'addToCatalog']);
+            Route::put('/remove/{id}', [CatalogController::class, 'removeFromCatalog']);
+        });
+        
+        Route::prefix('invoices')->group(function () {
+            Route::get('/', [InvoicesController::class, 'index']);
+            Route::post('/', [InvoicesController::class, 'store']);
+            Route::get('/{id}', [InvoicesController::class, 'show']);
+            Route::get('/{id}/download', [InvoicesController::class, 'download']);
+        });
+
+
+
+
+
     });
 
 

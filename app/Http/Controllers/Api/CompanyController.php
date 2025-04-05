@@ -70,12 +70,10 @@ class CompanyController extends Controller
             return response()->json(['error' => 'Unauthorized company'], 403);
         }
     
-        // ✅ Check if company relation exists and is verified
         if (!$companyUser->company || $companyUser->company->verification_status !== 'verified') {
             return response()->json(['error' => 'Company is not verified.'], 403);
         }
     
-        // ✅ Clear all statuses and select the verified company
         CompanyUser::where('user_id', $user->id)->update(['status' => 0]);
         CompanyUser::where('user_id', $user->id)->where('company_id', $id)->update(['status' => 1]);
     

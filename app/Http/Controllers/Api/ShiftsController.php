@@ -29,8 +29,6 @@ class ShiftsController extends Controller
 
     public function store(Request $request)
     {
-
-        
         $validator = Validator::make($request->all(), [
             'shift_name'    => 'required|string',
             'start_time'    => 'required|date_format:H:i',
@@ -58,6 +56,7 @@ class ShiftsController extends Controller
         ], 201);
     }
 
+    
     public function update(Request $request, $id)
     {
         $shift = Shift::find($id);

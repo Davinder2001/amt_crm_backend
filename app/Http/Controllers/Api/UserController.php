@@ -136,7 +136,6 @@ class UserController extends Controller
     {
         $user = User::findOrFail($id);
         $user->delete();
-
         return response()->json(['message' => 'User deleted successfully.']);
     }
 
@@ -146,7 +145,6 @@ class UserController extends Controller
      */
     public function authUser(Request $request)
     {
-        
         return response()->json([
             'message' => 'Authenticated user retrieved successfully.',
             'user'    => new UserResource($request->user()->load('roles', 'companies')),

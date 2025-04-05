@@ -15,9 +15,7 @@ class StoreVendorController extends Controller
     public function index(): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-
         $vendors = StoreVendor::where('company_id', $selectedCompany->company_id)->get();
-
         return response()->json($vendors);
     }
 
@@ -48,6 +46,7 @@ class StoreVendorController extends Controller
         ], 201);
     }
 
+
     // Get a specific vendor by ID.
     public function show($id): JsonResponse
     {
@@ -58,7 +57,6 @@ class StoreVendorController extends Controller
             return response()->json(['message' => 'Vendor not found.'], 404);
         }
 
-        // Ensure the vendor belongs to the user's company.
         if ($vendor->company_id !== $selectedCompany->company_id) {
             return response()->json(['message' => 'Unauthorized.'], 403);
         }
@@ -76,7 +74,6 @@ class StoreVendorController extends Controller
             return response()->json(['message' => 'Vendor not found.'], 404);
         }
 
-        // Ensure the vendor belongs to the user's company.
         if ($vendor->company_id !== $selectedCompany->company_id) {
             return response()->json(['message' => 'Unauthorized.'], 403);
         }
@@ -100,6 +97,7 @@ class StoreVendorController extends Controller
         ]);
     }
 
+
     // Delete a vendor.
     public function destroy($id): JsonResponse
     {
@@ -121,10 +119,14 @@ class StoreVendorController extends Controller
 
      
     
+
+
+    // Add a company as a vendor.
     public function addAsVendor(Request $request){
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-
-        
-
+        return response()->json([
+            'message' => 'Cpmpany retrive successfully.',
+            'selected company'  => $selectedCompany,
+        ], 201);
     }
 }

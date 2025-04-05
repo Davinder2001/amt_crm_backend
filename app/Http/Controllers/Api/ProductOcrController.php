@@ -16,7 +16,7 @@ class ProductOcrController extends Controller
     public function extractTextFromImage(Request $request)
     {
         $request->validate([
-            'invoice' => 'required|file|mimes:jpeg,jpg,png,pdf|max:5120', // Increased max size to 5MB
+            'invoice' => 'required|file|mimes:jpeg,jpg,png,pdf|max:5120',
         ]);
 
         $file = $request->file('invoice');
@@ -29,7 +29,6 @@ class ProductOcrController extends Controller
         $text = '';
 
         if (in_array($extension, ['jpg', 'jpeg', 'png'])) {
-            // Image OCR using Tesseract
             $text = (new TesseractOCR($fullPath))->run();
         } elseif ($extension === 'pdf') {
             try {
@@ -45,7 +44,6 @@ class ProductOcrController extends Controller
             }
         }
 
-        // Parse Name, Quantity, and Price from text
         $items = $this->parseInvoice($text);
 
         return response()->json([
@@ -64,7 +62,6 @@ class ProductOcrController extends Controller
         $lines = preg_split('/\r\n|\r|\n/', $text);
 
         foreach ($lines as $line) {
-            // Example match: "Product Name 2 250.00"
             if (preg_match('/(.+?)\s{1,}(\d+)\s{1,}([\d\.]+)/', $line, $matches)) {
                 $items[] = [
                     'name' => trim($matches[1]),

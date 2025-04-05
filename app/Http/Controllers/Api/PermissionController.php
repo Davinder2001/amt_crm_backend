@@ -15,17 +15,17 @@ class PermissionController extends Controller
     public function index(): JsonResponse
     {
         $permissions = Permission::all()->groupBy('group');
-    
+
         $grouped = $permissions->map(function ($groupPermissions, $groupName) {
             return [
                 'group' => $groupName,
                 'permissions' => $groupPermissions,
             ];
         })->values();
-    
+
         return response()->json($grouped);
     }
-    
+
     /**
      * Store a newly created permission.
      */

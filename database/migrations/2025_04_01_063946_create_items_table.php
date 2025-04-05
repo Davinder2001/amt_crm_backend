@@ -27,6 +27,8 @@ return new class extends Migration
             $table->string('vendor_name')->nullable();
             $table->integer('availability_stock')->default(0);
             $table->json('images')->nullable();
+            $table->boolean('catalog')->default(false);
+            $table->boolean('online_visibility')->default(false);
             $table->timestamps();
         });
     }

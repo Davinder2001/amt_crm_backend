@@ -117,10 +117,8 @@ class AttendanceController extends Controller
             ], 422);
         }
     
-        // Get today's date for attendance reference
         $today = Carbon::today()->toDateString();
     
-        // Check if an attendance record already exists for today
         $attendance = Attendance::firstOrNew([
             'user_id'         => $user->id,
             'attendance_date' => $today,
@@ -146,6 +144,7 @@ class AttendanceController extends Controller
             'leave'   => $attendance,
         ]);
     }
+    
     
     
     /**
