@@ -6,16 +6,18 @@ use App\Http\Controllers\Controller;
 use thiagoalessio\TesseractOCR\TesseractOCR;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\File;
+use Smalot\PdfParser\Parser;
 use App\Models\Item;
 use App\Services\SelectedCompanyService;
 
 
 class ProductOcrController extends Controller
 {
+ 
     public function scanAndSaveText(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'image' => 'required|image|mimes:jpg,jpeg,png,bmp|max:5120',
+            'image' => 'required|mimes:jpg,jpeg,png,bmp,pdf|max:5120',
         ]);
     
         if ($validator->fails()) {
@@ -28,12 +30,30 @@ class ProductOcrController extends Controller
     
         File::ensureDirectoryExists(public_path('ocr_uploads'));
     
-        $image = $request->file('image');
-        $imageName = uniqid('ocr_', true) . '.' . $image->getClientOriginalExtension();
-        $image->move(public_path('ocr_uploads'), $imageName);
+        $file = $request->file('image');
+        $fileName = uniqid('ocr_', true) . '.' . $file->getClientOriginalExtension();
+        $file->move(public_path('ocr_uploads'), $fileName);
+        $filePath = public_path('ocr_uploads/' . $fileName);
     
-        $fullPath = public_path('ocr_uploads/' . $imageName);
-        $rawText = (new TesseractOCR($fullPath))->run();
+        $rawText = '';
+    
+        if ($file->getClientOriginalExtension() === 'pdf') {
+            // Convert PDF to text using PDF Parser (or you could use Imagick to convert it to image and OCR it)
+            try {
+                $parser = new \Smalot\PdfParser\Parser();
+                $pdf = $parser->parseFile($filePath);
+                $rawText = $pdf->getText();
+            } catch (\Exception $e) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Failed to parse PDF file.',
+                    'error' => $e->getMessage(),
+                ], 500);
+            }
+        } else {
+            // Extract text using Tesseract for images
+            $rawText = (new TesseractOCR($filePath))->run();
+        }
     
         $lines = explode("\n", trim($rawText));
         $extractedItems = [];
@@ -66,7 +86,7 @@ class ProductOcrController extends Controller
         if (empty($extractedItems)) {
             return response()->json([
                 'status' => false,
-                'message' => 'No valid product data found in the image.',
+                'message' => 'No valid product data found in the file.',
                 'raw_text' => $rawText,
             ], 422);
         }
@@ -79,6 +99,7 @@ class ProductOcrController extends Controller
             'grand_total'  => $grandTotal,
         ]);
     }
+    
 
     public function store(Request $request)
     {
