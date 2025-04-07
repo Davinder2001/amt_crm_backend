@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
             SuperAdminSeeder::class,
             AdminSeeder::class,
             // RolesTableSeeder::class,
+            EmployeeSeeder::class,
         ]);
     }
 }

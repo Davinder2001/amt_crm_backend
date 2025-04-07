@@ -13,6 +13,11 @@ use Illuminate\Support\Facades\Validator;
 use App\Http\Resources\EmployeeResource;
 use App\Http\Resources\SalaryResource;
 use App\Services\SelectedCompanyService;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
+
+
 
 
 
@@ -226,29 +231,47 @@ class EmployeeController extends Controller
     }
 
 
-    // public function downloadSalarySlipPdf($id)
-    // {
-
-    //     $employee = User::where('user_type', 'employee')
-    //         ->with(['roles.permissions', 'companies', 'meta'])
-    //         ->find($id); 
-
-    //     if (!$employee) {
-    //         return response()->json([
-    //             'message' => 'Employee not found.'
-    //         ], 404);
-    //     }
-
-    //     $pdfData = [
-    //         'employee' => $employee,
-    //         'salaryDetails' => $employee->salaryDetails(), 
-    //     ];
-
-    //     $pdf = PDF::loadView('pdf.salary-slip', $pdfData);
-
-    //     return $pdf->download('salary-slip-' . $employee->id . '.pdf');
-    // }
-
+    public function downloadSalarySlipPdf($id)
+    {
+        $employee = User::where('user_type', 'employee')
+            ->with(['roles.permissions', 'companies', 'meta'])
+            ->find($id);
     
-
+        if (!$employee) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Employee not found.',
+            ], 404);
+        }
+    
+        $pdfData = [
+            'employee' => $employee,
+            'salaryDetails' => $employee->salaryDetails(),
+        ];
+    
+        $pdf = Pdf::loadView('pdf.salary-slip', $pdfData);
+        $pdfContent = $pdf->output();
+    
+        $filename = 'salary-slip-' . $employee->id . '-' . Str::uuid() . '.pdf';
+        $directory = public_path('salary-slips');
+        File::ensureDirectoryExists($directory);
+    
+        $pdfPath = $directory . '/' . $filename;
+        file_put_contents($pdfPath, $pdfContent);
+    
+    
+        return response()->json([
+            'status' => true,
+            'message' => 'Salary slip generated successfully.',
+            'employee' => [
+                'id' => $employee->id,
+                'name' => $employee->name,
+                'email' => $employee->email,
+            ],
+            'pdf' => [
+                'url' => asset('salary-slips/' . $filename),
+                'filename' => $filename,
+            ]
+        ]);
+    }
 }
