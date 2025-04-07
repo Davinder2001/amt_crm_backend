@@ -1,76 +1,84 @@
 <?php
-
 namespace App\Http\Controllers\Api;
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use thiagoalessio\TesseractOCR\TesseractOCR;
-use Smalot\PdfParser\Parser;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\File;
+use App\Models\Item;
+use App\Services\SelectedCompanyService;
+
 
 class ProductOcrController extends Controller
 {
-    /**
-     * Extracts text from uploaded invoice (image or PDF) and parses it.
-     */
-    public function extractTextFromImage(Request $request)
+    public function scanAndSaveText(Request $request)
     {
-        $request->validate([
-            'invoice' => 'required|file|mimes:jpeg,jpg,png,pdf|max:5120',
+        $validator = Validator::make($request->all(), [
+            'image' => 'required|image|mimes:jpg,jpeg,png,bmp|max:5120',
         ]);
-
-        $file = $request->file('invoice');
-        $extension = strtolower($file->getClientOriginalExtension());
-
-        $filename = 'invoice_' . time() . '.' . $extension;
-        $path = $file->storeAs('invoices', $filename);
-
-        $fullPath = storage_path('app/' . $path);
-        $text = '';
-
-        if (in_array($extension, ['jpg', 'jpeg', 'png'])) {
-            $text = (new TesseractOCR($fullPath))->run();
-        } elseif ($extension === 'pdf') {
-            try {
-                $parser = new Parser();
-                $pdf = $parser->parseFile($fullPath);
-                $text = $pdf->getText();
-            } catch (\Exception $e) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Failed to parse PDF file.',
-                    'error' => $e->getMessage()
-                ], 500);
-            }
+    
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
         }
-
-        $items = $this->parseInvoice($text);
-
-        return response()->json([
-            'status' => 'success',
-            'items' => $items,
-            'raw_text' => $text,
-        ]);
-    }
-
-    /**
-     * Extract item details from invoice text using regex.
-     */
-    private function parseInvoice(string $text): array
-    {
-        $items = [];
-        $lines = preg_split('/\r\n|\r|\n/', $text);
-
-        foreach ($lines as $line) {
-            if (preg_match('/(.+?)\s{1,}(\d+)\s{1,}([\d\.]+)/', $line, $matches)) {
-                $items[] = [
-                    'name' => trim($matches[1]),
-                    'quantity' => (int)$matches[2],
-                    'price' => (float)$matches[3],
+    
+        File::ensureDirectoryExists(public_path('ocr_uploads'));
+    
+        $image = $request->file('image');
+        $imageName = uniqid('ocr_', true) . '.' . $image->getClientOriginalExtension();
+        $image->move(public_path('ocr_uploads'), $imageName);
+    
+        $fullPath = public_path('ocr_uploads/' . $imageName);
+        $rawText = (new TesseractOCR($fullPath))->run();
+    
+        $lines = explode("\n", trim($rawText));
+        $extractedItems = [];
+        $grandTotal = 0;
+    
+        foreach ($lines as $index => $line) {
+            if ($index === 0 || trim($line) === '') continue;
+    
+            $parts = preg_split('/\s{2,}|\t+|\s+/', trim($line));
+    
+            if (count($parts) >= 3) {
+                [$name, $quantity, $price] = $parts;
+    
+                if (!is_numeric($quantity) || !is_numeric($price)) {
+                    continue;
+                }
+    
+                $subTotal = (int) $quantity * (float) $price;
+                $grandTotal += $subTotal;
+    
+                $extractedItems[] = [
+                    'name'       => $name,
+                    'quantity'   => (int) $quantity,
+                    'price'      => (float) $price,
+                    'sub_total'  => $subTotal,
                 ];
             }
         }
-
-        return $items;
+    
+        if (empty($extractedItems)) {
+            return response()->json([
+                'status' => false,
+                'message' => 'No valid product data found in the image.',
+                'raw_text' => $rawText,
+            ], 422);
+        }
+    
+        return response()->json([
+            'status'       => true,
+            'message'      => 'Products extracted successfully.',
+            'ocr_text'     => $rawText,
+            'products'     => $extractedItems,
+            'grand_total'  => $grandTotal,
+        ]);
     }
+    
+    
 }

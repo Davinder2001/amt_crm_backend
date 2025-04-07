@@ -151,7 +151,7 @@ Route::prefix('v1')->group(function () {
             Route::get('vendors/{id}', [StoreVendorController::class, 'show']);
             Route::put('vendors/{id}', [StoreVendorController::class, 'update']);
             Route::delete('vendors/{id}', [StoreVendorController::class, 'destroy']);
-            Route::post('add-as-vendor', [StoreVendorController::class, 'addAsVendor']);
+           
 
         });
 
@@ -170,15 +170,11 @@ Route::prefix('v1')->group(function () {
         });
 
 
-
-
+        Route::prefix('add-as-vendor')->group(function () {
+            Route::post('/', [StoreVendorController::class, 'addAsVendor']);
+            Route::post('/ocrscan', [ProductOcrController::class, 'scanAndSaveText']);
+        });
 
     });
-
-
-
-        Route::post('/ocr/process', [ProductOcrController::class, 'extractTextFromImage']);
-
-
 
 });

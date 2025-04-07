@@ -19,9 +19,9 @@ return new class extends Migration
             $table->integer('quantity_count');
             $table->string('measurement')->nullable();
             $table->date('purchase_date')->nullable();
-            $table->date('date_of_manufacture');
+            $table->date('date_of_manufacture')->nullable();
             $table->date('date_of_expiry')->nullable();
-            $table->string('brand_name');
+            $table->string('brand_name')->nullable();
             $table->string('replacement')->nullable();
             $table->string('category')->nullable();
             $table->string('vendor_name')->nullable();
