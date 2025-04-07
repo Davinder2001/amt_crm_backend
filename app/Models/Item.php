@@ -11,7 +11,6 @@ class Item extends Model
 
     protected $table = 'store_items';
 
-
     protected $fillable = [
         'item_code',
         'company_id',
@@ -27,16 +26,14 @@ class Item extends Model
         'vendor_name',
         'availability_stock',
         'images',
+        'cost_price',
+        'selling_price',
     ];
 
     protected $casts = [
-        'images' => 'array', 
+        'images' => 'array',
     ];
 
-
-    /**
-     * Get the company that owns the item.
-     */
     public function company()
     {
         return $this->belongsTo(Company::class);

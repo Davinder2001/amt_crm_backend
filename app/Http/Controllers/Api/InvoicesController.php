@@ -41,7 +41,7 @@ class InvoicesController extends Controller
             'client_name'            => 'required|string',
             'invoice_date'           => 'required|date',
             'items'                  => 'required|array',
-            'items.*.item_id'        => 'required|exists:store_items,id',
+            // 'items.*.item_id'        => 'required|exists:store_items,id',
             'items.*.quantity'       => 'required|integer|min:1',
             'items.*.unit_price'     => 'required|numeric|min:0',
         ]);
@@ -68,7 +68,8 @@ class InvoicesController extends Controller
         ]);
     
         foreach ($data['items'] as $itemData) {
-            $item = Item::find($itemData['item_id']);
+            // $item = Item::find($itemData['item_id']);
+            $item = 1;
 
             if (!$item) {
                 return response()->json([
@@ -78,7 +79,7 @@ class InvoicesController extends Controller
             }
     
             $invoice->items()->create([
-                'description' => $item->name,
+                'description' => $item,
                 'quantity'    => $itemData['quantity'],
                 'unit_price'  => $itemData['unit_price'],
                 'total'       => $itemData['quantity'] * $itemData['unit_price'],

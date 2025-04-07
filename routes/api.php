@@ -173,6 +173,7 @@ Route::prefix('v1')->group(function () {
         Route::prefix('add-as-vendor')->group(function () {
             Route::post('/', [StoreVendorController::class, 'addAsVendor']);
             Route::post('/ocrscan', [ProductOcrController::class, 'scanAndSaveText']);
+            Route::post('/save-items', [ProductOcrController::class, 'store']);
         });
 
     });

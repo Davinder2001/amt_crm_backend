@@ -79,6 +79,48 @@ class ProductOcrController extends Controller
             'grand_total'  => $grandTotal,
         ]);
     }
-    
-    
+
+    public function store(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'products'   => 'required|array|min:1',
+            'products.*.name' => 'required|string',
+            'products.*.quantity' => 'required|integer|min:1',
+            'products.*.price' => 'required|numeric|min:0',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $products = $request->input('products');
+        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+        $lastItemCode = Item::where('company_id', $selectedCompany->id)->max('item_code') ?? 0;
+
+        $savedItems = [];
+
+        foreach ($products as $product) {
+            $lastItemCode++;
+
+            $item = Item::create([
+                'company_id'     => $selectedCompany->id,
+                'item_code'      => $lastItemCode,
+                'name'           => $product['name'],
+                'quantity_count' => $product['quantity'],
+                'price'          => $product['price'],
+            ]);
+
+            $savedItems[] = $item;
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Products saved successfully.',
+            'items' => $savedItems,
+        ], 201);
+    }
 }
