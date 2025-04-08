@@ -14,6 +14,7 @@ class Item extends Model
     protected $table = 'store_items';
 
     protected $fillable = [
+        'id',
         'item_code',
         'company_id',
         'name',

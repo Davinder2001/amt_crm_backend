@@ -1,6 +1,5 @@
 <?php
 
-
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -17,11 +16,18 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
-            'permission' => CheckPermission::class,
-            'setActiveCompany'  => SetActiveCompany::class,
-            'injectUserType'  => InjectUserType::class,
+            'permission'       => CheckPermission::class,
+            'setActiveCompany' => SetActiveCompany::class,
+            'injectUserType'   => InjectUserType::class,
+        ]);
+
+        // Use only clean API middleware (no SPA session logic)
+        $middleware->api([
+            \Illuminate\Routing\Middleware\ThrottleRequests::class,
+            \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
-    })->create();
+    })
+    ->create();

@@ -9,14 +9,15 @@ use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Validator;
 use App\Services\SelectedCompanyService;
+use App\Http\Resources\ItemResource;
+
 
 class ItemsController extends Controller
 {
     public function index(): JsonResponse
     {
-        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $items = $selectedCompany->super_admin ? Item::all() : Item::where('company_id', $selectedCompany->company_id)->get();
-        return response()->json($items);
+        $items = Item::get();
+        return response()->json(ItemResource::collection($items));
     }
 
 
