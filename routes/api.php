@@ -90,7 +90,6 @@ Route::prefix('v1')->group(function () {
                 Route::put('{id}', [EmployeeController::class, 'update'])->middleware('permission:update employee');
                 Route::delete('{id}', [EmployeeController::class, 'destroy'])->middleware('permission:delete employee');
                 Route::get('salarySlip/{id}', [EmployeeController::class, 'salarySlip'])->middleware('permission:view employee salary');
-                Route::get('salary-slip-pdf/{id}', [EmployeeController::class, 'downloadSalarySlipPdf'])->middleware('permission:download employee salary');
             });
         });
 
@@ -103,6 +102,7 @@ Route::prefix('v1')->group(function () {
             Route::delete('{id}', [CompanyController::class, 'destroy'])->middleware('permission:delete company');
         });
 
+        
         Route::get('selectedCompanies', [CompanyController::class, 'getSelectedCompanies']);
         Route::post('selectedCompanies/{id}', [CompanyController::class, 'selectedCompanies']);
 

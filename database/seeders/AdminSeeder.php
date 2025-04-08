@@ -11,42 +11,81 @@ use Illuminate\Support\Facades\Hash;
 
 class AdminSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        $company = Company::firstOrCreate(
-            ['company_id' => 'AMTCOM0000002'],
+        $companies = [
             [
-                'company_name' => 'Demo Admin Company',
-                'company_slug' => 'demo-admin-company',
-                'payment_status'      => 'completed',
-                'verification_status' => 'verified',
-            ]
-        );
+                'company_id'   => 'AMTCOM0000002',
+                'company_name' => 'Demo Admin Company One',
+                'company_slug' => 'demo-admin-company-one',
+            ],
+            [
+                'company_id'   => 'AMTCOM0000003',
+                'company_name' => 'Demo Admin Company Two',
+                'company_slug' => 'demo-admin-company-two',
+            ],
+            [
+                'company_id'   => 'AMTCOM0000004',
+                'company_name' => 'Demo Admin Company Three',
+                'company_slug' => 'demo-admin-company-three',
+            ],
+        ];
 
-        $admin = User::factory()->create([
-            'name'       => 'Admin',
-            'email'      => 'admin@admin.com',
-            'number'     => '9876543210',
-            'user_type'     => 'admin',
-            'uid'        => 'AMT0000000002',
-            'password'  => Hash::make('adminpassword'),
-        ]);
+        $admins = [
+            [
+                'name'     => 'Admin One',
+                'email'    => 'admin1@example.com',
+                'number'   => '9000000001',
+                'uid'      => 'AMT0000000002',
+                'password' => Hash::make('password1'),
+            ],
+            [
+                'name'     => 'Admin Two',
+                'email'    => 'admin2@example.com',
+                'number'   => '9000000002',
+                'uid'      => 'AMT0000000003',
+                'password' => Hash::make('password2'),
+            ],
+            [
+                'name'     => 'Admin Three',
+                'email'    => 'admin3@example.com',
+                'number'   => '9000000003',
+                'uid'      => 'AMT0000000004',
+                'password' => Hash::make('password3'),
+            ],
+        ];
 
-        DB::table('company_user')->insert([
-            'user_id'    => $admin->id,
-            'company_id' => $company->id,
-            'user_type'  => 'admin', 
-            'status'     => '1',
-        ]);
+        foreach ($companies as $index => $companyData) {
+            // Create or find company
+            $company = Company::firstOrCreate(
+                ['company_id' => $companyData['company_id']],
+                array_merge($companyData, [
+                    'payment_status'      => 'completed',
+                    'verification_status' => 'verified',
+                ])
+            );
 
-        $role = Role::updateOrCreate(
-            ['name' => 'admin', 'guard_name' => 'web'],
-            ['company_id' => $company->id]
-        );
+            // Create role for this specific company
+            $role = Role::updateOrCreate(
+                ['name' => 'admin', 'guard_name' => 'web', 'company_id' => $company->id]
+            );
 
-        $admin->assignRole($role);
+            // Create admin for this company
+            $adminData = $admins[$index];
+            $admin = User::factory()->create(array_merge($adminData, [
+                'user_type' => 'admin',
+            ]));
+
+            // Link admin to the company
+            DB::table('company_user')->insert([
+                'user_id'    => $admin->id,
+                'company_id' => $company->id,
+                'user_type'  => 'admin',
+                'status'     => '1',
+            ]);
+
+            // Assign admin role
+            $admin->assignRole($role);
+        }
     }
 }

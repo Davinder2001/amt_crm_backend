@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Scopes\CompanyScope;
+
 
 class Item extends Model
 {
@@ -38,4 +40,10 @@ class Item extends Model
     {
         return $this->belongsTo(Company::class);
     }
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new CompanyScope);
+    }
+
 }

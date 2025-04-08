@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
+use App\Services\SelectedCompanyService;
 
 class InvoicesController extends Controller
 {
@@ -41,7 +42,7 @@ class InvoicesController extends Controller
             'client_name'            => 'required|string',
             'invoice_date'           => 'required|date',
             'items'                  => 'required|array',
-            // 'items.*.item_id'        => 'required|exists:store_items,id',
+            'items.*.item_id'        => 'required|exists:store_items,id',
             'items.*.quantity'       => 'required|integer|min:1',
             'items.*.unit_price'     => 'required|numeric|min:0',
         ]);
@@ -55,7 +56,18 @@ class InvoicesController extends Controller
         }
     
         $data = $validator->validated();
-
+        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+    
+        foreach ($data['items'] as $itemData) {
+            $item = Item::find($itemData['item_id']);
+            if (!$item) {
+                return response()->json([
+                    'status' => false,
+                    'message' => "Item with ID {$itemData['item_id']} not found in store_items table.",
+                ], 422);
+            }
+        }
+    
         $total = collect($data['items'])->sum(function ($item) {
             return $item['quantity'] * $item['unit_price'];
         });
@@ -65,21 +77,15 @@ class InvoicesController extends Controller
             'client_name'    => $data['client_name'],
             'invoice_date'   => $data['invoice_date'],
             'total_amount'   => $total,
+            'company_id'     => $selectedCompany->id,
         ]);
     
         foreach ($data['items'] as $itemData) {
-            // $item = Item::find($itemData['item_id']);
-            $item = 1;
-
-            if (!$item) {
-                return response()->json([
-                    'status' => false,
-                    'message' => "Item with ID {$itemData['item_id']} not found.",
-                ], 422);
-            }
+            $item = Item::find($itemData['item_id']);
     
             $invoice->items()->create([
-                'description' => $item,
+                'item_id'     => $item->id,
+                'description' => $item->name ?? 'Item',
                 'quantity'    => $itemData['quantity'],
                 'unit_price'  => $itemData['unit_price'],
                 'total'       => $itemData['quantity'] * $itemData['unit_price'],

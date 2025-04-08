@@ -213,65 +213,26 @@ class EmployeeController extends Controller
 
     public function salarySlip($id)
     {
-
-        $employee = User::where('user_type', 'employee')
-            ->with(['roles.permissions', 'companies', 'meta'])
-            ->find($id); 
-
-        if (!$employee) {
-            return response()->json([
-                'message' => 'Employee not found.'
-            ], 404);
-        }
-    
-        return response()->json([
-            'message'   => 'Employee retrieved successfully.',
-            'employee'  => new SalaryResource($employee),
-        ], 200);
-    }
-
-
-    public function downloadSalarySlipPdf($id)
-    {
-        $employee = User::where('user_type', 'employee')
-            ->with(['roles.permissions', 'companies', 'meta'])
-            ->find($id);
+        $employee = User::where('user_type', 'employee')->with(['roles.permissions', 'companies', 'meta'])->find($id); 
     
         if (!$employee) {
             return response()->json([
                 'status' => false,
-                'message' => 'Employee not found.',
+                'message' => 'Employee not found.'
             ], 404);
         }
     
-        $pdfData = [
-            'employee' => $employee,
-            'salaryDetails' => $employee->salaryDetails(),
-        ];
-    
-        $pdf = Pdf::loadView('pdf.salary-slip', $pdfData);
+        $pdf = Pdf::loadView('pdf.salary-slip', ['employee' => $employee]);
         $pdfContent = $pdf->output();
     
-        $filename = 'salary-slip-' . $employee->id . '-' . Str::uuid() . '.pdf';
-        $directory = public_path('salary-slips');
-        File::ensureDirectoryExists($directory);
-    
-        $pdfPath = $directory . '/' . $filename;
-        file_put_contents($pdfPath, $pdfContent);
-    
+        $pdfBase64 = base64_encode($pdfContent);
     
         return response()->json([
             'status' => true,
-            'message' => 'Salary slip generated successfully.',
-            'employee' => [
-                'id' => $employee->id,
-                'name' => $employee->name,
-                'email' => $employee->email,
-            ],
-            'pdf' => [
-                'url' => asset('salary-slips/' . $filename),
-                'filename' => $filename,
-            ]
-        ]);
+            'message' => 'Employee retrieved successfully.',
+            'employee' => new SalaryResource($employee),
+            'pdf_base64' => $pdfBase64,
+            'file_name' => 'salary-slip-' . $employee->id . '.pdf',
+        ], 200);
     }
 }

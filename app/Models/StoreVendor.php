@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Scopes\CompanyScope;
+
 
 class StoreVendor extends Model
 {
@@ -23,5 +25,11 @@ class StoreVendor extends Model
     public function company()
     {
         return $this->belongsTo(Company::class);
+    }
+
+    
+    protected static function booted()
+    {
+        static::addGlobalScope(new CompanyScope);
     }
 }

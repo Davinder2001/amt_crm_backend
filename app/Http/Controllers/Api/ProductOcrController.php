@@ -37,22 +37,22 @@ class ProductOcrController extends Controller
     
         $rawText = '';
     
-        if ($file->getClientOriginalExtension() === 'pdf') {
-            // Convert PDF to text using PDF Parser (or you could use Imagick to convert it to image and OCR it)
-            try {
-                $parser = new \Smalot\PdfParser\Parser();
+        try {
+            if ($file->getClientOriginalExtension() === 'pdf') {
+                $parser = new Parser();
                 $pdf = $parser->parseFile($filePath);
                 $rawText = $pdf->getText();
-            } catch (\Exception $e) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Failed to parse PDF file.',
-                    'error' => $e->getMessage(),
-                ], 500);
+            } else {
+                $rawText = (new TesseractOCR($filePath))->run();
             }
-        } else {
-            // Extract text using Tesseract for images
-            $rawText = (new TesseractOCR($filePath))->run();
+        } catch (\Exception $e) {
+            File::delete($filePath);
+    
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed to parse file.',
+                'error' => $e->getMessage(),
+            ], 500);
         }
     
         $lines = explode("\n", trim($rawText));
@@ -82,6 +82,8 @@ class ProductOcrController extends Controller
                 ];
             }
         }
+    
+        File::delete($filePath);
     
         if (empty($extractedItems)) {
             return response()->json([

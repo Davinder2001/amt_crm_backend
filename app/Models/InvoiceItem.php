@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Scopes\CompanyScope;
 
 class InvoiceItem extends Model
 {
@@ -18,4 +19,10 @@ class InvoiceItem extends Model
     {
         return $this->belongsTo(Invoice::class);
     }
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new CompanyScope);
+    }
+
 }

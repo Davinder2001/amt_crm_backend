@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Scopes\CompanyScope;
 
 class SalaryHistory extends Model
 {
@@ -19,4 +20,8 @@ class SalaryHistory extends Model
         return $this->hasMany(SalaryHistory::class, 'user_id', 'id')->latest();
     }
 
+    protected static function booted()
+    {
+        static::addGlobalScope(new CompanyScope);
+    }
 }
