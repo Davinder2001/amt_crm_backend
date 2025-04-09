@@ -14,7 +14,6 @@ class EmployeeSeeder extends Seeder
 {
     public function run(): void
     {
-        // List of company IDs used in AdminSeeder
         $companyIds = [
             'AMTCOM0000002',
             'AMTCOM0000003',
@@ -36,7 +35,6 @@ class EmployeeSeeder extends Seeder
                 'company_id' => $company->id,
             ]);
 
-            // Create 2 employees for each company
             for ($i = 1; $i <= 2; $i++) {
                 $employeeNumber = '800000000' . $employeeCounter;
 

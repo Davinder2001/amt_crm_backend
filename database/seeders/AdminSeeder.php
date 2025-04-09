@@ -65,18 +65,15 @@ class AdminSeeder extends Seeder
                 ])
             );
 
-            // Create role for this specific company
             $role = Role::updateOrCreate(
                 ['name' => 'admin', 'guard_name' => 'web', 'company_id' => $company->id]
             );
 
-            // Create admin for this company
             $adminData = $admins[$index];
             $admin = User::factory()->create(array_merge($adminData, [
                 'user_type' => 'admin',
             ]));
 
-            // Link admin to the company
             DB::table('company_user')->insert([
                 'user_id'    => $admin->id,
                 'company_id' => $company->id,
@@ -84,7 +81,6 @@ class AdminSeeder extends Seeder
                 'status'     => '1',
             ]);
 
-            // Assign admin role
             $admin->assignRole($role);
         }
     }

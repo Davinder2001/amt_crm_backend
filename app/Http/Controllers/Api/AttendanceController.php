@@ -35,6 +35,39 @@ class AttendanceController extends Controller
             'attendance_date' => $today,
         ]);
     
+        // ✅ Case 1: Attendance exists and is a REJECTED leave → allow clock in
+        if ($attendance->exists && $attendance->status === 'leave' && $attendance->approval_status === 'rejected') {
+            $validator = Validator::make($request->all(), [
+                'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            ]);
+    
+            if ($validator->fails()) {
+                return response()->json([
+                    'message' => 'Validation errors.',
+                    'errors'  => $validator->errors(),
+                ], 422);
+            }
+    
+            $image = $request->file('image');
+            $imageName = uniqid('attendance_', true) . '.' . $image->getClientOriginalExtension();
+            $image->move(public_path('images/attendance_images'), $imageName);
+    
+            $clockInImagePath = 'images/attendance_images/' . $imageName;
+            $time = Carbon::now('Asia/Kolkata')->format('h:i A');
+    
+            $attendance->company_id       = $company->id;
+            $attendance->clock_in         = $time;
+            $attendance->clock_in_image   = $clockInImagePath;
+            $attendance->status           = 'present';
+            $attendance->approval_status  = 'pending'; 
+            $attendance->save();
+    
+            return response()->json([
+                'message'    => 'Leave overridden. Clocked in successfully.',
+                'attendance' => $attendance,
+            ]);
+        }
+    
         if (!$attendance->exists) {
             $validator = Validator::make($request->all(), [
                 'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
@@ -46,17 +79,14 @@ class AttendanceController extends Controller
                     'errors'  => $validator->errors(),
                 ], 422);
             }
-
-
-       
+    
             $image = $request->file('image');
             $imageName = uniqid('attendance_', true) . '.' . $image->getClientOriginalExtension();
             $image->move(public_path('images/attendance_images'), $imageName);
     
             $clockInImagePath = 'images/attendance_images/' . $imageName;
-            
-            $time = Carbon::now('Asia/Kolkata')->format('h:i A'); 
-
+            $time = Carbon::now('Asia/Kolkata')->format('h:i A');
+    
             $attendance->company_id       = $company->id;
             $attendance->clock_in         = $time;
             $attendance->clock_in_image   = $clockInImagePath;
@@ -87,9 +117,8 @@ class AttendanceController extends Controller
             $image->move(public_path('images/attendance_images'), $imageName);
     
             $clockOutImagePath = 'images/attendance_images/' . $imageName;
+            $time = Carbon::now('Asia/Kolkata')->format('h:i A');
     
-            $time = Carbon::now('Asia/Kolkata')->format('h:i A'); 
-
             $attendance->clock_out        = $time;
             $attendance->clock_out_image  = $clockOutImagePath;
             $attendance->save();
@@ -101,11 +130,15 @@ class AttendanceController extends Controller
         }
     
         return response()->json([
-            'message' => 'Attendance already recorded for today.'
+            'message' => 'Attendance already recorded for today.',
+            'date'    => $today,
         ], 422);
     }
     
 
+    /**
+     * Applay for leave current day.
+     */
     public function applyForLeave(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -113,38 +146,57 @@ class AttendanceController extends Controller
     
         if (!$company) {
             return response()->json([
-                'message' => 'User is not associated with any company.'
+                'message' => 'User is not associated with any company.',
             ], 422);
         }
     
-        $today = Carbon::today()->toDateString();
-    
-        $attendance = Attendance::firstOrNew([
-            'user_id'         => $user->id,
-            'attendance_date' => $today,
+        // ✅ Validation with custom response on failure
+        $validator = Validator::make($request->all(), [
+            'dates'   => 'required|array|min:1',
+            'dates.*' => 'required|date|date_format:Y-m-d',
         ]);
     
-        if ($attendance->exists) {
+        if ($validator->fails()) {
             return response()->json([
-                'message' => 'Attendance already recorded for today.'
+                'message' => 'Validation failed.',
+                'errors'  => $validator->errors(),
             ], 422);
         }
     
-        $attendance->company_id      = $company->id;
-        $attendance->status          = 'leave';
-        $attendance->approval_status = 'pending';
-        $attendance->clock_out        = '-';
-        $attendance->clock_out_image  = null;
-        $attendance->clock_in         = '-';
-        $attendance->clock_in_image   = null;
-        $attendance->save();
+        $validated = $validator->validated();
+    
+        $appliedLeaves = [];
+        $skippedDates = [];
+    
+        foreach ($validated['dates'] as $date) {
+            $attendance = Attendance::firstOrNew([
+                'user_id'         => $user->id,
+                'attendance_date' => $date,
+            ]);
+    
+            if ($attendance->exists) {
+                $skippedDates[] = $date;
+                continue;
+            }
+    
+            $attendance->company_id       = $company->id;
+            $attendance->status           = 'leave';
+            $attendance->approval_status  = 'pending';
+            $attendance->clock_out        = '-';
+            $attendance->clock_out_image  = null;
+            $attendance->clock_in         = '-';
+            $attendance->clock_in_image   = null;
+            $attendance->save();
+    
+            $appliedLeaves[] = $attendance;
+        }
     
         return response()->json([
-            'message' => 'Leave applied successfully.',
-            'leave'   => $attendance,
+            'message'       => 'Leave application processed.',
+            'applied'       => $appliedLeaves,
+            'already_exist' => $skippedDates,
         ]);
     }
-    
     
     
     /**

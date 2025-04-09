@@ -109,12 +109,19 @@ class RoleController extends Controller
 
     public function destroy(Role $role)
     {
+        if (strtolower($role->name) === 'admin') {
+            return response()->json([
+                'message' => 'The Admin role cannot be deleted.',
+            ], 403);
+        }
+    
         $role->delete();
-
+    
         return response()->json([
             'message' => 'Role deleted successfully.',
         ], 200);
     }
+    
 
     private function getCompanyIdOrFail()
     {

@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
@@ -60,6 +61,7 @@ class InvoicesController extends Controller
         }
     
         $data = $validator->validated();
+
     
         DB::beginTransaction();
     
@@ -158,6 +160,19 @@ class InvoicesController extends Controller
             file_put_contents(public_path($pdfPath), $pdfContent);
     
             $invoice->update(['pdf_path' => $pdfPath]);
+
+
+            if (!empty($data->email)) {
+                Mail::raw('Please find your invoice attached.', function ($message) use ($customer, $selectedCompany, $pdfPath) {
+                    $message->to($customer->email)
+                        ->subject('Your Invoice from ' . $selectedCompany->company->company_name)
+                        ->attach(public_path($pdfPath), [
+                            'as'   => 'invoice.pdf',
+                            'mime' => 'application/pdf',
+                        ]);
+                });
+            }
+    
     
             DB::commit();
     
