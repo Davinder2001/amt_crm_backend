@@ -18,7 +18,8 @@ use App\Http\Controllers\Api\{
     StoreVendorController,
     ProductOcrController,
     CatalogController,
-    InvoicesController
+    InvoicesController,
+    CustomerController
 };
 
 Route::prefix('v1')->group(function () {
@@ -174,6 +175,15 @@ Route::prefix('v1')->group(function () {
             Route::post('/', [StoreVendorController::class, 'addAsVendor']);
             Route::post('/ocrscan', [ProductOcrController::class, 'scanAndSaveText']);
             Route::post('/save-items', [ProductOcrController::class, 'store']);
+        });
+
+
+        Route::prefix('customers')->group(function () {
+            Route::get('/', [CustomerController::class, 'index']);
+            Route::post('/', [CustomerController::class, 'store']);
+            Route::get('{id}', [CustomerController::class, 'show']);
+            Route::put('{id}', [CustomerController::class, 'update']);
+            Route::delete('{id}', [CustomerController::class, 'destroy']); 
         });
 
     });

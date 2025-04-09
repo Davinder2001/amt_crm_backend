@@ -36,6 +36,8 @@ class ItemsController extends Controller
             'replacement'         => 'nullable|string|max:255',
             'category'            => 'nullable|string|max:255',
             'vendor_name'         => 'nullable|string|max:255',
+            'cost_price'         => 'required|numeric|min:0',
+            'selling_price'      => 'required|numeric|min:0',
             'availability_stock'  => 'required|integer',
             'images.*'            => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
         ]);
@@ -122,6 +124,8 @@ class ItemsController extends Controller
             'category'            => 'nullable|string|max:255',
             'vendor_name'         => 'nullable|string|max:255',
             'availability_stock'  => 'sometimes|required|integer',
+            'cost_price'         => 'sometimes|required|numeric|min:0',
+            'selling_price'      => 'sometimes|required|numeric|min:0',
             'images.*'            => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
         ]);
 

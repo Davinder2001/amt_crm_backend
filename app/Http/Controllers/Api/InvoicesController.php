@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Invoice;
 use App\Models\Item;
+use App\Models\Customer;
+use App\Models\CustomerHistory;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Validator;
@@ -16,7 +18,6 @@ use App\Services\SelectedCompanyService;
 
 class InvoicesController extends Controller
 {
-
     public function index()
     {
         $invoices = Invoice::with('items')->latest()->get();
@@ -41,6 +42,8 @@ class InvoicesController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'client_name'            => 'required|string',
+            'number'                 => 'required|string',
+            'email'                  => 'nullable|email',
             'invoice_date'           => 'required|date',
             'items'                  => 'required|array',
             'items.*.item_id'        => 'required|exists:store_items,id',
@@ -61,7 +64,6 @@ class InvoicesController extends Controller
         DB::beginTransaction();
 
         try {
-
             foreach ($data['items'] as $itemData) {
                 $item = Item::find($itemData['item_id']);
 
@@ -77,7 +79,7 @@ class InvoicesController extends Controller
                     DB::rollBack();
                     return response()->json([
                         'status' => false,
-                        'message' => "Insufficient stock for item '{$item->name}'. Available: {$item->quantity}, Requested: {$itemData['quantity']}.",
+                        'message' => "Insufficient stock for item '{$item->name}'. Available: {$item->quantity_count}, Requested: {$itemData['quantity']}.",
                     ], 422);
                 }
             }
@@ -86,9 +88,21 @@ class InvoicesController extends Controller
                 return $item['quantity'] * $item['unit_price'];
             });
 
-
             $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
 
+            // Find or create customer by number
+            $customer = Customer::firstOrCreate(
+                [
+                    'number'     => $data['number'],
+                    'company_id' => $selectedCompany->id,
+                ],
+                [
+                    'name'  => $data['client_name'],
+                    'email' => $data['email'] ?? null,
+                ]
+            );
+
+            // Create invoice
             $invoice = Invoice::create([
                 'invoice_number' => Str::uuid(),
                 'client_name'    => $data['client_name'],
@@ -97,21 +111,41 @@ class InvoicesController extends Controller
                 'company_id'     => $selectedCompany->id,
             ]);
 
-            foreach ($data['items'] as $itemData) {
+            $purchasedItems = [];
 
+            foreach ($data['items'] as $itemData) {
                 $item = Item::find($itemData['item_id']);
                 $item->quantity_count -= $itemData['quantity'];
                 $item->save();
+
+                $totalPrice = $itemData['quantity'] * $itemData['unit_price'];
 
                 $invoice->items()->create([
                     'item_id'     => $item->id,
                     'description' => $item->name ?? 'Item',
                     'quantity'    => $itemData['quantity'],
                     'unit_price'  => $itemData['unit_price'],
-                    'total'       => $itemData['quantity'] * $itemData['unit_price'],
+                    'total'       => $totalPrice,
                 ]);
+
+                $purchasedItems[] = [
+                    'description' => $item->name,
+                    'quantity'    => $itemData['quantity'],
+                    'unit_price'  => $itemData['unit_price'],
+                    'total'       => $totalPrice,
+                ];
             }
 
+            // Save customer purchase history
+            CustomerHistory::create([
+                'customer_id'   => $customer->id,
+                'items'         => $purchasedItems,
+                'purchase_date' => $data['invoice_date'],
+                'details'       => 'Purchase recorded from invoice #' . $invoice->invoice_number,
+                'subtotal'      => $total,
+            ]);
+
+            // Generate and save invoice PDF
             $invoice->load('items');
             $pdf = Pdf::loadView('invoices.pdf', ['invoice' => $invoice]);
             $pdfContent = $pdf->output();
@@ -139,7 +173,6 @@ class InvoicesController extends Controller
             ], 500);
         }
     }
-
 
     public function show($id)
     {
