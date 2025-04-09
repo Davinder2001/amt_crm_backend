@@ -4,15 +4,54 @@
     <meta charset="utf-8">
     <title>Invoice</title>
     <style>
-        body { font-family: DejaVu Sans, sans-serif; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        body {
+            font-family: DejaVu Sans, sans-serif;
+            padding: 20px;
+            font-size: 14px;
+        }
+
+        h2, h3 {
+            margin-bottom: 5px;
+        }
+
+        p {
+            margin: 2px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            font-style: italic;
+        }
+
+        .signature {
+            margin-top: 40px;
+            text-align: right;
+        }
+
+        .signature img {
+            height: 50px;
+        }
     </style>
 </head>
 <body>
-    <h2>Invoice #{{ $invoice->invoice_number }}</h2>
+    <h2>Invoice #{{ $company_name }}</h2>
+
     <p><strong>Client Name:</strong> {{ $invoice->client_name }}</p>
     <p><strong>Invoice Date:</strong> {{ $invoice->invoice_date }}</p>
+    <p><strong>Issued By:</strong> {{ $invoice->invoice_number  }}</p>
 
     <h3>Items</h3>
     <table>
@@ -20,8 +59,8 @@
             <tr>
                 <th>Description</th>
                 <th>Quantity</th>
-                <th>Unit Price</th>
-                <th>Total</th>
+                <th>Unit Price (₹)</th>
+                <th>Total (₹)</th>
             </tr>
         </thead>
         <tbody>
@@ -37,5 +76,18 @@
     </table>
 
     <h3>Total Amount: ₹{{ number_format($invoice->total_amount, 2) }}</h3>
+
+    @isset($footer_note)
+        <div class="footer">
+            <p>{{ $footer_note }}</p>
+        </div>
+    @endisset
+
+    @if(!empty($show_signature))
+        <div class="signature">
+            <p>Authorized Signature</p>
+            <img src="{{ public_path('signature.png') }}" alt="Signature">
+        </div>
+    @endif
 </body>
 </html>

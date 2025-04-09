@@ -50,7 +50,7 @@ class InvoicesController extends Controller
             'items.*.quantity'       => 'required|integer|min:1',
             'items.*.unit_price'     => 'required|numeric|min:0',
         ]);
-
+    
         if ($validator->fails()) {
             return response()->json([
                 'status' => false,
@@ -58,15 +58,15 @@ class InvoicesController extends Controller
                 'errors' => $validator->errors(),
             ], 422);
         }
-
+    
         $data = $validator->validated();
-
+    
         DB::beginTransaction();
-
+    
         try {
             foreach ($data['items'] as $itemData) {
                 $item = Item::find($itemData['item_id']);
-
+    
                 if (!$item) {
                     DB::rollBack();
                     return response()->json([
@@ -74,7 +74,7 @@ class InvoicesController extends Controller
                         'message' => "Item with ID {$itemData['item_id']} not found in store_items table.",
                     ], 422);
                 }
-
+    
                 if ($item->quantity_count < $itemData['quantity']) {
                     DB::rollBack();
                     return response()->json([
@@ -83,14 +83,13 @@ class InvoicesController extends Controller
                     ], 422);
                 }
             }
-
+    
             $total = collect($data['items'])->sum(function ($item) {
                 return $item['quantity'] * $item['unit_price'];
             });
-
+    
             $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-
-            // Find or create customer by number
+    
             $customer = Customer::firstOrCreate(
                 [
                     'number'     => $data['number'],
@@ -101,8 +100,7 @@ class InvoicesController extends Controller
                     'email' => $data['email'] ?? null,
                 ]
             );
-
-            // Create invoice
+    
             $invoice = Invoice::create([
                 'invoice_number' => Str::uuid(),
                 'client_name'    => $data['client_name'],
@@ -110,16 +108,16 @@ class InvoicesController extends Controller
                 'total_amount'   => $total,
                 'company_id'     => $selectedCompany->id,
             ]);
-
+    
             $purchasedItems = [];
-
+    
             foreach ($data['items'] as $itemData) {
                 $item = Item::find($itemData['item_id']);
                 $item->quantity_count -= $itemData['quantity'];
                 $item->save();
-
+    
                 $totalPrice = $itemData['quantity'] * $itemData['unit_price'];
-
+    
                 $invoice->items()->create([
                     'item_id'     => $item->id,
                     'description' => $item->name ?? 'Item',
@@ -127,7 +125,7 @@ class InvoicesController extends Controller
                     'unit_price'  => $itemData['unit_price'],
                     'total'       => $totalPrice,
                 ]);
-
+    
                 $purchasedItems[] = [
                     'description' => $item->name,
                     'quantity'    => $itemData['quantity'],
@@ -135,29 +133,34 @@ class InvoicesController extends Controller
                     'total'       => $totalPrice,
                 ];
             }
-
-            // Save customer purchase history
+    
             CustomerHistory::create([
                 'customer_id'   => $customer->id,
                 'items'         => $purchasedItems,
                 'purchase_date' => $data['invoice_date'],
-                'details'       => 'Purchase recorded from invoice #' . $invoice->invoice_number,
+                'details'       => 'Purchase recorded from invoice #' . ($invoice->invoice_number ?? '0000'),
                 'subtotal'      => $total,
             ]);
-
-            // Generate and save invoice PDF
+    
             $invoice->load('items');
-            $pdf = Pdf::loadView('invoices.pdf', ['invoice' => $invoice]);
+            $pdfData = [
+                'invoice'        => $invoice,
+                'company_name'   => $selectedCompany->company->company_name,
+                'footer_note'    => 'Thank you for your business!',
+                'show_signature' => true,
+            ];
+    
+            $pdf = Pdf::loadView('invoices.pdf', $pdfData);
             $pdfContent = $pdf->output();
-
+    
             $pdfPath = "invoices/invoice_{$invoice->id}.pdf";
             File::ensureDirectoryExists(public_path('invoices'));
             file_put_contents(public_path($pdfPath), $pdfContent);
-
+    
             $invoice->update(['pdf_path' => $pdfPath]);
-
+    
             DB::commit();
-
+    
             return response()->json([
                 'status' => true,
                 'message' => 'Invoice created successfully.',
@@ -165,7 +168,7 @@ class InvoicesController extends Controller
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
-
+    
             return response()->json([
                 'status' => false,
                 'message' => 'An error occurred while creating the invoice.',
@@ -173,7 +176,7 @@ class InvoicesController extends Controller
             ], 500);
         }
     }
-
+    
     public function show($id)
     {
         $invoice = Invoice::with('items')->findOrFail($id);
