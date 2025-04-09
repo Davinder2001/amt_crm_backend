@@ -47,14 +47,16 @@
     </style>
 </head>
 <body>
-    <h2>Invoice #{{ $company_name }}</h2>
+    <h2 style="text-align: center">{{ $company_name }}</h2>
 
     <p><strong>Client Name:</strong> {{ $invoice->client_name }}</p>
     <p><strong>Invoice Date:</strong> {{ $invoice->invoice_date }}</p>
-    <p><strong>Issued By:</strong> {{ $invoice->invoice_number  }}</p>
+    <p><strong>Issued By:</strong> {{ $company_name  }}</p>
+    <p><strong>Invoice No:</strong> {{ $invoice->invoice_number  }}</p>
 
     <h3>Items</h3>
     <table>
+        
         <thead>
             <tr>
                 <th>Description</th>
