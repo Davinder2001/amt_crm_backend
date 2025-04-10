@@ -11,7 +11,9 @@ use App\Services\SelectedCompanyService;
 
 class StoreVendorController extends Controller
 {
-    // List all vendors for the selected company.
+    /**
+     * Display a listing of the resource.
+     */
     public function index(): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -19,7 +21,10 @@ class StoreVendorController extends Controller
         return response()->json($vendors);
     }
 
-    // Create a new vendor.
+
+    /**
+     * Store a newly created resource in storage.
+     */
     public function store(Request $request): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -47,7 +52,9 @@ class StoreVendorController extends Controller
     }
 
 
-    // Get a specific vendor by ID.
+    /*
+    * Display the specified resource.
+     */
     public function show($id): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -63,8 +70,10 @@ class StoreVendorController extends Controller
 
         return response()->json($vendor);
     }
-
-    // Update an existing vendor.
+    
+    /* /
+     * Update the specified resource in storage.
+     */
     public function update(Request $request, $id): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -97,8 +106,9 @@ class StoreVendorController extends Controller
         ]);
     }
 
-
-    // Delete a vendor.
+    /**
+     * Remove the specified resource from storage.
+     */
     public function destroy($id): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -117,11 +127,9 @@ class StoreVendorController extends Controller
         return response()->json(['message' => 'Vendor deleted successfully.']);
     }
 
-     
-    
-
-
-    // Add a company as a vendor.
+    /**
+     * Add a company as a vendor.
+     */
     public function addAsVendor(Request $request){
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
         return response()->json([

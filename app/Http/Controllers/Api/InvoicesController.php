@@ -19,6 +19,9 @@ use App\Services\SelectedCompanyService;
 
 class InvoicesController extends Controller
 {
+    /**
+     * Display a listing of the resource.
+     */
     public function index()
     {
         $invoices = Invoice::with('items')->latest()->get();
@@ -39,6 +42,9 @@ class InvoicesController extends Controller
         ]);
     }
 
+    /**
+     * Store a newly created resource in storage.
+     */
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -61,8 +67,6 @@ class InvoicesController extends Controller
         }
     
         $data = $validator->validated();
-
-    
         DB::beginTransaction();
     
         try {
@@ -91,7 +95,7 @@ class InvoicesController extends Controller
             });
     
             $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-    
+
             $customer = Customer::firstOrCreate(
                 [
                     'number'     => $data['number'],
@@ -192,12 +196,18 @@ class InvoicesController extends Controller
         }
     }
     
+    /**
+     * Display the specified resource.
+     */
     public function show($id)
     {
         $invoice = Invoice::with('items')->findOrFail($id);
         return response()->json($invoice);
     }
 
+    /**
+     * Update the specified resource in storage.
+     */
     public function download($id)
     {
         $invoice = Invoice::findOrFail($id);

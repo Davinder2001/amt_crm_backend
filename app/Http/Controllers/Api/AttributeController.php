@@ -10,12 +10,18 @@ use Illuminate\Support\Facades\Validator;
 
 class AttributeController extends Controller
 {
+    /**
+     * Show a list of all attributes with their values.
+     */
     public function index(): JsonResponse
     {
         return response()->json(Attribute::with('values')->get());
     }
 
 
+    /**
+     * Store a new attribute with its values.
+     */
     public function store(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -40,6 +46,9 @@ class AttributeController extends Controller
     }
 
 
+    /**
+     * Show a specific attribute with its values.
+     */
     public function show($id): JsonResponse
     {
         $attribute = Attribute::with('values')->find($id);
@@ -52,6 +61,9 @@ class AttributeController extends Controller
     }
 
 
+    /**
+     * Update an existing attribute and its values.
+     */
     public function update(Request $request, $id): JsonResponse
     {
         $attribute = Attribute::find($id);
@@ -84,7 +96,10 @@ class AttributeController extends Controller
         return response()->json(['message' => 'Attribute updated', 'data' => $attribute->load('values')]);
     }
 
-    
+
+    /**
+     * Delete an attribute and its values.
+     */
     public function destroy($id): JsonResponse
     {
         $attribute = Attribute::find($id);

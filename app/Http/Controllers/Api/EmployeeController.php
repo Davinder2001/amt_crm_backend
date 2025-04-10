@@ -14,18 +14,19 @@ use App\Http\Resources\EmployeeResource;
 use App\Http\Resources\SalaryResource;
 use App\Services\SelectedCompanyService;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Support\Facades\File;
-use Illuminate\Support\Str;
-
-
-
 
 
 class EmployeeController extends Controller
 {
 
+    /**
+     * @var SelectedCompanyService
+     */
     protected $selectcompanyService;
 
+    /**
+     * @var EmployeeCreateService
+     */
     public function __construct(SelectedCompanyService $selectcompanyService)
     {
         $this->selectcompanyService = $selectcompanyService;
@@ -50,7 +51,9 @@ class EmployeeController extends Controller
     
     
 
-
+    /**
+     * Store employees.
+     */
     public function store(Request $request, EmployeeCreateService $userCreateService)
     {
         $validator = Validator::make($request->all(), [
@@ -210,7 +213,9 @@ class EmployeeController extends Controller
         return response()->json(['message' => 'Employee deleted successfully.']);
     }
 
-
+   /**
+     * Generate salary slip for the specified employee.
+     */
     public function salarySlip($id)
     {
         $employee = User::where('user_type', 'employee')->with(['roles.permissions', 'companies', 'meta'])->find($id); 

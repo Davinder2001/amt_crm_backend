@@ -13,7 +13,9 @@ use App\Services\SelectedCompanyService;
 
 class ProductOcrController extends Controller
 {
- 
+    /**
+     * Scan and save text from an image or PDF file.
+     */
     public function scanAndSaveText(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -103,6 +105,9 @@ class ProductOcrController extends Controller
     }
     
 
+    /**
+     * Store the scanned products in the database.
+     */
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [

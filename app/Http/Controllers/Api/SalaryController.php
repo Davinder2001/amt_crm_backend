@@ -10,20 +10,28 @@ use Illuminate\Http\Request;
 
 class SalaryController extends Controller
 {
-    
+    /**
+     * Display a listing of the resource.
+     */
     public function index()
     {
         $employees = User::with(['roles.permissions', 'companies', 'employeeDetail', 'salaryHistories'])->where('user_type', 'employee')->get();
         return SalaryResource::collection($employees);
     }
 
-
+    /**
+     * Display the specified resource.
+     */
     public function show($id)
     {
         $employee = User::with(['roles.permissions', 'companies', 'employeeDetail', 'salaryHistories'])->where('user_type', 'employee')->findOrFail($id);
         return new SalaryResource($employee);
     }
 
+    
+    /**
+     * Store increment.
+     */
     public function increment(Request $request, $id)
     {
         $data = $request->validate([

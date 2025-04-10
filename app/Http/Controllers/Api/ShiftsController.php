@@ -17,6 +17,9 @@ class ShiftsController extends Controller
         $this->selectcompanyService = $selectcompanyService;
     }
 
+    /**
+     * Display a listing of the resource.
+     */
     public function index()
     {
         $shifts = Shift::all();
@@ -27,6 +30,9 @@ class ShiftsController extends Controller
         ], 200);
     }
 
+    /**
+     * Store a newly created resource in storage.
+     */
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -57,6 +63,9 @@ class ShiftsController extends Controller
     }
 
     
+    /**
+     * Update the specified resource in storage.
+     */
     public function update(Request $request, $id)
     {
         $shift = Shift::find($id);
@@ -91,6 +100,9 @@ class ShiftsController extends Controller
         ], 200);
     }
 
+    /**
+     * Remove the specified resource from storage.
+     */
     public function show($id)
     {
         $shift = Shift::find($id);

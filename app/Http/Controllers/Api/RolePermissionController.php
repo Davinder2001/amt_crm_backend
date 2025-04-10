@@ -16,9 +16,7 @@ class RolePermissionController extends Controller
      */
     public function assignRole(Request $request, User $user, $id): JsonResponse
     {
-
-    
-        $validator = Validator::make($request->all(), [
+       $validator = Validator::make($request->all(), [
             'role' => 'required|string|exists:roles,name',
         ]);
 

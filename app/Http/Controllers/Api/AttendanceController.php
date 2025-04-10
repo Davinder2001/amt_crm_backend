@@ -35,7 +35,6 @@ class AttendanceController extends Controller
             'attendance_date' => $today,
         ]);
     
-        // ✅ Case 1: Attendance exists and is a REJECTED leave → allow clock in
         if ($attendance->exists && $attendance->status === 'leave' && $attendance->approval_status === 'rejected') {
             $validator = Validator::make($request->all(), [
                 'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
@@ -150,7 +149,6 @@ class AttendanceController extends Controller
             ], 422);
         }
     
-        // ✅ Validation with custom response on failure
         $validator = Validator::make($request->all(), [
             'dates'   => 'required|array|min:1',
             'dates.*' => 'required|date|date_format:Y-m-d',
@@ -281,7 +279,7 @@ class AttendanceController extends Controller
     /**
      * Reject the attendance.
      */
-    public function rejectAttendance(Request $request, $id): JsonResponse
+    public function rejectAttendance($id): JsonResponse
     {
         $attendance = Attendance::find($id);
 

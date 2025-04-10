@@ -12,17 +12,26 @@ use App\Http\Resources\CompanyResource;
 
 class CompanyController extends Controller
 {
+    /**
+     * Display a listing of the resource.
+     */
     public function index()
     {
         return CompanyResource::collection(Company::all());
     }
 
 
+    /**
+     * Display a listing of the resource.
+     */
     public function show($id)
     {
         return new CompanyResource(Company::findOrFail($id));
     }
 
+    /**
+     * Store a newly created resource in storage.
+     */
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -34,6 +43,9 @@ class CompanyController extends Controller
         return new CompanyResource(Company::create($data));
     }
 
+    /**
+     * Update the specified resource in storage.
+     */
     public function update(Request $request, $id)
     {
         $company = Company::findOrFail($id);
@@ -47,6 +59,9 @@ class CompanyController extends Controller
     }
 
     
+    /**
+     * Remove the specified resource from storage.
+     */
     public function destroy($id)
     {
         Company::findOrFail($id)->delete();
@@ -57,6 +72,9 @@ class CompanyController extends Controller
         ]);
     }
 
+    /**
+     * Select a company for the authenticated user.
+     */
     public function selectedCompanies($id)
     {
         $user = Auth::user();
@@ -81,6 +99,9 @@ class CompanyController extends Controller
     }
     
 
+    /**
+     * Get the selected company for the authenticated user.
+     */
     public function getSelectedCompanies()
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -103,5 +124,4 @@ class CompanyController extends Controller
             'company_user_role' => $selectedCompany->role,
         ]);
     }
-    
 }

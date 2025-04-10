@@ -19,6 +19,9 @@ use Illuminate\Support\Facades\Cache;
 
 class AuthController extends Controller
 {
+    /**
+     * @var AdminRegistrationService
+     */
     protected AdminRegistrationService $registrationService;
 
     public function __construct(AdminRegistrationService $registrationService)
@@ -26,70 +29,78 @@ class AuthController extends Controller
         $this->registrationService = $registrationService;
     }
 
+    /**
+     * Register a new user.
+     */
+    public function register(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'name'     => 'required|string|max:255',
+            'email'    => 'required|email|max:255',
+            'password' => 'required|string|min:8',
+            'number'   => 'required|string|max:20',
+        ]);
 
-        public function register(Request $request): JsonResponse
-        {
-            $validator = Validator::make($request->all(), [
-                'name'     => 'required|string|max:255',
-                'email'    => 'required|email|max:255',
-                'password' => 'required|string|min:8',
-                'number'   => 'required|string|max:20',
-            ]);
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
 
-            if ($validator->fails()) {
-                return response()->json(['errors' => $validator->errors()], 422);
-            }
+        $data = $validator->validated();
 
-            $data = $validator->validated();
+        $alreadyUser = User::where('number', $data['number'])->where('user_type', 'user')->exists();
 
-            $alreadyUser = User::where('number', $data['number'])->where('user_type', 'user')->exists();
+        if ($alreadyUser) {
+            return response()->json([
+                'errors' => ['number' => ['You are already register kindly login.']]
+            ], 422);
+        }
 
-            if ($alreadyUser) {
-                return response()->json([
-                    'errors' => ['number' => ['You are already register kindly login.']]
-                ], 422);
-            }
+        $user = User::create([
+            'name'     => $data['name'],
+            'email'    => $data['email'],
+            'number'   => $data['number'],
+            'password' => Hash::make($data['password']),
+            'uid'      => User::generateUid(),
+        ]);
 
-            $user = User::create([
-                'name'     => $data['name'],
-                'email'    => $data['email'],
-                'number'   => $data['number'],
-                'password' => Hash::make($data['password']),
-                'uid'      => User::generateUid(),
-            ]);
+        $user->assignRole('user');
+        $token = $user->createToken('auth_token')->plainTextToken;
 
-            $user->assignRole('user');
-            $token = $user->createToken('auth_token')->plainTextToken;
+        return response()->json([
+            'message'      => 'User registered successfully.',
+            'access_token' => $token,
+            'token_type'   => 'Bearer',
+            'user'         => new UserResource($user),
+        ], 201);
+    }
+
+    /**
+     * Register a new admin.
+     */
+    public function adminRegister(AdminRegisterRequest $request): JsonResponse
+    {
+        $data = $request->validated();
+
+        try {
+            $result = $this->registrationService->register($data);
+            $result['user']->assignRole('admin');
 
             return response()->json([
-                'message'      => 'User registered successfully.',
-                'access_token' => $token,
-                'token_type'   => 'Bearer',
-                'user'         => new UserResource($user),
+                'message' => 'Admin registered successfully. Company and role assigned.',
+                'user'    => new UserResource($result['user']->load('roles')),
+                'company' => $result['company'],
             ], 201);
+        } catch (ValidationException $e) {
+            return response()->json(['errors' => $e->errors()], 422);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
         }
-
-        public function adminRegister(AdminRegisterRequest $request): JsonResponse
-        {
-            $data = $request->validated();
-
-            try {
-                $result = $this->registrationService->register($data);
-                $result['user']->assignRole('admin');
-
-                return response()->json([
-                    'message' => 'Admin registered successfully. Company and role assigned.',
-                    'user'    => new UserResource($result['user']->load('roles')),
-                    'company' => $result['company'],
-                ], 201);
-            } catch (ValidationException $e) {
-                return response()->json(['errors' => $e->errors()], 422);
-            } catch (\Exception $e) {
-                return response()->json(['error' => $e->getMessage()], 422);
-            }
-        }
+    }
 
 
+    /**
+     * Login a user.
+     */
     public function login(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -120,31 +131,34 @@ class AuthController extends Controller
 
 
 
+    /**
+     * Login a company user.
+     */
     public function companyLogin(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
             'number'   => 'required|string',
             'password' => 'required|string',
         ]);
-    
+
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
-    
+
         $data = $validator->validated();
-    
+
         $user = User::with(['companies', 'roles'])->where('number', $data['number'])->whereIn('user_type', ['employee', 'admin', 'super-admin'])->first();
-        
+
         if (!$user || !Hash::check($data['password'], $user->password)) {
             return response()->json(['error' => 'Invalid credentials.'], 401);
         }
-    
+
         $userCompanies = CompanyUser::where('user_id', $user->id)->get();
-        
+
         if ($userCompanies->count() === 1) {
             $singleCompany = $userCompanies->first();
             $company = $singleCompany->company ?? $singleCompany->load('company')->company;
-        
+
             if ($company && $company->verification_status === 'verified') {
                 CompanyUser::where('user_id', $user->id)->update(['status' => 0]);
                 CompanyUser::where('user_id', $user->id)->where('company_id', $singleCompany->company_id)->update(['status' => 1]);
@@ -162,7 +176,7 @@ class AuthController extends Controller
         $accessToken->expires_at = now()->addHours(24);
         $accessToken->save();
 
-    
+
         return response()->json([
             'message'      => 'Logged in successfully.',
             'access_token' => $token,
@@ -172,22 +186,27 @@ class AuthController extends Controller
     }
 
 
-
+    /**
+     * Logout the user.
+     */
 
     public function logout(Request $request): JsonResponse
     {
         $user = $request->user();
-   
+
         CompanyUser::query()
             ->where('user_id', $user->id)
             ->update(['status' => 0]);
-    
+
         $user->currentAccessToken()->delete();
-    
+
         return response()->json(['message' => 'Logged out successfully.']);
     }
 
 
+    /**
+     * Refresh the token.
+     */
     public function sendResetOtp(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -208,6 +227,9 @@ class AuthController extends Controller
         return response()->json(['message' => 'OTP sent successfully.']);
     }
 
+    /**
+     * Verify the OTP and reset the password.
+     */
     public function verifyOtp(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -233,23 +255,25 @@ class AuthController extends Controller
         return response()->json(['message' => 'OTP verified and password reset successfully.']);
     }
 
+    /**
+     * Change the password.
+     */
     public function resetPassword(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
             'password' => 'required|string|min:8|confirmed',
         ]);
-    
+
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
-    
+
         $data = $validator->validated();
-    
+
         /** @var \App\Models\User $user */
         $user = Auth::user();
-            $user->update(['password' => Hash::make($data['password'])]);
-    
+        $user->update(['password' => Hash::make($data['password'])]);
+
         return response()->json(['message' => 'Password reset successfully.']);
     }
-    
 }

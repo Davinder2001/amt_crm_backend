@@ -7,9 +7,14 @@ use App\Models\Task;
 use Illuminate\Http\Request;
 use App\Http\Resources\TaskResource;
 use Illuminate\Support\Facades\Validator;
+use App\Services\SelectedCompanyService;
+
 
 class TaskController extends Controller
 {
+
+
+
     public function index()
     {
         $tasks = Task::all();
@@ -19,8 +24,10 @@ class TaskController extends Controller
     
     public function store(Request $request)
     {
+
         $authUser = $request->user();
-        $activeCompanyId = request()->attributes->get('activeCompanyId');
+        $activeCompanyId = SelectedCompanyService::getSelectedCompanyOrFail();
+
 
         $validator = Validator::make($request->all(), [
             'name'        => 'required|string|max:255',
@@ -34,7 +41,7 @@ class TaskController extends Controller
 
         $data = array_merge($request->all(), [
             'assigned_by' => $authUser->id,
-            'company_id'  => $activeCompanyId,
+            'company_id'  => $activeCompanyId->company_id,
             'status'      => 'pending',
         ]);
 

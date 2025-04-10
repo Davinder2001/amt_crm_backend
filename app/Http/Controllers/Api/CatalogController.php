@@ -9,7 +9,10 @@ use App\Services\SelectedCompanyService;
 
 class CatalogController extends Controller
 {
-    // 1. Get all items in the catalog
+
+    /**
+     * Show a list of all items in the catalog.
+     */
     public function index(): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -17,7 +20,9 @@ class CatalogController extends Controller
         return response()->json($catalogItems);
     }
 
-    // 2. Add item to catalog
+    /**
+     * Add an item to the catalog.
+     */
     public function addToCatalog($id): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -33,7 +38,10 @@ class CatalogController extends Controller
         return response()->json(['message' => 'Item added to catalog successfully.', 'item' => $item]);
     }
 
-    // 3. Remove item from catalog
+  
+    /**
+     * Remove an item from the catalog.
+     */
     public function removeFromCatalog($id): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();

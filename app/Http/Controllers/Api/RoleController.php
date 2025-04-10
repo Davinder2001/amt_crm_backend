@@ -12,6 +12,9 @@ use Illuminate\Support\Facades\Validator;
 
 class RoleController extends Controller
 {
+    /**
+     * Display a listing of the resource.
+     */
     public function index()
     {
         $roles = Role::withCount('permissions')->get();
@@ -23,6 +26,9 @@ class RoleController extends Controller
         ], 200);
     }
 
+    /**
+     * Store a newly created resource in storage.
+     */
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -68,6 +74,10 @@ class RoleController extends Controller
         ], 201);
     }
 
+
+    /**
+     * Display the specified resource.
+     */
     public function show(Role $role)
     {
         return response()->json([
@@ -76,6 +86,9 @@ class RoleController extends Controller
         ], 200);
     }
 
+    /**
+     * Update the specified resource in storage.
+     */
     public function update(Request $request, Role $role)
     {
         
@@ -107,6 +120,9 @@ class RoleController extends Controller
         ], 200);
     }
 
+    /**
+     * Remove the specified resource from storage.
+     */
     public function destroy(Role $role)
     {
         if (strtolower($role->name) === 'admin') {
@@ -122,7 +138,9 @@ class RoleController extends Controller
         ], 200);
     }
     
-
+    /**
+     * Get the company ID of the authenticated user or fail if not found.
+     */
     private function getCompanyIdOrFail()
     {
         $user = Auth::user();

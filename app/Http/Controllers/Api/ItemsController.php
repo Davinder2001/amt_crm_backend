@@ -12,12 +12,18 @@ use App\Http\Resources\ItemResource;
 
 class ItemsController extends Controller
 {
+    /**
+     * Display a listing of the items.
+     */
     public function index(): JsonResponse
     {
         $items = Item::with('variants.attributeValues')->get();
         return response()->json(ItemResource::collection($items));
     }
 
+    /**
+     * Store a newly created item in storage.
+     */
     public function store(Request $request): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -96,6 +102,9 @@ class ItemsController extends Controller
         ], 201);
     }
 
+    /**
+     * Display the specified item.
+     */
     public function show($id): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -112,6 +121,9 @@ class ItemsController extends Controller
         return response()->json($item);
     }
 
+    /**
+     * Update the specified item in storage.
+     */
     public function update(Request $request, $id): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -176,6 +188,9 @@ class ItemsController extends Controller
         ]);
     }
 
+    /**
+     * Remove the specified item from storage.
+     */
     public function destroy($id): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -190,10 +205,12 @@ class ItemsController extends Controller
         }
 
         $item->delete();
-
         return response()->json(['message' => 'Item deleted successfully.']);
     }
 
+    /**
+     * Store bulk items from a JSON request.
+     */
     public function storeBulkItems(Request $request): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
