@@ -12,8 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('attributes', function (Blueprint $table) {
-            $table->id(); // bigIncrements (BIGINT UNSIGNED PRIMARY)
+            $table->id();
             $table->string('name');
+            $table->enum('status', ['active', 'inactive'])->default('inactive');
             $table->timestamps();
         });
     }

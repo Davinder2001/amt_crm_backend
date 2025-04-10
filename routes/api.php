@@ -195,6 +195,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/{id}', [AttributeController::class, 'show']);
             Route::put('/{id}', [AttributeController::class, 'update']);
             Route::delete('/{id}', [AttributeController::class, 'destroy']);
+            Route::patch('/{id}/toggle-status', [AttributeController::class, 'toggleStatus']);
         });
 
     });

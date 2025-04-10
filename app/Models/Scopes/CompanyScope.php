@@ -45,5 +45,4 @@ class CompanyScope implements Scope
             }
         }
     }
-    
 }

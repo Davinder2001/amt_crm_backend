@@ -113,4 +113,25 @@ class AttributeController extends Controller
 
         return response()->json(['message' => 'Attribute deleted']);
     }
+
+
+    /**
+     * Toggle the status of an attribute.
+     */
+    public function toggleStatus($id): JsonResponse
+    {
+        $attribute = Attribute::find($id);
+
+        if (!$attribute) {
+            return response()->json(['message' => 'Attribute not found'], 404);
+        }
+
+        $attribute->status = $attribute->status === 'active' ? 'inactive' : 'active';
+        $attribute->save();
+
+        return response()->json([
+            'message' => 'Attribute status updated',
+            'status' => $attribute->status
+        ]);
+    }
 }

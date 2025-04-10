@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Item;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -14,6 +15,7 @@ class DatabaseSeeder extends Seeder
             AdminSeeder::class,
             // RolesTableSeeder::class,
             EmployeeSeeder::class,
+            ItemSeeder::class,
         ]);
     }
 }
