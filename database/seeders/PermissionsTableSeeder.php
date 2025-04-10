@@ -52,6 +52,13 @@ class PermissionsTableSeeder extends Seeder
                 'delete company',
             ],
 
+            'Dashbord Options' => [
+                'store',
+                'hr',
+                'invoice',
+                'permission',
+            ],
+
         ];
 
         foreach ($permissionGroups as $group => $permissions) {

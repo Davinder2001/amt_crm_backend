@@ -46,5 +46,8 @@ class Item extends Model
     {
         static::addGlobalScope(new CompanyScope);
     }
-
+    public function variants()
+    {
+        return $this->hasMany(ItemVariant::class);
+    }
 }

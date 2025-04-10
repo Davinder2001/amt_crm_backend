@@ -19,7 +19,8 @@ use App\Http\Controllers\Api\{
     ProductOcrController,
     CatalogController,
     InvoicesController,
-    CustomerController
+    CustomerController,
+    AttributeController
 };
 
 Route::prefix('v1')->group(function () {
@@ -184,6 +185,16 @@ Route::prefix('v1')->group(function () {
             Route::get('{id}', [CustomerController::class, 'show']);
             Route::put('{id}', [CustomerController::class, 'update']);
             Route::delete('{id}', [CustomerController::class, 'destroy']); 
+        });
+
+
+                
+        Route::prefix('attributes')->group(function () {
+            Route::get('/', [AttributeController::class, 'index']);
+            Route::post('/', [AttributeController::class, 'store']);
+            Route::get('/{id}', [AttributeController::class, 'show']);
+            Route::put('/{id}', [AttributeController::class, 'update']);
+            Route::delete('/{id}', [AttributeController::class, 'destroy']);
         });
 
     });

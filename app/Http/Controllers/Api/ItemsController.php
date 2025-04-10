@@ -2,8 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Models\Item;
-use App\Models\StoreVendor;
+use App\Models\{Item, StoreVendor, ItemVariant, AttributeValue};
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
@@ -11,35 +10,37 @@ use Illuminate\Support\Facades\Validator;
 use App\Services\SelectedCompanyService;
 use App\Http\Resources\ItemResource;
 
-
 class ItemsController extends Controller
 {
     public function index(): JsonResponse
     {
-        $items = Item::get();
+        $items = Item::with('variants.attributeValues')->get();
         return response()->json(ItemResource::collection($items));
     }
-
 
     public function store(Request $request): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
 
         $validator = Validator::make($request->all(), [
-            'name'                => 'required|string|max:255',
-            'quantity_count'      => 'required|integer',
-            'measurement'         => 'nullable|string',
-            'purchase_date'       => 'nullable|date',
-            'date_of_manufacture' => 'required|date',
-            'date_of_expiry'      => 'nullable|date',
-            'brand_name'          => 'required|string|max:255',
-            'replacement'         => 'nullable|string|max:255',
-            'category'            => 'nullable|string|max:255',
-            'vendor_name'         => 'nullable|string|max:255',
-            'cost_price'         => 'required|numeric|min:0',
-            'selling_price'      => 'required|numeric|min:0',
-            'availability_stock'  => 'required|integer',
-            'images.*'            => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
+            'name'                  => 'required|string|max:255',
+            'quantity_count'        => 'required|integer',
+            'measurement'           => 'nullable|string',
+            'purchase_date'         => 'nullable|date',
+            'date_of_manufacture'   => 'required|date',
+            'date_of_expiry'        => 'nullable|date',
+            'brand_name'            => 'required|string|max:255',
+            'replacement'           => 'nullable|string|max:255',
+            'category'              => 'nullable|string|max:255',
+            'vendor_name'           => 'nullable|string|max:255',
+            'cost_price'            => 'required|numeric|min:0',
+            'selling_price'         => 'required|numeric|min:0',
+            'availability_stock'    => 'required|integer',
+            'images.*'              => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
+            'variants'              => 'nullable|array',
+            'variants.*.price'      => 'required_with:variants|numeric|min:0',
+            'variants.*.stock'      => 'required_with:variants|integer|min:0',
+            'variants.*.attributes' => 'required_with:variants|array'
         ]);
 
         if ($validator->fails()) {
@@ -75,17 +76,30 @@ class ItemsController extends Controller
 
         $item = Item::create($data);
 
+        if (isset($data['variants'])) {
+            foreach ($data['variants'] as $variantData) {
+                $variant = $item->variants()->create([
+                    'price' => $variantData['price'],
+                    'stock' => $variantData['stock'],
+                    'images' => $imageLinks,
+                ]);
+
+                foreach ($variantData['attributes'] as $attributeId => $valueId) {
+                    $variant->attributeValues()->attach($valueId, ['attribute_id' => $attributeId]);
+                }
+            }
+        }
+
         return response()->json([
             'message' => 'Item added successfully.',
-            'item'    => $item,
+            'item'    => $item->load('variants.attributeValues'),
         ], 201);
     }
-
 
     public function show($id): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $item = Item::find($id);
+        $item = Item::with('variants.attributeValues')->find($id);
 
         if (!$item) {
             return response()->json(['message' => 'Item not found.'], 404);
@@ -98,7 +112,6 @@ class ItemsController extends Controller
         return response()->json($item);
     }
 
-    
     public function update(Request $request, $id): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -124,8 +137,8 @@ class ItemsController extends Controller
             'category'            => 'nullable|string|max:255',
             'vendor_name'         => 'nullable|string|max:255',
             'availability_stock'  => 'sometimes|required|integer',
-            'cost_price'         => 'sometimes|required|numeric|min:0',
-            'selling_price'      => 'sometimes|required|numeric|min:0',
+            'cost_price'          => 'sometimes|required|numeric|min:0',
+            'selling_price'       => 'sometimes|required|numeric|min:0',
             'images.*'            => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
         ]);
 
@@ -137,7 +150,6 @@ class ItemsController extends Controller
         }
 
         $data = $validator->validated();
-
 
         if ($request->hasFile('images')) {
             $newImages = [];
@@ -181,12 +193,11 @@ class ItemsController extends Controller
 
         return response()->json(['message' => 'Item deleted successfully.']);
     }
-  
-  
+
     public function storeBulkItems(Request $request): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-    
+
         $validator = Validator::make($request->all(), [
             'invoice_no'   => 'required|string|max:255',
             'vendor_name'  => 'required|string|max:255',
@@ -194,23 +205,23 @@ class ItemsController extends Controller
             'bill_photo'   => 'nullable',
             'items'        => 'required|json',
         ]);
-    
+
         if ($validator->fails()) {
             return response()->json([
                 'message' => 'Validation errors.',
                 'errors'  => $validator->errors(),
             ], 422);
         }
-    
+
         $data = $validator->validated();
-    
+
         $vendor = StoreVendor::firstOrCreate([
             'vendor_name' => $data['vendor_name'],
             'company_id'  => $selectedCompany->company_id,
         ], [
             'vendor_no'   => $data['vendor_no'],
         ]);
-    
+
         $imagePath = null;
         if ($request->hasFile('bill_photo')) {
             $image = $request->file('bill_photo');
@@ -218,13 +229,13 @@ class ItemsController extends Controller
             $image->move(public_path('uploads/bills'), $filename);
             $imagePath = 'uploads/bills/' . $filename;
         }
-    
+
         $items = json_decode($data['items'], true);
-    
+
         foreach ($items as $itemData) {
-            \App\Models\Item::create([
+            Item::create([
                 'company_id'         => $selectedCompany->company_id,
-                'item_code'          => \App\Models\Item::where('company_id', $selectedCompany->company_id)->max('item_code') + 1 ?? 1,
+                'item_code'          => Item::where('company_id', $selectedCompany->company_id)->max('item_code') + 1 ?? 1,
                 'name'               => $itemData['name'],
                 'quantity_count'     => $itemData['quantity'],
                 'measurement'        => null,
@@ -238,7 +249,7 @@ class ItemsController extends Controller
                 'images'             => $imagePath ? json_encode([$imagePath]) : null,
             ]);
         }
-    
+
         return response()->json([
             'message' => 'Bulk items stored successfully.',
             'vendor'  => $vendor->vendor_name,

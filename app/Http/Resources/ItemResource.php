@@ -30,6 +30,23 @@ class ItemResource extends JsonResource
             'selling_price'      => $this->selling_price,
             'created_at'         => $this->created_at,
             'updated_at'         => $this->updated_at,
+
+            'variants' => $this->whenLoaded('variants', function () {
+                return $this->variants->map(function ($variant) {
+                    return [
+                        'id'    => $variant->id,
+                        'price' => $variant->price,
+                        'stock' => $variant->stock,
+                        'images'=> $variant->images,
+                        'attributes' => $variant->attributeValues->map(function ($val) {
+                            return [
+                                'attribute' => $val->attribute->name,
+                                'value'     => $val->value,
+                            ];
+                        })
+                    ];
+                });
+            }),
         ];
     }
 }
