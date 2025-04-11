@@ -17,7 +17,7 @@ return new class extends Migration
             $table->decimal('salary', 10, 2)->nullable();
             $table->date('dateOfHire')->nullable();
             $table->date('joiningDate')->nullable();
-            $table->string('shiftTimings')->nullable();
+            $table->unsignedBigInteger('shift_id')->nullable();
             $table->string('address')->nullable();
             $table->string('nationality')->nullable();
             $table->string('dob')->nullable();
@@ -41,6 +41,7 @@ return new class extends Migration
             $table->string('profilePicture')->nullable();
             $table->timestamps();
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+            $table->foreign('shift_id')->references('id')->on('shifts')->onDelete('set null');
         });
        
     }

@@ -12,18 +12,12 @@ use App\Http\Resources\ItemResource;
 
 class ItemsController extends Controller
 {
-    /**
-     * Display a listing of the items.
-     */
     public function index(): JsonResponse
     {
         $items = Item::with('variants.attributeValues')->get();
         return response()->json(ItemResource::collection($items));
     }
 
-    /**
-     * Store a newly created item in storage.
-     */
     public function store(Request $request): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -45,7 +39,8 @@ class ItemsController extends Controller
             'images.*'              => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
             'variants'              => 'nullable|array',
             'variants.*.price'      => 'required_with:variants|numeric|min:0',
-            'variants.*.stock'      => 'required_with:variants|integer|min:0',
+            // 'variants.*.stock'      => 'required_with:variants|integer|min:0',
+            'variants.*.stock'      => 'nullable|integer|min:0',
             'variants.*.attributes' => 'required_with:variants|array'
         ]);
 
@@ -58,7 +53,6 @@ class ItemsController extends Controller
 
         $data = $validator->validated();
         $data['company_id'] = $selectedCompany->company_id;
-
         $lastItemCode = Item::where('company_id', $data['company_id'])->max('item_code');
         $data['item_code'] = $lastItemCode ? $lastItemCode + 1 : 1;
 
@@ -79,19 +73,20 @@ class ItemsController extends Controller
         }
 
         $data['images'] = $imageLinks;
-
         $item = Item::create($data);
 
         if (isset($data['variants'])) {
             foreach ($data['variants'] as $variantData) {
                 $variant = $item->variants()->create([
                     'price' => $variantData['price'],
-                    'stock' => $variantData['stock'],
+                    'stock' => $variantData['stock'] ?? 1,
                     'images' => $imageLinks,
                 ]);
 
-                foreach ($variantData['attributes'] as $attributeId => $valueId) {
-                    $variant->attributeValues()->attach($valueId, ['attribute_id' => $attributeId]);
+                foreach ($variantData['attributes'] as $attribute) {
+                    $variant->attributeValues()->attach($attribute['attribute_value_id'], [
+                        'attribute_id' => $attribute['attribute_id']
+                    ]);
                 }
             }
         }
@@ -102,10 +97,6 @@ class ItemsController extends Controller
         ], 201);
     }
 
-    
-    /**
-     * Display the specified item.
-     */
     public function show($id): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -122,9 +113,6 @@ class ItemsController extends Controller
         return response()->json($item);
     }
 
-    /**
-     * Update the specified item in storage.
-     */
     public function update(Request $request, $id): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -189,9 +177,6 @@ class ItemsController extends Controller
         ]);
     }
 
-    /**
-     * Remove the specified item from storage.
-     */
     public function destroy($id): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -209,9 +194,6 @@ class ItemsController extends Controller
         return response()->json(['message' => 'Item deleted successfully.']);
     }
 
-    /**
-     * Store bulk items from a JSON request.
-     */
     public function storeBulkItems(Request $request): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();

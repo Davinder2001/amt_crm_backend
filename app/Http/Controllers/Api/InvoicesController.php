@@ -135,7 +135,7 @@ class InvoicesController extends Controller
                 $pdf = Pdf::loadView('invoices.pdf', [
                     'invoice'        => $invoice,
                     'company_name'   => $selectedCompany->company->company_name,
-                    'footer_note'    => 'Thank you for your business!',
+                    'footer_note'    => 'Thanks',
                     'show_signature' => true,
                 ]);
     
@@ -187,7 +187,7 @@ class InvoicesController extends Controller
         $pdfData = [
             'invoice'        => $invoice,
             'company_name'   => $selectedCompany->company->company_name,
-            'footer_note'    => 'Thank you for your business!',
+            'footer_note'    => 'Thanks',
             'show_signature' => true,
         ];
     

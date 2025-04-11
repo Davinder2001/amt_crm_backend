@@ -5,6 +5,6 @@
     <title>Your Invoice</title>
 </head>
 <body>
-     <p>Thank you for your business!</p>
+     <p>Thanks</p>
 </body>
 </html>

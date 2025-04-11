@@ -61,7 +61,7 @@ class EmployeeSeeder extends Seeder
                     'salary'                   => 25000 + ($employeeCounter * 1000),
                     'dateOfHire'               => now()->subDays(30),
                     'joiningDate'              => now()->subDays(20),
-                    'shiftTimings'             => '9am - 6pm',
+                    'shift_id'                 => null,
                     'address'                  => "Employee $employeeCounter Street",
                     'nationality'              => 'Indian',
                     'dob'                      => '1995-01-01',
