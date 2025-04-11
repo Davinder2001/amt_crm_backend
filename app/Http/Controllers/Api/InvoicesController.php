@@ -202,5 +202,4 @@ class InvoicesController extends Controller
             'filename' => 'invoice_' . $invoice->id . '.pdf',
         ]);
     }
-    
 }

@@ -47,7 +47,6 @@ class SalaryController extends Controller
         }
 
         $previousSalary = $employeeDetail->salary;
-
         $employeeDetail->salary = $data['new_salary'];
         $employeeDetail->save();
 
