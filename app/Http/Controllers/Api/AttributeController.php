@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Validator;
 
 class AttributeController extends Controller
 {
+    
     /**
      * Show a list of all attributes with their values.
      */
