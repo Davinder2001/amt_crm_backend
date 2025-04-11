@@ -13,8 +13,6 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Storage;
 use App\Services\SelectedCompanyService;
 
 class InvoicesController extends Controller
@@ -25,17 +23,6 @@ class InvoicesController extends Controller
     public function index()
     {
         $invoices = Invoice::with('items')->latest()->get();
-
-        $invoices->transform(function ($invoice) {
-            if ($invoice->pdf_path && File::exists(public_path($invoice->pdf_path))) {
-                $pdfContent = File::get(public_path($invoice->pdf_path));
-                $invoice->pdf_base64 = base64_encode($pdfContent);
-            } else {
-                $invoice->pdf_base64 = null;
-            }
-
-            return $invoice;
-        });
 
         return response()->json([
             'invoices' => $invoices,
@@ -73,29 +60,20 @@ class InvoicesController extends Controller
             foreach ($data['items'] as $itemData) {
                 $item = Item::find($itemData['item_id']);
     
-                if (!$item) {
+                if (!$item || $item->quantity_count < $itemData['quantity']) {
                     DB::rollBack();
                     return response()->json([
                         'status' => false,
-                        'message' => "Item with ID {$itemData['item_id']} not found in store_items table.",
-                    ], 422);
-                }
-    
-                if ($item->quantity_count < $itemData['quantity']) {
-                    DB::rollBack();
-                    return response()->json([
-                        'status' => false,
-                        'message' => "Insufficient stock for item '{$item->name}'. Available: {$item->quantity_count}, Requested: {$itemData['quantity']}.",
+                        'message' => $item
+                            ? "Insufficient stock for item '{$item->name}'. Available: {$item->quantity_count}, Requested: {$itemData['quantity']}."
+                            : "Item with ID {$itemData['item_id']} not found in store_items table.",
                     ], 422);
                 }
             }
     
-            $total = collect($data['items'])->sum(function ($item) {
-                return $item['quantity'] * $item['unit_price'];
-            });
-    
+            $total = collect($data['items'])->sum(fn ($item) => $item['quantity'] * $item['unit_price']);
             $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-
+    
             $customer = Customer::firstOrCreate(
                 [
                     'number'     => $data['number'],
@@ -110,6 +88,7 @@ class InvoicesController extends Controller
             $invoice = Invoice::create([
                 'invoice_number' => Str::uuid(),
                 'client_name'    => $data['client_name'],
+                'client_email'   => $data['email'] ?? null,
                 'invoice_date'   => $data['invoice_date'],
                 'total_amount'   => $total,
                 'company_id'     => $selectedCompany->id,
@@ -148,42 +127,34 @@ class InvoicesController extends Controller
                 'subtotal'      => $total,
             ]);
     
-            $invoice->load('items');
-            $pdfData = [
-                'invoice'        => $invoice,
-                'company_name'   => $selectedCompany->company->company_name,
-                'footer_note'    => 'Thank you for your business!',
-                'show_signature' => true,
-            ];
+            DB::commit();
     
-            $pdf = Pdf::loadView('invoices.pdf', $pdfData);
-            $pdfContent = $pdf->output();
+            if (!empty($customer->email)) {
+                $invoice->load('items');
     
-            $pdfPath = "invoices/invoice_{$invoice->id}.pdf";
-            File::ensureDirectoryExists(public_path('invoices'));
-            file_put_contents(public_path($pdfPath), $pdfContent);
+                $pdf = Pdf::loadView('invoices.pdf', [
+                    'invoice'        => $invoice,
+                    'company_name'   => $selectedCompany->company->company_name,
+                    'footer_note'    => 'Thank you for your business!',
+                    'show_signature' => true,
+                ]);
     
-            $invoice->update(['pdf_path' => $pdfPath]);
-
-
-            if (!empty($data->email)) {
-                Mail::raw('Please find your invoice attached.', function ($message) use ($customer, $selectedCompany, $pdfPath) {
+                $pdfContent = $pdf->output();
+    
+                Mail::send([], [], function ($message) use ($customer, $invoice, $pdfContent) {
                     $message->to($customer->email)
-                        ->subject('Your Invoice from ' . $selectedCompany->company->company_name)
-                        ->attach(public_path($pdfPath), [
-                            'as'   => 'invoice.pdf',
+                        ->subject('Your Invoice #' . $invoice->invoice_number . ' is ready')
+                        ->html('Invoice attached.') 
+                        ->attachData($pdfContent, 'invoice_' . $invoice->id . '.pdf', [
                             'mime' => 'application/pdf',
                         ]);
                 });
             }
     
-    
-            DB::commit();
-    
             return response()->json([
                 'status' => true,
                 'message' => 'Invoice created successfully.',
-                'invoice' => $invoice,
+                'invoice' => $invoice->load('items'),
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -195,7 +166,7 @@ class InvoicesController extends Controller
             ], 500);
         }
     }
-    
+
     /**
      * Display the specified resource.
      */
@@ -206,11 +177,30 @@ class InvoicesController extends Controller
     }
 
     /**
-     * Update the specified resource in storage.
+     * Download the invoice as PDF (generate on-the-fly).
      */
     public function download($id)
     {
-        $invoice = Invoice::findOrFail($id);
-        return Storage::download("public/{$invoice->pdf_path}");
+        $invoice = Invoice::with('items')->findOrFail($id);
+        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+    
+        $pdfData = [
+            'invoice'        => $invoice,
+            'company_name'   => $selectedCompany->company->company_name,
+            'footer_note'    => 'Thank you for your business!',
+            'show_signature' => true,
+        ];
+    
+        $pdf = Pdf::loadView('invoices.pdf', $pdfData);
+        $pdfContent = $pdf->output();
+        $pdfBase64 = base64_encode($pdfContent);
+    
+        return response()->json([
+            'status' => true,
+            'message' => 'PDF generated successfully.',
+            'pdf_base64' => $pdfBase64,
+            'filename' => 'invoice_' . $invoice->id . '.pdf',
+        ]);
     }
+    
 }

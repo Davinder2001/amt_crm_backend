@@ -16,7 +16,7 @@ class CreateInvoicesTable extends Migration
             $table->string('client_email')->nullable();
             $table->date('invoice_date');
             $table->decimal('total_amount', 10, 2);
-            $table->string('pdf_path')->nullable();
+            $table->longText('pdf_base64')->nullable();
             $table->timestamps();
         });
     }
@@ -26,4 +26,3 @@ class CreateInvoicesTable extends Migration
         Schema::dropIfExists('invoices');
     }
 }
-
