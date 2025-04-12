@@ -20,13 +20,14 @@ use App\Http\Controllers\Api\{
     CatalogController,
     InvoicesController,
     CustomerController,
-    AttributeController
+    AttributeController,
+    HRController
 };
 
 Route::prefix('v1')->group(function () {
 
     // Guest Routes
-    Route::middleware(['api', StartSession::class])->group(function () {
+    Route::middleware(['api'])->group(function () {
         Route::post('login', [AuthController::class, 'login']);
         Route::post('c-login', [AuthController::class, 'companyLogin']);
         Route::post('register', [AuthController::class, 'register']);
@@ -197,6 +198,14 @@ Route::prefix('v1')->group(function () {
             Route::delete('/{id}', [AttributeController::class, 'destroy']);
             Route::patch('/{id}/toggle-status', [AttributeController::class, 'toggleStatus']);
         });
+
+        Route::prefix('hr')->controller(HRController::class)->group(function () {
+            Route::get('/dashboard-summary', 'dashboardSummary');
+            Route::get('/attendance-summary', 'attendanceSummary');
+            Route::get('/early-departures', 'earlyDepartures');
+            Route::get('/leave-summary', 'leaveSummary');
+        });
+        
 
     });
 

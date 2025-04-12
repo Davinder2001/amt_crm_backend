@@ -37,4 +37,12 @@ class Attendance extends Model
         static::addGlobalScope(new CompanyScope);
     }
 
+    // app/Models/Attendance.php
+
+    public function employee()
+    {
+        return $this->belongsTo(User::class, 'employee_id');
+    }
+
+
 }

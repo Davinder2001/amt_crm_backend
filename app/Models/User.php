@@ -52,9 +52,7 @@ class User extends Authenticatable
 
     public function companies()
     {
-        return $this->belongsToMany(Company::class, 'company_user')
-                    ->withPivot('user_type')
-                    ->withTimestamps();
+        return $this->belongsToMany(Company::class, 'company_user')->withPivot('user_type')->withTimestamps();
     }
     
 
