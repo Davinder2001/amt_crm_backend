@@ -93,6 +93,7 @@ Route::prefix('v1')->group(function () {
                 Route::put('{id}', [EmployeeController::class, 'update'])->middleware('permission:update employee');
                 Route::delete('{id}', [EmployeeController::class, 'destroy'])->middleware('permission:delete employee');
                 Route::get('salarySlip/{id}', [EmployeeController::class, 'salarySlip'])->middleware('permission:view employee salary');
+                Route::get('downloadSlip/{id}', [EmployeeController::class, 'downloadPdfSlip']);
             });
         });
 

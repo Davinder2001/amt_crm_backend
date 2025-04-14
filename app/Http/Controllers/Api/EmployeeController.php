@@ -218,7 +218,9 @@ class EmployeeController extends Controller
      */
     public function salarySlip($id)
     {
-        $employee = User::where('user_type', 'employee')->with(['roles.permissions', 'companies', 'meta'])->find($id); 
+        $employee = User::where('user_type', 'employee')
+            ->with(['roles.permissions', 'companies', 'meta'])
+            ->find($id); 
     
         if (!$employee) {
             return response()->json([
@@ -227,17 +229,40 @@ class EmployeeController extends Controller
             ], 404);
         }
     
-        $pdf = Pdf::loadView('pdf.salary-slip', ['employee' => $employee]);
-        $pdfContent = $pdf->output();
-    
-        $pdfBase64 = base64_encode($pdfContent);
-    
         return response()->json([
             'status' => true,
             'message' => 'Employee retrieved successfully.',
             'employee' => new SalaryResource($employee),
-            'pdf_base64' => $pdfBase64,
-            'file_name' => 'salary-slip-' . $employee->id . '.pdf',
         ], 200);
     }
+
+
+    /**
+     * Download the salary slip as a PDF.
+     */
+    public function downloadPdfSlip($id)
+    {
+        $employee = User::where('user_type', 'employee')
+            ->with(['roles.permissions', 'companies', 'meta'])
+            ->find($id);
+
+        if (!$employee) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Employee not found.'
+            ], 404);
+        }
+
+        // Generate PDF view
+        $pdf = Pdf::loadView('pdf.salary-slip', ['employee' => $employee]);
+        $pdfContent = $pdf->output();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'PDF generated successfully.',
+            'pdf_base64' => base64_encode($pdfContent),
+            'file_name' => 'salary-slip-' . $employee->id . '.pdf',
+        ]);
+    }
+    
 }
