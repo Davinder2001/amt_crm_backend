@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Illuminate\Session\Middleware\StartSession;
 use App\Http\Controllers\Api\{
     AuthController,
     UserController,
@@ -23,6 +22,34 @@ use App\Http\Controllers\Api\{
     AttributeController,
     HRController
 };
+
+
+
+
+
+use Illuminate\Support\Facades\Mail;
+
+
+Route::get('/test-mail', function () {
+    try {
+        Mail::raw('This is a test email from Laravel live server.', function ($message) {
+            $message->to('panku102001@gmail.com')
+                    ->subject('Laravel Mail Test');
+        });
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Test email sent successfully.'
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Mail sending failed.',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+});
+
 
 Route::prefix('v1')->group(function () {
 
@@ -207,7 +234,5 @@ Route::prefix('v1')->group(function () {
             Route::get('/leave-summary', 'leaveSummary');
         });
         
-
     });
-
 });
