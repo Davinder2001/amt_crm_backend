@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use App\Services\UserUidService;
-use \App\Models\UserMeta;
+use App\Models\UserMeta;
 use App\Models\Scopes\CompanyScope;
 use Spatie\Permission\Traits\HasRoles;
 use Laravel\Sanctum\HasApiTokens;
@@ -30,9 +30,12 @@ class User extends Authenticatable
 
     protected $casts = [
         'email_verified_at' => 'datetime',
-        'password'          => 'hashed',
+        'password' => 'hashed',
     ];
 
+    /**
+     * Auto-generate UID when creating a new user
+     */
     protected static function boot()
     {
         parent::boot();
@@ -44,7 +47,9 @@ class User extends Authenticatable
         });
     }
 
-
+    /**
+     * Add global scopes (like CompanyScope)
+     */
     protected static function booted(): void
     {
         static::addGlobalScope(new CompanyScope);
@@ -54,22 +59,29 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Company::class, 'company_user')->withPivot('user_type')->withTimestamps();
     }
-    
 
     public function meta()
     {
         return $this->hasMany(UserMeta::class);
     }
-    
+
     public function attendances()
     {
         return $this->hasMany(Attendance::class);
     }
 
+    public function employeeDetail()
+    {
+        return $this->hasOne(EmployeeDetail::class, 'user_id', 'id');
+    }
+
+    public function salaryHistories()
+    {
+        return $this->hasMany(SalaryHistory::class, 'user_id', 'id')->latest();
+    }
 
     public function salaryDetails()
     {
-        
         return [
             'basic' => 50000,
             'hra' => 10000,
@@ -77,16 +89,4 @@ class User extends Authenticatable
             'total' => 50000 + 10000 + 5000,
         ];
     }
-
-    public function employeeDetail()
-    {
-        return $this->hasOne(EmployeeDetail::class, 'user_id', 'id');
-    }
-    
-    public function salaryHistories()
-    {
-        return $this->hasMany(SalaryHistory::class, 'user_id', 'id')->latest();
-    }
-
 }
-

@@ -65,7 +65,7 @@ class EmployeeCreateService
             'salary'                      => $data['salary'] ?? 0,
             'dateOfHire'                => $data['dateOfHire'] ?? null,
             'joiningDate'                => $data['joiningDate'] ?? null,
-            'shiftTimings'               => $data['shiftTimings'] ?? null,
+            'shift_id'               => $data['shiftTimings'] ?? null,
             'address'                => $data['address'] ?? null,
             'nationality'                 => $data['nationality'] ?? null,
             'dob'                         => $data['dob'] ?? null,

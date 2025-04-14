@@ -28,14 +28,36 @@ class EmployeeResource extends JsonResource
             'company_slug'  => $company ? $company->company_slug : null,
             'roles'         => RoleResource::collection($this->whenLoaded('roles')),
 
-            'employee_details' => $this->whenLoaded('employeeDetail', function () {
-                return [
-                    'salary'       => $this->employeeDetail->salary ?? null,
-                    'dateOfHire'   => $this->employeeDetail->dateOfHire ?? null,
-                    'joiningDate'  => $this->employeeDetail->joiningDate ?? null,
-                    'shiftTimings' => $this->employeeDetail->shiftTimings ?? null,
-                ];
-            }, []),
+           'employee_details' => $this->whenLoaded('employeeDetail', function () {
+            return [
+                'user_id'                   => $this->employeeDetail->user_id ?? null,
+                'salary'                   => $this->employeeDetail->salary ?? null,
+                'dateOfHire'               => $this->employeeDetail->dateOfHire ?? null,
+                'joiningDate'              => $this->employeeDetail->joiningDate ?? null,
+                'shiftTimings'             => $this->employeeDetail->shiftTimings ?? null,
+                'address'                  => $this->employeeDetail->address ?? null,
+                'nationality'              => $this->employeeDetail->nationality ?? null,
+                'dob'                      => $this->employeeDetail->dob ?? null,
+                'religion'                 => $this->employeeDetail->religion ?? null,
+                'maritalStatus'            => $this->employeeDetail->maritalStatus ?? null,
+                'passportNo'               => $this->employeeDetail->passportNo ?? null,
+                'emergencyContact'         => $this->employeeDetail->emergencyContact ?? null,
+                'emergencyContactRelation' => $this->employeeDetail->emergencyContactRelation ?? null,
+                'currentSalary'            => $this->employeeDetail->currentSalary ?? null,
+                'workLocation'             => $this->employeeDetail->workLocation ?? null,
+                'joiningType'              => $this->employeeDetail->joiningType ?? null,
+                'department'               => $this->employeeDetail->department ?? null,
+                'previousEmployer'         => $this->employeeDetail->previousEmployer ?? null,
+                'medicalInfo'              => $this->employeeDetail->medicalInfo ?? null,
+                'bankName'                 => $this->employeeDetail->bankName ?? null,
+                'accountNo'                => $this->employeeDetail->accountNo ?? null,
+                'ifscCode'                 => $this->employeeDetail->ifscCode ?? null,
+                'panNo'                    => $this->employeeDetail->panNo ?? null,
+                'upiId'                    => $this->employeeDetail->upiId ?? null,
+                'addressProof'             => $this->employeeDetail->addressProof ?? null,
+                'profilePicture'           => $this->employeeDetail->profilePicture ?? null,
+            ];
+        }),
         ];
     }
 }
