@@ -37,6 +37,12 @@ class Item extends Model
         'images' => 'array',
     ];
 
+
+    public function categories()
+    {
+        return $this->belongsToMany(Category::class, 'category_item');
+    }
+
     public function company()
     {
         return $this->belongsTo(Company::class);

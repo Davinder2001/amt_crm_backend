@@ -11,11 +11,16 @@ class CreateTasksTable extends Migration
         Schema::create('tasks', function (Blueprint $table) {
             $table->id();
             $table->string('name');
+            $table->text('description')->nullable();
             $table->unsignedBigInteger('assigned_by');
-            $table->unsignedBigInteger('assigned_to');
+            $table->unsignedBigInteger('assigned_to'); 
             $table->unsignedBigInteger('company_id');
-            $table->date('deadline')->nullable();
-            $table->string('status')->default('pending');
+            $table->string('assigned_role')->nullable();
+            $table->dateTime('start_date')->nullable();
+            $table->dateTime('end_date')->nullable();
+            $table->string('attachment_path')->nullable();
+            $table->boolean('notify')->default(true);
+            $table->enum('status', ['pending', 'completed', 'approved', 'rejected'])->default('pending');
             $table->timestamps();
 
             $table->foreign('assigned_by')->references('id')->on('users')->onDelete('cascade');

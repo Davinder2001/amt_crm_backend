@@ -11,10 +11,23 @@ class TaskResource extends JsonResource
         return [
             'id'                => $this->id,
             'name'              => $this->name,
-            'company_name'      => $this->company->id,
-            'assigned_by_name'  => $this->assigner->name,
-            'assigned_to_name'  => $this->assignee->name,
-            'deadline'          => $this->deadline,
+            'description'       => $this->description,
+            'company_id'        => $this->company_id,
+            'company_name'      => $this->company?->name,
+            'assigned_by_id'    => $this->assigned_by,
+            'assigned_by_name'  => $this->assigner?->name,
+            'assigned_to_id'    => $this->assigned_to,
+            'assigned_to_name'  => $this->assignee?->name,
+            'assigned_role'     => $this->assigned_role,
+            'start_date'        => $this->start_date,
+            'end_date'          => $this->end_date,
+            'status'            => $this->status,
+            'notify'            => $this->notify,
+            'attachment_path'   => $this->attachment_path,
+            // 'attachment_url'    => $this->attachment_path ? asset('storage/' . $this->attachment_path) : null,
+            'attachment_url'    => $this->attachment_path,
+            'created_at'        => $this->created_at,
+            'updated_at'        => $this->updated_at,
         ];
     }
 }

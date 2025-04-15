@@ -20,7 +20,8 @@ use App\Http\Controllers\Api\{
     InvoicesController,
     CustomerController,
     AttributeController,
-    HRController
+    HRController,
+    CategoryController
 };
 
 
@@ -208,6 +209,16 @@ Route::prefix('v1')->group(function () {
             Route::get('/early-departures', 'earlyDepartures');
             Route::get('/leave-summary', 'leaveSummary');
         });
+
+
+        Route::prefix('categories')->group(function () {
+            Route::get('/', [CategoryController::class, 'index']);
+            Route::post('/', [CategoryController::class, 'store']);
+            Route::get('/{id}', [CategoryController::class, 'show']);
+            Route::put('/{id}', [CategoryController::class, 'update']);
+            Route::delete('/{id}', [CategoryController::class, 'destroy']);
+        });
+
         
     });
 });
