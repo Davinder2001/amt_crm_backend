@@ -20,7 +20,7 @@ class Category extends Model
      */
     public function storeItems()
     {
-        return $this->belongsToMany(Item::class, 'category_item');
+        return $this->belongsToMany(Item::class, 'category_item', 'category_id', 'store_item_id');
     }
 
     /**

@@ -17,6 +17,11 @@ class AttributeController extends Controller
     {
         return response()->json(Attribute::with('values')->get());
     }
+    
+    public function variations(): JsonResponse
+    {
+        return response()->json(Attribute::with('values')->where('status', 'active')->get());
+    }
 
 
     /**

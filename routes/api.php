@@ -21,7 +21,8 @@ use App\Http\Controllers\Api\{
     CustomerController,
     AttributeController,
     HRController,
-    CategoryController
+    CategoryController,
+    TaskHistoryController
 };
 
 
@@ -79,6 +80,15 @@ Route::prefix('v1')->group(function () {
         Route::prefix('tasks')->middleware('permission:view task')->group(function () {
             Route::get('/', [TaskController::class, 'index']);
             Route::get('{id}', [TaskController::class, 'show']);
+            Route::post('/history/{id}', [TaskHistoryController::class, 'store']);
+            Route::get('/history/{id}', [TaskHistoryController::class, 'historyByTask']);        
+        });
+        Route::get('/all-history', [TaskHistoryController::class, 'allHistory']);        
+        
+        
+        Route::prefix('task-history')->group(function () {
+            Route::post('{id}/approve', [TaskHistoryController::class, 'approve']);
+            Route::post('{id}/reject', [TaskHistoryController::class, 'reject']);
         });
 
         Route::prefix('tasks')->group(function () {
@@ -202,6 +212,8 @@ Route::prefix('v1')->group(function () {
             Route::delete('/{id}', [AttributeController::class, 'destroy']);
             Route::patch('/{id}/toggle-status', [AttributeController::class, 'toggleStatus']);
         });
+
+        Route::get('/variations', [AttributeController::class, 'variations']);
 
         Route::prefix('hr')->controller(HRController::class)->group(function () {
             Route::get('/dashboard-summary', 'dashboardSummary');
