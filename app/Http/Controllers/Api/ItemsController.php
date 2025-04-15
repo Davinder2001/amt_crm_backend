@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Models\{Item, StoreVendor, ItemVariant, AttributeValue};
+use App\Models\{Item, StoreVendor, ItemVariant, AttributeValue, Category};
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
@@ -21,7 +21,7 @@ class ItemsController extends Controller
     public function store(Request $request): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-    
+
         $validator = Validator::make($request->all(), [
             'name'                  => 'required|string|max:255',
             'quantity_count'        => 'required|integer',
@@ -42,28 +42,30 @@ class ItemsController extends Controller
             'variants.*.attributes' => 'required_with:variants|array',
             'category_ids'          => 'nullable|array',
             'category_ids.*'        => 'integer|exists:categories,id',
+            'categories'            => 'nullable|array',
+            'categories.*'          => 'required|string|max:255',
         ]);
-    
+
         if ($validator->fails()) {
             return response()->json([
                 'message' => 'Validation errors.',
                 'errors'  => $validator->errors(),
             ], 422);
         }
-    
+
         $data = $validator->validated();
         $data['company_id'] = $selectedCompany->company_id;
-    
+
         $lastItemCode = Item::where('company_id', $data['company_id'])->max('item_code');
         $data['item_code'] = $lastItemCode ? $lastItemCode + 1 : 1;
-    
+
         if (!empty($data['vendor_name'])) {
             StoreVendor::firstOrCreate([
                 'vendor_name' => $data['vendor_name'],
                 'company_id'  => $data['company_id'],
             ]);
         }
-    
+
         $imageLinks = [];
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $image) {
@@ -72,20 +74,30 @@ class ItemsController extends Controller
                 $imageLinks[] = asset('uploads/items/' . $filename);
             }
         }
-    
+
         $data['images'] = $imageLinks;
-    
-        // Remove category_ids from main data
+
+        // Handle categories
         $categoryIds = $data['category_ids'] ?? [];
-        unset($data['category_ids']);
-    
+
+        if (!empty($data['categories'])) {
+            foreach ($data['categories'] as $categoryName) {
+                $category = Category::firstOrCreate([
+                    'company_id' => $selectedCompany->company_id,
+                    'name'       => $categoryName,
+                ]);
+                $categoryIds[] = $category->id;
+            }
+        }
+
+        unset($data['category_ids'], $data['categories']);
+
         $item = Item::create($data);
-    
-        // Attach categories
+
         if (!empty($categoryIds)) {
             $item->categories()->sync($categoryIds);
         }
-    
+
         if (isset($data['variants'])) {
             foreach ($data['variants'] as $variantData) {
                 $variant = $item->variants()->create([
@@ -93,7 +105,7 @@ class ItemsController extends Controller
                     'stock'  => $variantData['stock'] ?? 1,
                     'images' => $imageLinks,
                 ]);
-    
+
                 foreach ($variantData['attributes'] as $attribute) {
                     $variant->attributeValues()->attach($attribute['attribute_value_id'], [
                         'attribute_id' => $attribute['attribute_id']
@@ -101,13 +113,12 @@ class ItemsController extends Controller
                 }
             }
         }
-    
+
         return response()->json([
             'message' => 'Item added successfully.',
             'item'    => $item->load(['variants.attributeValues', 'categories']),
         ], 201);
     }
-    
 
     public function show($id): JsonResponse
     {
@@ -122,7 +133,7 @@ class ItemsController extends Controller
             return response()->json(['message' => 'Unauthorized.'], 403);
         }
 
-        return response()->json($item);
+        return response()->json(new ItemResource($item));
     }
 
     public function update(Request $request, $id): JsonResponse
@@ -154,6 +165,8 @@ class ItemsController extends Controller
             'images.*'            => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
             'category_ids'        => 'nullable|array',
             'category_ids.*'      => 'integer|exists:categories,id',
+            'categories'          => 'nullable|array',
+            'categories.*'        => 'required|string|max:255',
         ]);
 
         if ($validator->fails()) {
@@ -182,10 +195,25 @@ class ItemsController extends Controller
             $data['item_code'] = $lastItemCode ? $lastItemCode + 1 : 1;
         }
 
+        // Category resolution
+        $categoryIds = $data['category_ids'] ?? [];
+
+        if (!empty($data['categories'])) {
+            foreach ($data['categories'] as $categoryName) {
+                $category = Category::firstOrCreate([
+                    'company_id' => $selectedCompany->company_id,
+                    'name'       => $categoryName,
+                ]);
+                $categoryIds[] = $category->id;
+            }
+        }
+
+        unset($data['category_ids'], $data['categories']);
+
         $item->update($data);
 
-        if (isset($data['category_ids'])) {
-            $item->categories()->sync($data['category_ids']);
+        if (!empty($categoryIds)) {
+            $item->categories()->sync($categoryIds);
         }
 
         return response()->json([
@@ -193,7 +221,6 @@ class ItemsController extends Controller
             'item'    => $item->load('categories'),
         ]);
     }
-
 
     public function destroy($id): JsonResponse
     {
@@ -261,7 +288,6 @@ class ItemsController extends Controller
                 'date_of_manufacture'=> now(),
                 'brand_name'         => $data['vendor_name'],
                 'replacement'        => null,
-                'category'           => null,
                 'vendor_name'        => $data['vendor_name'],
                 'availability_stock' => $itemData['quantity'],
                 'images'             => $imagePath ? json_encode([$imagePath]) : null,
