@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Scopes\CompanyScope;
 
-
 class Item extends Model
 {
     use HasFactory;
@@ -14,7 +13,6 @@ class Item extends Model
     protected $table = 'store_items';
 
     protected $fillable = [
-        'id',
         'item_code',
         'company_id',
         'name',
@@ -25,7 +23,6 @@ class Item extends Model
         'date_of_expiry',
         'brand_name',
         'replacement',
-        'category',
         'vendor_name',
         'availability_stock',
         'images',
@@ -35,25 +32,40 @@ class Item extends Model
 
     protected $casts = [
         'images' => 'array',
+        'purchase_date' => 'date',
+        'date_of_manufacture' => 'date',
+        'date_of_expiry' => 'date',
     ];
 
-
+    /**
+     * Many-to-Many: Categories related to this item.
+     */
     public function categories()
     {
         return $this->belongsToMany(Category::class, 'category_item');
     }
 
+    /**
+     * Belongs to a company.
+     */
     public function company()
     {
         return $this->belongsTo(Company::class);
     }
 
-    protected static function booted(): void
-    {
-        static::addGlobalScope(new CompanyScope);
-    }
+    /**
+     * One-to-Many: Item Variants
+     */
     public function variants()
     {
         return $this->hasMany(ItemVariant::class);
+    }
+
+    /**
+     * Automatically apply company scope to all queries.
+     */
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new CompanyScope);
     }
 }

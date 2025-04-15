@@ -11,11 +11,31 @@ class Category extends Model
 
     protected $fillable = [
         'company_id',
-        'name'
+        'name',
+        'parent_id',
     ];
 
+    /**
+     * Items related to this category
+     */
     public function storeItems()
     {
         return $this->belongsToMany(Item::class, 'category_item');
+    }
+
+    /**
+     * Parent category relationship
+     */
+    public function parent()
+    {
+        return $this->belongsTo(Category::class, 'parent_id');
+    }
+
+    /**
+     * Child categories relationship
+     */
+    public function children()
+    {
+        return $this->hasMany(Category::class, 'parent_id');
     }
 }
