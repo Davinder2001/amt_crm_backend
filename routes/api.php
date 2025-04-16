@@ -161,6 +161,7 @@ Route::prefix('v1')->group(function () {
             Route::put('items/{id}', [ItemsController::class, 'update']);
             Route::delete('items/{id}', [ItemsController::class, 'destroy']);
             Route::post('bulk-items', [ItemsController::class, 'storeBulkItems']);
+            Route::get('cat-items', [ItemsController::class, 'getItemCatTree']);
 
             // Vendors
             Route::get('vendors', [StoreVendorController::class, 'index']);

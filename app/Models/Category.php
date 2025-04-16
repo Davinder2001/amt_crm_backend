@@ -27,10 +27,10 @@ class Category extends Model
     /**
      * Parent category relationship
      */
-    public function parent()
-    {
-        return $this->belongsTo(Category::class, 'parent_id');
-    }
+    // public function parent()
+    // {
+    //     return $this->belongsTo(Category::class, 'parent_id');
+    // }
 
     /**
      * Child categories relationship
@@ -39,4 +39,15 @@ class Category extends Model
     {
         return $this->hasMany(Category::class, 'parent_id');
     }
+
+    public function childrenRecursive()
+    {
+        return $this->children()->with('childrenRecursive', 'items');
+    }
+
+    public function item()
+    {
+        return $this->belongsToMany( Item::class, 'category_item', 'category_id', 'store_item_id');
+    }
+
 }

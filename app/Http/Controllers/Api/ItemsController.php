@@ -2,20 +2,22 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Models\{Item, StoreVendor, CategoryItem, AttributeValue};
+use App\Models\{Item, StoreVendor, CategoryItem, Category};
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Validator;
 use App\Services\SelectedCompanyService;
 use App\Http\Resources\ItemResource;
+use App\Http\Resources\CategoryTreeResource;
+
+
 
 class ItemsController extends Controller
 {
     public function index(): JsonResponse
     {
         $items = Item::with('variants.attributeValues')->get();
-
         return response()->json(ItemResource::collection($items));
     }
 
@@ -114,7 +116,7 @@ class ItemsController extends Controller
     public function show($id): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $item = Item::with('variants.attributeValues')->find($id);
+        $item = Item::with('variants.attributeValues', 'categories')->find($id);
     
         if (!$item) {
             return response()->json(['message' => 'Item not found.'], 404);
@@ -271,4 +273,15 @@ class ItemsController extends Controller
             'count'   => count($items),
         ]);
     }
+
+
+    public function getItemCatTree(): JsonResponse
+    {
+        $categories = Category::with(['childrenRecursive', 'items'])
+        ->whereNull('parent_id')
+        ->get();
+
+        return response()->json(CategoryTreeResource::collection($categories), 200);
+    }
+    
 }

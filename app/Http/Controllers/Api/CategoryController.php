@@ -16,15 +16,11 @@ class CategoryController extends Controller
     public function index(): AnonymousResourceCollection
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-
-        // Optionally get only top-level categories and load children
-        $categories = Category::with('children')
-            ->where('company_id', $selectedCompany->company_id)
-            ->whereNull('parent_id') // only root categories
-            ->get();
-
+        $categories = Category::with('childrenRecursive')->where('company_id', $selectedCompany->company_id)->whereNull('parent_id')->get();
         return CategoryResource::collection($categories);
     }
+
+
 
     public function store(Request $request): JsonResponse
     {
@@ -51,6 +47,8 @@ class CategoryController extends Controller
         ], 201);
     }
 
+
+
     public function update(Request $request, $id): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -58,7 +56,7 @@ class CategoryController extends Controller
 
         $validator = Validator::make($request->all(), [
             'name'      => 'required|string|max:255|unique:categories,name,' . $id . ',id,company_id,' . $selectedCompany->company_id,
-            'parent_id' => 'nullable|exists:categories,id|not_in:' . $id, // prevent setting self as parent
+            'parent_id' => 'nullable|exists:categories,id|not_in:' . $id,
         ]);
 
         if ($validator->fails()) {
@@ -76,6 +74,8 @@ class CategoryController extends Controller
         ]);
     }
 
+
+
     public function destroy($id): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -84,6 +84,8 @@ class CategoryController extends Controller
 
         return response()->json(['message' => 'Category deleted.'], 200);
     }
+    
+
 
     public function show($id): JsonResponse
     {
