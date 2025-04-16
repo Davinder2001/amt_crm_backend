@@ -6,6 +6,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use App\Http\Middleware\CheckPermission;
 use App\Http\Middleware\SetActiveCompany;
 use App\Http\Middleware\InjectUserType;
+use App\Http\Middleware\Authenticate;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -19,12 +20,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission'       => CheckPermission::class,
             'setActiveCompany' => SetActiveCompany::class,
             'injectUserType'   => InjectUserType::class,
+            'auth'   =>  Authenticate::class,
         ]);
 
-        // Use only clean API middleware (no SPA session logic)
         $middleware->api([
             \Illuminate\Routing\Middleware\ThrottleRequests::class,
-            \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            \Illuminate\Routing\Middleware\SubstituteBindings::class,           
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

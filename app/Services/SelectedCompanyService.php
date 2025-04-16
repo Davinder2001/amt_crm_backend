@@ -10,7 +10,10 @@ class SelectedCompanyService
     public static function getSelectedCompanyOrFail()
     {
         if (!Auth::check()) {
-            abort(response()->json(['error' => 'Unauthorized'], 401));
+            abort(response()->json([
+                'error' => 'Unauthorized',
+                'message' => 'You are not authorized to access this resource.'
+            ], 401));
         }
 
         $user = Auth::user();
