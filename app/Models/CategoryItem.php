@@ -9,8 +9,8 @@ class CategoryItem extends Model
 {
     use HasFactory;
 
-    protected $table = 'category_item'; // explicitly define pivot table name
-    public $timestamps = false; // typically pivot tables don't have timestamps
+    protected $table = 'category_item';
+    public $timestamps = false;
 
     protected $fillable = [
         'store_item_id',
@@ -24,6 +24,6 @@ class CategoryItem extends Model
 
     public function category()
     {
-        return $this->belongsTo(Category::class);
+        return $this->belongsTo(Category::class, 'category_id');
     }
 }

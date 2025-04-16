@@ -18,10 +18,11 @@ class Category extends Model
     /**
      * Items related to this category
      */
-    public function storeItems()
+    public function items()
     {
-        return $this->belongsToMany(Item::class, 'category_item', 'category_id', 'store_item_id');
+        return $this->belongsToMany( Item::class, 'category_item', 'category_id', 'store_item_id' );
     }
+    
 
     /**
      * Parent category relationship

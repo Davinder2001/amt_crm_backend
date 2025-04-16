@@ -40,9 +40,11 @@ class Item extends Model
     /**
      * Many-to-Many: Categories related to this item.
      */
+
+
     public function categories()
     {
-        return $this->belongsToMany(Category::class, 'category_item');
+        return $this->belongsToMany( Category::class, 'category_item', 'store_item_id', 'category_id' );
     }
 
     /**

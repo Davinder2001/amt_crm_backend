@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Models\{Item, StoreVendor, ItemVariant, AttributeValue};
+use App\Models\{Item, StoreVendor, CategoryItem, AttributeValue};
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
@@ -15,13 +15,15 @@ class ItemsController extends Controller
     public function index(): JsonResponse
     {
         $items = Item::with('variants.attributeValues')->get();
+
         return response()->json(ItemResource::collection($items));
     }
+
 
     public function store(Request $request): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-
+    
         $validator = Validator::make($request->all(), [
             'name'                  => 'required|string|max:255',
             'quantity_count'        => 'required|integer',
@@ -31,7 +33,8 @@ class ItemsController extends Controller
             'date_of_expiry'        => 'nullable|date',
             'brand_name'            => 'required|string|max:255',
             'replacement'           => 'nullable|string|max:255',
-            'category'              => 'nullable|string|max:255',
+            'categories'            => 'nullable|array',
+            'categories.*'          => 'integer|exists:categories,id',
             'vendor_name'           => 'nullable|string|max:255',
             'cost_price'            => 'required|numeric|min:0',
             'selling_price'         => 'required|numeric|min:0',
@@ -39,30 +42,30 @@ class ItemsController extends Controller
             'images.*'              => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
             'variants'              => 'nullable|array',
             'variants.*.price'      => 'required_with:variants|numeric|min:0',
-            // 'variants.*.stock'      => 'required_with:variants|integer|min:0',
             'variants.*.stock'      => 'nullable|integer|min:0',
             'variants.*.attributes' => 'required_with:variants|array'
         ]);
-
+    
         if ($validator->fails()) {
             return response()->json([
                 'message' => 'Validation errors.',
                 'errors'  => $validator->errors(),
             ], 422);
         }
-
+    
         $data = $validator->validated();
         $data['company_id'] = $selectedCompany->company_id;
+    
         $lastItemCode = Item::where('company_id', $data['company_id'])->max('item_code');
         $data['item_code'] = $lastItemCode ? $lastItemCode + 1 : 1;
-
+    
         if (!empty($data['vendor_name'])) {
             StoreVendor::firstOrCreate([
                 'vendor_name' => $data['vendor_name'],
                 'company_id'  => $data['company_id'],
             ]);
         }
-
+    
         $imageLinks = [];
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $image) {
@@ -74,15 +77,15 @@ class ItemsController extends Controller
 
         $data['images'] = $imageLinks;
         $item = Item::create($data);
-
+    
         if (isset($data['variants'])) {
             foreach ($data['variants'] as $variantData) {
                 $variant = $item->variants()->create([
-                    'price' => $variantData['price'],
-                    'stock' => $variantData['stock'] ?? 1,
+                    'price'  => $variantData['price'],
+                    'stock'  => $variantData['stock'] ?? 1,
                     'images' => $imageLinks,
                 ]);
-
+    
                 foreach ($variantData['attributes'] as $attribute) {
                     $variant->attributeValues()->attach($attribute['attribute_value_id'], [
                         'attribute_id' => $attribute['attribute_id']
@@ -90,31 +93,39 @@ class ItemsController extends Controller
                 }
             }
         }
+    
 
+        if (!empty($data['categories']) && is_array($data['categories'])) {
+            foreach ($data['categories'] as $categoryId) {
+                CategoryItem::create([
+                    'store_item_id' => $item->id,
+                    'category_id'   => $categoryId
+                ]);
+            }
+        }
+    
         return response()->json([
             'message' => 'Item added successfully.',
-            'item'    => $item->load('variants.attributeValues'),
+            'item'    => new ItemResource($item->load('variants.attributeValues', 'categories')),
         ], 201);
     }
-
     
 
     public function show($id): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
         $item = Item::with('variants.attributeValues')->find($id);
-
+    
         if (!$item) {
             return response()->json(['message' => 'Item not found.'], 404);
         }
-
+    
         if (!$selectedCompany->super_admin && $item->company_id !== $selectedCompany->company_id) {
             return response()->json(['message' => 'Unauthorized.'], 403);
         }
-
-        return response()->json($item);
+    
+        return response()->json(new ItemResource($item));
     }
-
 
 
     public function update(Request $request, $id): JsonResponse
