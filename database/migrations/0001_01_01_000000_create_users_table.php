@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('email');
             $table->string('number', 10);
             $table->string('uid')->unique();
+            $table->string('profile_image')->nullable();
             $table->enum('user_type', ['super-admin' , 'admin', 'employee', 'user'])->default('user');
             $table->enum('user_status', ['active', 'inactive'])->default('active');
             $table->unsignedBigInteger('company_id')->nullable();

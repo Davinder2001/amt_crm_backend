@@ -53,9 +53,9 @@ Route::prefix('v1')->group(function () {
         // Roles & Role Permissions
         Route::get('roles', [RoleController::class, 'index'])->middleware('permission:view roles');
         Route::post('roles', [RoleController::class, 'store'])->middleware('permission:add roles');
-        Route::get('roles/{role}', [RoleController::class, 'show'])->middleware('permission:view roles');
-        Route::put('roles/{role}', [RoleController::class, 'update'])->middleware('permission:edit roles');
-        Route::delete('roles/{role}', [RoleController::class, 'destroy'])->middleware('permission:delete roles');
+        Route::get('roles/{id}', [RoleController::class, 'show'])->middleware('permission:view roles');
+        Route::put('roles/{id}', [RoleController::class, 'update'])->middleware('permission:edit roles');
+        Route::delete('roles/{id}', [RoleController::class, 'destroy'])->middleware('permission:delete roles');
 
         Route::prefix('roles/{id}')->group(function () {
             Route::post('assign-permission', [RolePermissionController::class, 'assignPermissionToRole']);
@@ -77,11 +77,14 @@ Route::prefix('v1')->group(function () {
         Route::delete('users/{user}', [UserController::class, 'destroy'])->middleware('permission:delete users');
 
         // Tasks
-        Route::prefix('tasks')->middleware('permission:view task')->group(function () {
+        // Route::prefix('tasks')->middleware('permission:view task')->group(function () {
+        Route::prefix('tasks')->group(function () {
             Route::get('/', [TaskController::class, 'index']);
             Route::get('{id}', [TaskController::class, 'show']);
             Route::post('/history/{id}', [TaskHistoryController::class, 'store']);
             Route::get('/history/{id}', [TaskHistoryController::class, 'historyByTask']);        
+            Route::post('{id}/approve', [TaskHistoryController::class, 'approve']);
+            Route::post('{id}/reject', [TaskHistoryController::class, 'reject']);
         });
         Route::get('/all-history', [TaskHistoryController::class, 'allHistory']);        
         

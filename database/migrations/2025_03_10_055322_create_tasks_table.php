@@ -20,7 +20,7 @@ class CreateTasksTable extends Migration
             $table->dateTime('end_date')->nullable();
             $table->string('attachment_path')->nullable();
             $table->boolean('notify')->default(true);
-            $table->enum('status', ['pending', 'completed', 'approved', 'rejected'])->default('pending');
+            $table->enum('status', ['pending',  'submitted', 'completed', 'approved', 'rejected'])->default('pending');
             $table->timestamps();
 
             $table->foreign('assigned_by')->references('id')->on('users')->onDelete('cascade');

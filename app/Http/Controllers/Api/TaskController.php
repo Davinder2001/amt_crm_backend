@@ -9,15 +9,30 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
 use App\Services\SelectedCompanyService;
 use App\Http\Resources\TaskResource;
+use Illuminate\Support\Facades\Auth;
+
 
 class TaskController extends Controller
 {
+    /**
+     * Display a listing of the tasks.
+     */
     public function index()
     {
-        $tasks = Task::all();
+        $user = Auth::user();
+    
+        if ($user->role === 'admin') {
+            $tasks = Task::all();
+        } else {
+            $tasks = Task::where('assigned_to', $user->id)->orWhere('assigned_by', $user->id)->get();
+        }
+    
         return TaskResource::collection($tasks);
     }
-
+    
+    /**
+     * Store a newly created task in storage.
+     */
     public function store(Request $request)
     {
         $authUser = $request->user();
@@ -25,12 +40,12 @@ class TaskController extends Controller
 
         $validator = Validator::make($request->all(), [
             'name'          => 'required|string|max:255',
-            'description'   => 'nullable|string',
+            'description'   => 'required|string',
             'assigned_to'   => 'required|exists:users,id',
-            'assigned_role' => 'nullable|string|max:255',
-            'start_date'    => 'nullable|date',
-            'end_date'      => 'nullable|date',
-            'notify'        => 'nullable|boolean',
+            'assigned_role' => 'required|string|max:255',
+            'start_date'    => 'required|date',
+            'end_date'      => 'required|date',
+            'notify'        => 'required|boolean',
             'status'        => 'nullable|in:pending,completed,approved,rejected',
             'attachment'    => 'nullable|file|mimes:jpg,jpeg,png,pdf,docx|max:2048',
         ]);
@@ -56,6 +71,9 @@ class TaskController extends Controller
         return response()->json(new TaskResource($task), 201);
     }
 
+    /**
+     * Display the specified task.
+     */
     public function show($id)
     {
         $task = Task::find($id);
@@ -67,6 +85,9 @@ class TaskController extends Controller
         return response()->json(new TaskResource($task), 200);
     }
 
+    /**
+     * Update the specified task in storage.
+     */
     public function update(Request $request, $id)
     {
         $task = Task::find($id);
@@ -108,6 +129,10 @@ class TaskController extends Controller
         return response()->json(new TaskResource($task), 200);
     }
 
+
+    /**
+     * Remove the specified task from storage.
+     */
     public function destroy($id)
     {
         $task = Task::find($id);

@@ -78,12 +78,19 @@ class RoleController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Role $role)
+    public function show(Role $id)
     {
+        $role = Role::where('id', $id->id)
+        ->with('permissions')
+        ->withCount('permissions')
+        ->get();
+
+
         return response()->json([
-            'message' => 'Role retrieved successfully.',
-            'role'    => $role->load('permissions'),
+            'message' => 'Roles retrieved successfully.',
+            'roles'   => $role,
         ], 200);
+        
     }
 
     /**
