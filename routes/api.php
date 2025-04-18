@@ -185,10 +185,13 @@ Route::prefix('v1')->group(function () {
         
         Route::prefix('invoices')->group(function () {
             Route::get('/', [InvoicesController::class, 'index']);
-            Route::post('/', [InvoicesController::class, 'store']);
             Route::get('/{id}', [InvoicesController::class, 'show']);
             Route::get('/{id}/download', [InvoicesController::class, 'download']);
+            Route::post('/', [InvoicesController::class, 'store']);
+            Route::post('/print', [InvoicesController::class, 'storeAndPrint']);
+            Route::post('/mail', [InvoicesController::class, 'storeAndMail']);
         });
+    
 
 
         Route::prefix('add-as-vendor')->group(function () {

@@ -34,46 +34,122 @@ class InvoicesController extends Controller
      */
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'client_name'            => 'required|string',
-            'number'                 => 'required|string',
-            'email'                  => 'nullable|email',
-            'invoice_date'           => 'required|date',
-            'items'                  => 'required|array',
-            'items.*.item_id'        => 'required|exists:store_items,id',
-            'items.*.quantity'       => 'required|integer|min:1',
-            'items.*.unit_price'     => 'required|numeric|min:0',
-        ]);
+        [$invoice, $pdfContent] = $this->createInvoiceAndPdf($request);
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'Invoice saved successfully.',
+            'invoice' => $invoice,
+        ], 201);
+    }
+
+    /**
+     * Save + return PDF inline (for printing)
+     */
+    public function storeAndPrint(Request $request)
+    {
+        [$invoice, $pdfContent] = $this->createInvoiceAndPdf($request);
+
+        return response($pdfContent, 200)
+            ->header('Content-Type', 'application/pdf')
+            ->header(
+                'Content-Disposition',
+                'inline; filename="invoice_' . $invoice->invoice_number . '.pdf"'
+            );
+    }
+
+    /**
+     * Save + send email with PDF attachment
+     */
+    // use Illuminate\Support\Facades\Mail;
+    // use App\Services\SelectedCompanyService;
     
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
+    public function storeAndMail(Request $request)
+    {
+        // 1) Create the invoice and generate its PDF
+        [$invoice, $pdfContent] = $this->createInvoiceAndPdf($request);
+    
+        // 2) Resolve company name for the view
+        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+        $companyName = $selectedCompany->company->company_name;
+    
+        // 3) If the customer has an email, send it
+        if (! empty($invoice->client_email)) {
+            Mail::send(
+                // Use your PDF-view as the email HTML body
+                'invoices.pdf',
+                [
+                    'invoice'        => $invoice,
+                    'company_name'   => $companyName,
+                    'footer_note'    => 'Thank you for your business',
+                    'show_signature' => true,
+                ],
+                function ($message) use ($invoice, $pdfContent) {
+                    $message->to($invoice->client_email)
+                            ->subject('Your Invoice #' . $invoice->invoice_number)
+                            // attach the already‑generated PDF
+                            ->attachData(
+                                $pdfContent,
+                                'invoice_' . $invoice->invoice_number . '.pdf',
+                                ['mime' => 'application/pdf']
+                            );
+                }
+            );
         }
     
-        $data = $validator->validated();
-        DB::beginTransaction();
+        // 4) Return JSON
+        return response()->json([
+            'status'  => true,
+            'message' => 'Invoice saved and emailed successfully.',
+            'invoice' => $invoice,
+        ], 201);
+    }
     
-        try {
+    
+
+    /**
+     * Core creation + PDF generation
+     *
+     * @return array[Invoice $invoice, string $pdfContent]
+     */
+    private function createInvoiceAndPdf(Request $request): array
+    {
+        $validator = Validator::make($request->all(), [
+            'client_name'         => 'required|string',
+            'number'              => 'required|string',
+            'email'               => 'nullable|email',
+            'invoice_date'        => 'required|date',
+            'items'               => 'required|array|min:1',
+            'items.*.item_id'     => 'required|exists:store_items,id',
+            'items.*.quantity'    => 'required|integer|min:1',
+            'items.*.unit_price'  => 'required|numeric|min:0',
+        ]);
+
+        if ($validator->fails()) {
+            abort(response()->json([
+                'status'  => false,
+                'message' => 'Validation failed',
+                'errors'  => $validator->errors(),
+            ], 422));
+        }
+
+        $data = $validator->validated();
+        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+
+        $invoice = DB::transaction(function () use ($data, $selectedCompany) {
             foreach ($data['items'] as $itemData) {
                 $item = Item::find($itemData['item_id']);
-    
                 if (!$item || $item->quantity_count < $itemData['quantity']) {
-                    DB::rollBack();
-                    return response()->json([
-                        'status' => false,
-                        'message' => $item
-                            ? "Insufficient stock for item '{$item->name}'. Available: {$item->quantity_count}, Requested: {$itemData['quantity']}."
-                            : "Item with ID {$itemData['item_id']} not found in store_items table.",
-                    ], 422);
+                    throw new \Exception(
+                        $item
+                            ? "Insufficient stock for '{$item->name}'."
+                            : "Item ID {$itemData['item_id']} not found."
+                    );
                 }
             }
-    
-            $total = collect($data['items'])->sum(fn ($item) => $item['quantity'] * $item['unit_price']);
-            $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-    
+
+            $total = collect($data['items'])->sum(fn ($i) => $i['quantity'] * $i['unit_price']);
+
             $customer = Customer::firstOrCreate(
                 [
                     'number'     => $data['number'],
@@ -84,88 +160,61 @@ class InvoicesController extends Controller
                     'email' => $data['email'] ?? null,
                 ]
             );
-    
-            $invoice = Invoice::create([
+
+            $inv = Invoice::create([
                 'invoice_number' => Str::uuid(),
                 'client_name'    => $data['client_name'],
-                'client_email'   => $data['email'] ?? null,
+                // 'client_email'   => $data['email'] ?? null,
+                'client_email'   => 'davinder02102001@gmail.com',
                 'invoice_date'   => $data['invoice_date'],
                 'total_amount'   => $total,
                 'company_id'     => $selectedCompany->id,
             ]);
-    
-            $purchasedItems = [];
-    
+
+            $historyItems = [];
             foreach ($data['items'] as $itemData) {
                 $item = Item::find($itemData['item_id']);
-                $item->quantity_count -= $itemData['quantity'];
-                $item->save();
-    
-                $totalPrice = $itemData['quantity'] * $itemData['unit_price'];
-    
-                $invoice->items()->create([
+                $item->decrement('quantity_count', $itemData['quantity']);
+
+                $lineTotal = $itemData['quantity'] * $itemData['unit_price'];
+                $inv->items()->create([
                     'item_id'     => $item->id,
-                    'description' => $item->name ?? 'Item',
-                    'quantity'    => $itemData['quantity'],
-                    'unit_price'  => $itemData['unit_price'],
-                    'total'       => $totalPrice,
-                ]);
-    
-                $purchasedItems[] = [
                     'description' => $item->name,
                     'quantity'    => $itemData['quantity'],
                     'unit_price'  => $itemData['unit_price'],
-                    'total'       => $totalPrice,
+                    'total'       => $lineTotal,
+                ]);
+
+                $historyItems[] = [
+                    'description' => $item->name,
+                    'quantity'    => $itemData['quantity'],
+                    'unit_price'  => $itemData['unit_price'],
+                    'total'       => $lineTotal,
                 ];
             }
-    
+
             CustomerHistory::create([
                 'customer_id'   => $customer->id,
-                'items'         => $purchasedItems,
+                'items'         => $historyItems,
                 'purchase_date' => $data['invoice_date'],
-                'details'       => 'Purchase recorded from invoice #' . ($invoice->invoice_number ?? '0000'),
+                'details'       => 'Invoice #' . $inv->invoice_number,
                 'subtotal'      => $total,
             ]);
-    
-            DB::commit();
-    
-            if (!empty($customer->email)) {
-                $invoice->load('items');
-    
-                $pdf = Pdf::loadView('invoices.pdf', [
-                    'invoice'        => $invoice,
-                    'company_name'   => $selectedCompany->company->company_name,
-                    'footer_note'    => 'Thanks',
-                    'show_signature' => true,
-                ]);
-    
-                $pdfContent = $pdf->output();
-    
-                Mail::send([], [], function ($message) use ($customer, $invoice, $pdfContent) {
-                    $message->to($customer->email)
-                        ->subject('Your Invoice #' . $invoice->invoice_number . ' is ready')
-                        ->html('Invoice attached.') 
-                        ->attachData($pdfContent, 'invoice_' . $invoice->id . '.pdf', [
-                            'mime' => 'application/pdf',
-                        ]);
-                });
-            }
-    
-            return response()->json([
-                'status' => true,
-                'message' => 'Invoice created successfully.',
-                'invoice' => $invoice->load('items'),
-            ], 201);
-        } catch (\Exception $e) {
-            DB::rollBack();
-    
-            return response()->json([
-                'status' => false,
-                'message' => 'An error occurred while creating the invoice.',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
+
+            return $inv;
+        });
+
+        $invoice->load('items');
+        $pdf = PDF::loadView('invoices.pdf', [
+            'invoice'      => $invoice,
+            'company_name' => $selectedCompany->company->company_name,
+            'footer_note'  => 'Thank you for your business',
+            'show_signature' => true,
+        ]);
+
+        return [$invoice, $pdf->output()];
     }
+
 
     /**
      * Display the specified resource.
