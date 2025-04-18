@@ -21,6 +21,8 @@ class CreateTasksTable extends Migration
             $table->string('attachment_path')->nullable();
             $table->boolean('notify')->default(true);
             $table->enum('status', ['pending',  'submitted', 'completed', 'approved', 'rejected'])->default('pending');
+            $table->boolean('is_recurring')->default(false);
+            $table->string('recurrence_interval')->nullable();
             $table->timestamps();
 
             $table->foreign('assigned_by')->references('id')->on('users')->onDelete('cascade');

@@ -11,6 +11,17 @@ use Illuminate\Support\Facades\Validator;
 
 class TaskHistoryController extends Controller
 {
+
+    /**
+     * Display a listing of the task histories.
+     */
+    public function index()
+    {
+        $histories = TaskHistory::get();
+        return response()->json($histories);
+    }
+
+
     /**
      * Submit a new task history entry and mark task as submitted.
      */
@@ -39,7 +50,6 @@ class TaskHistoryController extends Controller
             ], 422);
         }
 
-        // update main task status to 'submitted'
         $task->update(['status' => 'submitted']);
 
         $images = [];
@@ -72,13 +82,11 @@ class TaskHistoryController extends Controller
     {
         $history = TaskHistory::findOrFail($id);
 
-        // update history entry
         $history->update([
             'status'       => 'approved',
             'admin_remark' => 'Approved by admin'
         ]);
 
-        // update the related task status
         $task = $history->task;
         $task->update(['status' => 'approved']);
 
@@ -91,15 +99,13 @@ class TaskHistoryController extends Controller
     public function reject(Request $request, $id)
     {
         $history = TaskHistory::findOrFail($id);
-
         $remark = $request->input('remark', 'Rejected by admin');
-        // update history entry
+       
         $history->update([
             'status'       => 'rejected',
             'admin_remark' => $remark
         ]);
 
-        // update the related task status
         $task = $history->task;
         $task->update(['status' => 'rejected']);
 
@@ -118,10 +124,7 @@ class TaskHistoryController extends Controller
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
-        $histories = TaskHistory::where('task_id', $taskId)
-                                 ->with('submitter')
-                                 ->latest()
-                                 ->get();
+        $histories = TaskHistory::where('task_id', $taskId)->with('submitter')->latest()->get();
 
         return response()->json($histories);
     }

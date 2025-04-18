@@ -16,6 +16,13 @@ class Attendance extends Model
         'status',
     ];
 
+    
+    
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new CompanyScope);
+    }
+    
     /**
      * Get the user that owns this attendance record.
      */
@@ -32,10 +39,6 @@ class Attendance extends Model
         return $this->belongsTo(Company::class);
     }
 
-    protected static function booted(): void
-    {
-        static::addGlobalScope(new CompanyScope);
-    }
 
     // app/Models/Attendance.php
 

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Scopes\CompanyScope;
 
 class CompanyUser extends Model
 {
@@ -18,6 +19,11 @@ class CompanyUser extends Model
         'created_at',
         'updated_at',
     ];
+
+    protected static function booted()
+    {
+        static::addGlobalScope(new CompanyScope());
+    }
 
     public function user()
     {

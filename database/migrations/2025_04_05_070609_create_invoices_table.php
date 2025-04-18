@@ -16,6 +16,11 @@ class CreateInvoicesTable extends Migration
             $table->string('client_email')->nullable();
             $table->date('invoice_date');
             $table->decimal('total_amount', 10, 2);
+            $table->decimal('discount_amount', 10, 2)->default(0);
+            $table->decimal('discount_percentage', 5, 2)->default(0);
+            $table->decimal('final_amount', 10, 2);
+            $table->string('payment_method')->nullable();    
+            $table->foreignId('issued_by')->constrained('users')->onDelete('cascade');
             $table->longText('pdf_base64')->nullable();
             $table->timestamps();
         });

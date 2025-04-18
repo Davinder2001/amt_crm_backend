@@ -9,38 +9,42 @@
             padding: 20px;
             font-size: 14px;
         }
-
         h2, h3 {
             margin-bottom: 5px;
         }
-
         p {
             margin: 2px 0;
         }
-
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 15px;
         }
-
         th, td {
             border: 1px solid #ccc;
             padding: 8px;
             text-align: left;
         }
-
+        .summary-table {
+            width: 50%;
+            margin-top: 20px;
+            float: right;
+            border-collapse: collapse;
+        }
+        .summary-table td {
+            border: none;
+            padding: 4px 8px;
+        }
         .footer {
+            clear: both;
             margin-top: 50px;
             text-align: center;
             font-style: italic;
         }
-
         .signature {
             margin-top: 40px;
             text-align: right;
         }
-
         .signature img {
             height: 50px;
         }
@@ -51,12 +55,11 @@
 
     <p><strong>Client Name:</strong> {{ $invoice->client_name }}</p>
     <p><strong>Invoice Date:</strong> {{ $invoice->invoice_date }}</p>
-    <p><strong>Issued By:</strong> {{ $company_name  }}</p>
-    <p><strong>Invoice No:</strong> {{ $invoice->invoice_number  }}</p>
+    <p><strong>Issued By:</strong> {{ $issued_by }}</p>
+    <p><strong>Invoice No:</strong> {{ $invoice->invoice_number }}</p>
 
     <h3>Items</h3>
     <table>
-        
         <thead>
             <tr>
                 <th>Description</th>
@@ -77,7 +80,32 @@
         </tbody>
     </table>
 
-    <h3>Total Amount: ₹{{ number_format($invoice->total_amount, 2) }}</h3>
+    <table class="summary-table">
+        <tr>
+            <td><strong>Subtotal:</strong></td>
+            <td>₹{{ number_format($invoice->total_amount, 2) }}</td>
+        </tr>
+        <tr>
+            <td>
+                <strong>
+                    Discount
+                    @if($invoice->discount_percentage > 0)
+                        ({{ $invoice->discount_percentage }}%)
+                    @endif
+                    :
+                </strong>
+            </td>
+            <td>- ₹{{ number_format($invoice->discount_amount, 2) }}</td>
+        </tr>
+        <tr>
+            <td><strong>Total:</strong></td>
+            <td><strong>₹{{ number_format($invoice->final_amount, 2) }}</strong></td>
+        </tr>
+        <tr>
+            <td><strong>Payment Method:</strong></td>
+            <td>{{ $invoice->payment_method }}</td>
+        </tr>
+    </table>
 
     @isset($footer_note)
         <div class="footer">

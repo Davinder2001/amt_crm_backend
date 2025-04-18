@@ -15,9 +15,20 @@ class Invoice extends Model
         'client_email',
         'invoice_date',
         'total_amount',
+        'discount_amount',
+        'discount_percentage',
+        'final_amount',
+        'issued_by',
+        'payment_method',      
         'pdf_path',
         'company_id',
     ];
+
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new CompanyScope);
+    }
 
     public function items()
     {
@@ -27,10 +38,5 @@ class Invoice extends Model
     public function company()
     {
         return $this->belongsTo(Company::class);
-    }
-
-    protected static function booted(): void
-    {
-        static::addGlobalScope(new CompanyScope);
     }
 }
