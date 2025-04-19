@@ -20,13 +20,11 @@ class ItemResource extends JsonResource
             'date_of_expiry'      => $this->date_of_expiry ? $this->date_of_expiry->format('Y-m-d') : null,
             'brand_name'          => $this->brand_name,
             'replacement'         => $this->replacement,
-            // Replace 'category' with 'categories' and map its data:
             'categories'          => $this->whenLoaded('categories', function () {
                 return $this->categories->map(function ($category) {
                     return [
                         'id'   => $category->id,
                         'name' => $category->name,
-                        // Add any other fields you need from the Category model
                     ];
                 });
             }),
@@ -39,6 +37,16 @@ class ItemResource extends JsonResource
             'selling_price'       => $this->selling_price,
             'created_at'          => $this->created_at ? $this->created_at->format('Y-m-d') : null,
             'updated_at'          => $this->updated_at ? $this->updated_at->format('Y-m-d') : null,
+            'taxes'               => $this->whenLoaded('taxes', function () {
+                return $this->taxes->map(function ($tax) {
+                    return [
+                        'id'   => $tax->id,
+                        'name' => $tax->name,
+                        'rate' => $tax->rate,
+                    ];
+                });
+            }),
+
             'variants'            => $this->whenLoaded('variants', function () {
                 return $this->variants->map(function ($variant) {
                     return [
