@@ -15,6 +15,9 @@ use App\Http\Resources\CategoryTreeResource;
 
 class ItemsController extends Controller
 {
+    /**
+     * Display a listing of the resource.
+     */
     public function index(): JsonResponse
     {
         $items = Item::with('variants.attributeValues')->get();
@@ -22,6 +25,9 @@ class ItemsController extends Controller
     }
 
 
+    /**
+     * Store a newly created resource in storage.
+     */
     public function store(Request $request): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -113,6 +119,9 @@ class ItemsController extends Controller
     }
     
 
+    /**
+     * Display the specified resource.
+     */
     public function show($id): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -129,7 +138,9 @@ class ItemsController extends Controller
         return response()->json(new ItemResource($item));
     }
 
-
+    /**
+     * Update the specified resource in storage.
+     */
     public function update(Request $request, $id): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -194,6 +205,9 @@ class ItemsController extends Controller
         ]);
     }
 
+    /**
+     * Remove the specified resource from storage.
+     */
     public function destroy($id): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -211,6 +225,9 @@ class ItemsController extends Controller
         return response()->json(['message' => 'Item deleted successfully.']);
     }
 
+    /**
+     * Store multiple items in bulk.
+     */
     public function storeBulkItems(Request $request): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -274,7 +291,9 @@ class ItemsController extends Controller
         ]);
     }
 
-
+    /**
+     * Get the item category tree.
+     */
     public function getItemCatTree(): JsonResponse
     {
         $categories = Category::with(['childrenRecursive', 'items'])
@@ -283,5 +302,4 @@ class ItemsController extends Controller
 
         return response()->json(CategoryTreeResource::collection($categories), 200);
     }
-    
 }

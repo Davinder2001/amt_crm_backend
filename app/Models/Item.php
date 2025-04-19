@@ -70,4 +70,10 @@ class Item extends Model
     {
         static::addGlobalScope(new CompanyScope);
     }
+
+    public function taxes()
+    {
+        return $this->belongsToMany(Tax::class, 'item_tax');
+    }
+
 }

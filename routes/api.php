@@ -22,7 +22,8 @@ use App\Http\Controllers\Api\{
     AttributeController,
     HRController,
     CategoryController,
-    TaskHistoryController
+    TaskHistoryController,
+    ItemTaxController
 };
 
 
@@ -236,6 +237,15 @@ Route::prefix('v1')->group(function () {
             Route::get('/{id}', [CategoryController::class, 'show']);
             Route::put('/{id}', [CategoryController::class, 'update']);
             Route::delete('/{id}', [CategoryController::class, 'destroy']);
+        });
+
+
+        Route::prefix('taxes')->group(function () {
+            Route::get('/', [ItemTaxController::class, 'index']);
+            Route::post('/', [ItemTaxController::class, 'store']);
+            Route::get('/{tax}', [ItemTaxController::class, 'show']);
+            Route::put('/{tax}', [ItemTaxController::class, 'update']);
+            Route::delete('/{tax}', [ItemTaxController::class, 'destroy']);
         });
 
         

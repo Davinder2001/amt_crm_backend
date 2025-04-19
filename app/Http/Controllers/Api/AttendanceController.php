@@ -28,7 +28,7 @@ class AttendanceController extends Controller
             ], 422);
         }
     
-        $today = Carbon::today()->toDateString();
+        $today      = Carbon::today()->toDateString();
     
         $attendance = Attendance::firstOrNew([
             'user_id'         => $user->id,
@@ -36,7 +36,7 @@ class AttendanceController extends Controller
         ]);
     
         if ($attendance->exists && $attendance->status === 'leave' && $attendance->approval_status === 'rejected') {
-            $validator = Validator::make($request->all(), [
+            $validator  = Validator::make($request->all(), [
                 'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             ]);
     
@@ -47,12 +47,12 @@ class AttendanceController extends Controller
                 ], 422);
             }
     
-            $image = $request->file('image');
-            $imageName = uniqid('attendance_', true) . '.' . $image->getClientOriginalExtension();
+            $image      = $request->file('image');
+            $imageName  = uniqid('attendance_', true) . '.' . $image->getClientOriginalExtension();
             $image->move(public_path('images/attendance_images'), $imageName);
     
-            $clockInImagePath = 'images/attendance_images/' . $imageName;
-            $time = Carbon::now('Asia/Kolkata')->format('h:i A');
+            $clockInImagePath   = 'images/attendance_images/' . $imageName;
+            $time               = Carbon::now('Asia/Kolkata')->format('h:i A');
     
             $attendance->company_id       = $company->id;
             $attendance->clock_in         = $time;
@@ -79,10 +79,10 @@ class AttendanceController extends Controller
                 ], 422);
             }
     
-            $image = $request->file('image');
-            $imageName = uniqid('attendance_', true) . '.' . $image->getClientOriginalExtension();
+            $image      = $request->file('image');
+            $imageName  = uniqid('attendance_', true) . '.' . $image->getClientOriginalExtension();
             $image->move(public_path('images/attendance_images'), $imageName);
-    
+
             $clockInImagePath = 'images/attendance_images/' . $imageName;
             $time = Carbon::now('Asia/Kolkata')->format('h:i A');
     
@@ -100,7 +100,7 @@ class AttendanceController extends Controller
         }
     
         if ($attendance->clock_in && !$attendance->clock_out) {
-            $validator = Validator::make($request->all(), [
+            $validator  = Validator::make($request->all(), [
                 'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             ]);
     
@@ -111,15 +111,15 @@ class AttendanceController extends Controller
                 ], 422);
             }
     
-            $image = $request->file('image');
-            $imageName = uniqid('attendance_', true) . '.' . $image->getClientOriginalExtension();
+            $image      = $request->file('image');
+            $imageName  = uniqid('attendance_', true) . '.' . $image->getClientOriginalExtension();
+       
             $image->move(public_path('images/attendance_images'), $imageName);
-    
-            $clockOutImagePath = 'images/attendance_images/' . $imageName;
-            $time = Carbon::now('Asia/Kolkata')->format('h:i A');
-    
-            $attendance->clock_out        = $time;
-            $attendance->clock_out_image  = $clockOutImagePath;
+       
+            $clockOutImagePath              = 'images/attendance_images/' . $imageName;
+            $time                           = Carbon::now('Asia/Kolkata')->format('h:i A');
+            $attendance->clock_out          = $time;
+            $attendance->clock_out_image    = $clockOutImagePath;
             $attendance->save();
     
             return response()->json([
@@ -140,8 +140,8 @@ class AttendanceController extends Controller
      */
     public function applyForLeave(Request $request): JsonResponse
     {
-        $user = $request->user();
-        $company = $user->companies()->first();
+        $user       = $request->user();
+        $company    = $user->companies()->first();
     
         if (!$company) {
             return response()->json([
@@ -161,12 +161,12 @@ class AttendanceController extends Controller
             ], 422);
         }
     
-        $validated = $validator->validated();
-    
-        $appliedLeaves = [];
-        $skippedDates = [];
+        $validated      = $validator->validated();
+        $appliedLeaves  = [];
+        $skippedDates   = [];
     
         foreach ($validated['dates'] as $date) {
+    
             $attendance = Attendance::firstOrNew([
                 'user_id'         => $user->id,
                 'attendance_date' => $date,
@@ -257,7 +257,7 @@ class AttendanceController extends Controller
     /**
      * Approve the attendance.
      */
-    public function approveAttendance(Request $request, $id): JsonResponse
+    public function approveAttendance($id): JsonResponse
     {
         $attendance = Attendance::find($id);
 
