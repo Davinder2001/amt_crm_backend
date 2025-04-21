@@ -1,4 +1,5 @@
 <?php
+// app/Models/Item.php
 
 namespace App\Models;
 
@@ -31,49 +32,50 @@ class Item extends Model
     ];
 
     protected $casts = [
-        'images' => 'array',
-        'purchase_date' => 'date',
+        'images'              => 'array',
+        'purchase_date'       => 'date',
         'date_of_manufacture' => 'date',
-        'date_of_expiry' => 'date',
+        'date_of_expiry'      => 'date',
     ];
 
-    /**
-     * Many-to-Many: Categories related to this item.
-     */
-
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new CompanyScope);
+    }
 
     public function categories()
     {
-        return $this->belongsToMany( Category::class, 'category_item', 'store_item_id', 'category_id' );
+        return $this->belongsToMany(
+            Category::class,
+            'category_item',
+            'store_item_id',
+            'category_id'
+        );
     }
 
-    /**
-     * Belongs to a company.
-     */
     public function company()
     {
         return $this->belongsTo(Company::class);
     }
 
-    /**
-     * One-to-Many: Item Variants
-     */
     public function variants()
     {
         return $this->hasMany(ItemVariant::class);
     }
 
     /**
-     * Automatically apply company scope to all queries.
+     * Corrected pivot: table = item_tax,
+     *   store_item_id → this model’s FK,
+     *   tax_id        → related model’s FK
      */
-    protected static function booted(): void
-    {
-        static::addGlobalScope(new CompanyScope);
-    }
-
     public function taxes()
     {
-        return $this->belongsToMany(Tax::class, 'item_tax');
+        return $this->belongsToMany(
+            Tax::class,
+            'item_tax',
+            'store_item_id',
+            'tax_id'
+        )
+        ->withTimestamps();
     }
-
 }
