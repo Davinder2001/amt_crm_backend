@@ -147,4 +147,35 @@ class TaskHistoryController extends Controller
         $histories = $query->latest()->get();
         return response()->json($histories);
     }
+
+    public function acceptTask($id)
+    {
+        $task = Task::findOrFail($id);
+
+        if ($task->assigned_to !== Auth::id()) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        if (in_array($task->status, ['working', 'submitted', 'completed', 'approved'], true)) {
+            return response()->json([
+                'message' => "Cannot accept a task when its status is '{$task->status}'."
+            ], 422);
+        }
+
+        $task->update(['status' => 'working']);
+
+        $history = TaskHistory::create([
+            'task_id'      => $task->id,
+            'submitted_by' => Auth::id(),
+            'description'  => 'Task accepted by employee',
+            'attachments'  => [],
+            'status'       => 'working',
+        ]);
+
+        return response()->json([
+            'message' => 'Task accepted; status updated to working.',
+            'history' => $history,
+        ], 200);
+    }
+
 }

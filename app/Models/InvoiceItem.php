@@ -30,5 +30,12 @@ class InvoiceItem extends Model
     {
         static::addGlobalScope(new CompanyScope);
     }
-
+    
+    /**
+     * The specific variant sold (if any).
+     */
+    public function variant()
+    {
+        return $this->belongsTo(ItemVariant::class, 'variant_id');
+    }
 }

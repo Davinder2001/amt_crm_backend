@@ -186,8 +186,22 @@ class InvoicesController extends Controller
                 ['name'   => $data['client_name'], 'email' => $data['email'] ?? null]
             );
 
+            $companyCode = $selectedCompany->company->company_id;
+            $datePrefix = now()->format('Ymd');
+            $last = Invoice::where('company_id', $selectedCompany->id)->whereDate('invoice_date', now()->toDateString())->orderBy('invoice_number', 'desc')->first();
+
+            if ($last) {
+                $lastSeq = (int) substr($last->invoice_number, -4);
+                $nextSeq = $lastSeq + 1;
+            } else {
+                $nextSeq = 1;
+            }
+
+            $seqPadded = str_pad($nextSeq, 4, '0', STR_PAD_LEFT);
+            $invoiceNumber = "{$companyCode}{$datePrefix}{$seqPadded}";
+        
             $inv = Invoice::create([
-                'invoice_number'      => Str::uuid(),
+                'invoice_number'      => $invoiceNumber,
                 'client_name'         => $data['client_name'],
                 'client_email'        => $data['email'] ?? null,
                 'invoice_date'        => $data['invoice_date'],

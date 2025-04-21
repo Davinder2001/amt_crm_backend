@@ -86,6 +86,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/history/{id}', [TaskHistoryController::class, 'historyByTask']);        
             Route::post('{id}/approve', [TaskHistoryController::class, 'approve']);
             Route::post('{id}/reject', [TaskHistoryController::class, 'reject']);
+            Route::post('{id}/accept', [TaskHistoryController::class, 'acceptTask']);
         });
         Route::get('/all-history', [TaskHistoryController::class, 'allHistory']);        
         

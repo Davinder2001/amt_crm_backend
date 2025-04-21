@@ -12,7 +12,7 @@ return new class extends Migration {
             $table->unsignedBigInteger('submitted_by');
             $table->text('description')->nullable();
             $table->json('attachments')->nullable();
-            $table->enum('status', ['submitted', 'approved', 'rejected'])->default('submitted');
+            $table->enum('status', ['submitted', 'approved', 'rejected', 'working'])->default('submitted');
             $table->text('admin_remark')->nullable();
             $table->timestamps();
 
