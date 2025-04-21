@@ -22,6 +22,9 @@ class CustomerHistory extends Model
         'purchase_date' => 'date',
     ];
 
+    /**
+     * The attributes that should be cast to native types.
+     */
     public function customer()
     {
         return $this->belongsTo(Customer::class);

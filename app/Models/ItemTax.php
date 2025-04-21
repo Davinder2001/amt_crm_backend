@@ -17,11 +17,17 @@ class ItemTax extends Model
         'tax_id',
     ];
 
+    /**
+     * The attributes that should be cast to native types.
+     */
     public function item()
     {
         return $this->belongsTo(Item::class, 'store_item_id');
     }
 
+    /**
+     * The attributes that should be cast to native types.
+     */
     public function tax()
     {
         return $this->belongsTo(Tax::class, 'tax_id');

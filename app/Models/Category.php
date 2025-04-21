@@ -16,7 +16,9 @@ class Category extends Model
         'parent_id',
     ];
 
-
+    /**
+     * The attributes that should be cast to native types.
+     */
     protected static function booted()
     {
         static::addGlobalScope(new CompanyScope());
@@ -32,14 +34,6 @@ class Category extends Model
     
 
     /**
-     * Parent category relationship
-     */
-    // public function parent()
-    // {
-    //     return $this->belongsTo(Category::class, 'parent_id');
-    // }
-
-    /**
      * Child categories relationship
      */
     public function children()
@@ -47,11 +41,17 @@ class Category extends Model
         return $this->hasMany(Category::class, 'parent_id');
     }
 
+    /**
+     * Parent category relationship
+     */
     public function childrenRecursive()
     {
         return $this->children()->with('childrenRecursive', 'items');
     }
 
+    /**
+     * Parent category relationship
+     */
     public function item()
     {
         return $this->belongsToMany( Item::class, 'category_item', 'category_id', 'store_item_id');

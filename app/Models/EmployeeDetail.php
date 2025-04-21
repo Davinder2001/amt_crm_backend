@@ -47,6 +47,9 @@ class EmployeeDetail extends Model
         return $this->belongsTo(User::class, 'user_id', 'id');
     }
 
+    /**
+     * Relationship: EmployeeDetail belongs to a Company.
+     */
     protected static function booted(): void
     {
         static::addGlobalScope(new CompanyScope);

@@ -20,16 +20,25 @@ class CompanyUser extends Model
         'updated_at',
     ];
 
+    /**
+     * The attributes that should be cast to native types.
+     */
     protected static function booted()
     {
         static::addGlobalScope(new CompanyScope());
     }
 
+    /**
+     * The attributes that should be cast to native types.
+     */
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
     }
 
+    /**
+     * The attributes that should be cast to native types.
+     */
     public function company()
     {
         return $this->belongsTo(Company::class, 'company_id');

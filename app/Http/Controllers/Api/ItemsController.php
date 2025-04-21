@@ -336,10 +336,7 @@ class ItemsController extends Controller
      */
     public function getItemCatTree(): JsonResponse
     {
-        $categories = Category::with(['childrenRecursive', 'items'])
-        ->whereNull('parent_id')
-        ->get();
-
+        $categories = Category::with([ 'childrenRecursive', 'items.variants.attributeValues.attribute', 'items.taxes', 'items.categories', ])->get();
         return response()->json(CategoryTreeResource::collection($categories), 200);
     }
 }

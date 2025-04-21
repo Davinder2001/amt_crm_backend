@@ -1,5 +1,4 @@
 <?php
-// app/Models/Item.php
 
 namespace App\Models;
 
@@ -38,44 +37,43 @@ class Item extends Model
         'date_of_expiry'      => 'date',
     ];
 
+    /**
+     * The attributes that should be cast to native types.
+     */
     protected static function booted(): void
     {
         static::addGlobalScope(new CompanyScope);
     }
 
+    /**
+     * The attributes that should be cast to native types.
+     */
     public function categories()
     {
-        return $this->belongsToMany(
-            Category::class,
-            'category_item',
-            'store_item_id',
-            'category_id'
-        );
+        return $this->belongsToMany( Category::class, 'category_item', 'store_item_id', 'category_id');
     }
 
+    /**
+     * The attributes that should be cast to native types.
+     */
     public function company()
     {
         return $this->belongsTo(Company::class);
     }
 
+    /**
+     * The attributes that should be cast to native types.
+     */
     public function variants()
     {
         return $this->hasMany(ItemVariant::class);
     }
 
     /**
-     * Corrected pivot: table = item_tax,
-     *   store_item_id → this model’s FK,
-     *   tax_id        → related model’s FK
+     * The attributes that should be cast to native types.
      */
     public function taxes()
     {
-        return $this->belongsToMany(
-            Tax::class,
-            'item_tax',
-            'store_item_id',
-            'tax_id'
-        )
-        ->withTimestamps();
+        return $this->belongsToMany( Tax::class, 'item_tax', 'store_item_id', 'tax_id')->withTimestamps();
     }
 }

@@ -18,16 +18,25 @@ class Company extends Model
         'verification_status',
     ];
 
+    /**
+     * The attributes that should be cast to native types.
+     */
     public function users()
     {
         return $this->hasMany(User::class);
     }
 
+    /**
+     * The attributes that should be cast to native types.
+     */
     public function attendances()
     {
         return $this->hasMany(Attendance::class);
     }
 
+    /**
+     * The attributes that should be cast to native types.
+     */
     public function shifts()
     {
         return $this->hasMany(Shift::class);

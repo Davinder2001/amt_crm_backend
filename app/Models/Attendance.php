@@ -39,9 +39,9 @@ class Attendance extends Model
         return $this->belongsTo(Company::class);
     }
 
-
-    // app/Models/Attendance.php
-
+    /**
+     * Get the employee associated with this attendance record.
+     */
     public function employee()
     {
         return $this->belongsTo(User::class, 'employee_id');

@@ -17,11 +17,17 @@ class Customer extends Model
         'email',
     ];
 
+    /**
+     * The attributes that should be cast to native types.
+     */
     protected static function booted()
     {
         static::addGlobalScope(new CompanyScope());
     }
     
+    /**
+     * The attributes that should be cast to native types.
+     */
     public function company()
     {
         return $this->belongsTo(Company::class);

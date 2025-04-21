@@ -8,7 +8,11 @@ use App\Models\Scopes\CompanyScope;
 class SalaryHistory extends Model
 {
     protected $fillable = [
-        'user_id', 'previous_salary', 'new_salary', 'increment_date', 'reason'
+        'user_id',
+        'previous_salary', 
+        'new_salary', 
+        'increment_date', 
+        'reason'
     ];
 
     public function user()

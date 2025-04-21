@@ -17,11 +17,17 @@ class CategoryItem extends Model
         'category_id',
     ];
 
+    /**
+     * The attributes that should be cast to native types.
+     */
     public function item()
     {
         return $this->belongsTo(Item::class, 'store_item_id');
     }
 
+    /**
+     * The attributes that should be cast to native types.
+     */
     public function category()
     {
         return $this->belongsTo(Category::class, 'category_id');

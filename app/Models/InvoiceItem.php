@@ -15,11 +15,17 @@ class InvoiceItem extends Model
         'total',
     ];
 
+    /**
+     * The attributes that should be cast to native types.
+     */
     public function invoice()
     {
         return $this->belongsTo(Invoice::class);
     }
 
+    /**
+     * The attributes that should be cast to native types.
+     */
     protected static function booted(): void
     {
         static::addGlobalScope(new CompanyScope);
