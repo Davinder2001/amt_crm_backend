@@ -8,6 +8,7 @@ class ItemVariant extends Model
 {
     protected $fillable = [
         'item_id',
+        'regular_price',
         'price',
         'stock',
         'images'

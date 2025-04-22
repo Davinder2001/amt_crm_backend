@@ -29,6 +29,7 @@ class AuthController extends Controller
         $this->registrationService = $registrationService;
     }
 
+    
     /**
      * Register a new user.
      */
@@ -165,7 +166,6 @@ class AuthController extends Controller
     }
 
 
-
     /**
      * Login a user.
      */
@@ -214,7 +214,6 @@ class AuthController extends Controller
         }
 
         $data = $validator->validated();
-
         $user = User::with(['companies', 'roles'])->where('number', $data['number'])->whereIn('user_type', ['employee', 'admin', 'super-admin'])->first();
 
         if (!$user || !Hash::check($data['password'], $user->password)) {
@@ -257,7 +256,6 @@ class AuthController extends Controller
     /**
      * Logout the user.
      */
-
     public function logout(Request $request): JsonResponse
     {
         $user = $request->user();

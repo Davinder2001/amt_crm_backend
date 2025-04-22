@@ -35,26 +35,27 @@ class ItemsController extends Controller
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
     
         $validator = Validator::make($request->all(), [
-            'name'                  => 'required|string|max:255',
-            'quantity_count'        => 'required|integer',
-            'measurement'           => 'nullable|string',
-            'purchase_date'         => 'nullable|date',
-            'date_of_manufacture'   => 'required|date',
-            'date_of_expiry'        => 'nullable|date',
-            'brand_name'            => 'required|string|max:255',
-            'replacement'           => 'nullable|string|max:255',
-            'categories'            => 'nullable|array',
-            'categories.*'          => 'integer|exists:categories,id',
-            'vendor_name'           => 'nullable|string|max:255',
-            'cost_price'            => 'required|numeric|min:0',
-            'selling_price'         => 'required|numeric|min:0',
-            'availability_stock'    => 'required|integer',
-            'images.*'              => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
-            'variants'              => 'nullable|array',
-            'variants.*.price'      => 'required_with:variants|numeric|min:0',
-            'variants.*.stock'      => 'nullable|integer|min:0',
-            'variants.*.attributes' => 'required_with:variants|array',
-            'tax_id'                => 'nullable',
+            'name'                      => 'required|string|max:255',
+            'quantity_count'            => 'required|integer',
+            'measurement'               => 'nullable|string',
+            'purchase_date'             => 'nullable|date',
+            'date_of_manufacture'       => 'required|date',
+            'date_of_expiry'            => 'nullable|date',
+            'brand_name'                => 'required|string|max:255',
+            'replacement'               => 'nullable|string|max:255',
+            'categories'                => 'nullable|array',
+            'categories.*'              => 'integer|exists:categories,id',
+            'vendor_name'               => 'nullable|string|max:255',
+            'cost_price'                => 'required|numeric|min:0',
+            'selling_price'             => 'required|numeric|min:0',
+            'availability_stock'        => 'required|integer',
+            'images.*'                  => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
+            'variants'                  => 'nullable|array',
+            'variants.*.price'          => 'required_with:variants|numeric|min:0',
+            'variants.*.ragular_price'  => 'nullable:variants|numeric|min:0',
+            'variants.*.stock'          => 'nullable|integer|min:0',
+            'variants.*.attributes'     => 'required_with:variants|array',
+            'tax_id'                    => 'nullable',
         ]);
     
         if ($validator->fails()) {
@@ -91,9 +92,10 @@ class ItemsController extends Controller
         if (isset($data['variants'])) {
             foreach ($data['variants'] as $variantData) {
                 $variant = $item->variants()->create([
-                    'price'  => $variantData['price'],
-                    'stock'  => $variantData['stock'] ?? 1,
-                    'images' => $imageLinks,
+                    'regular_price' => $variantData['regular_price'],
+                    'price'         => $variantData['price'],
+                    'stock'         => $variantData['stock'] ?? 1,
+                    'images'        => $imageLinks,
                 ]);
     
                 foreach ($variantData['attributes'] as $attribute) {

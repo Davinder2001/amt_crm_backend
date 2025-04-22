@@ -15,6 +15,7 @@ return new class extends Migration
         Schema::create('item_variants', function (Blueprint $table) {
             $table->id();
             $table->foreignId('item_id')->constrained('store_items')->onDelete('cascade');
+            $table->decimal('ragular_price', 10, 2)->nullable() ; 
             $table->decimal('price', 10, 2);
             $table->integer('stock');
             $table->json('images')->nullable();
