@@ -36,9 +36,13 @@ Route::prefix('v1')->group(function () {
         Route::post('login', [AuthController::class, 'login']);
         Route::post('c-login', [AuthController::class, 'companyLogin']);
         Route::post('register', [AuthController::class, 'register']);
+        Route::post('email-verification', [AuthController::class, 'mailVerification']);
+        Route::post('verify-otp', [AuthController::class, 'verifyRegisterOtp']);
         Route::post('admin-register', [AuthController::class, 'adminRegister']);
         Route::post('password/forgot', [AuthController::class, 'sendResetOtp']);
         Route::post('password/verify-otp', [AuthController::class, 'verifyOtp']);
+        Route::get('companies/names', [CompanyController::class, 'getAllCompanyNames']);
+
     });
 
     // Protected Routes
@@ -110,8 +114,8 @@ Route::prefix('v1')->group(function () {
                 Route::get('{id}', [EmployeeController::class, 'show'])->middleware('permission:view employee');
                 Route::put('{id}', [EmployeeController::class, 'update'])->middleware('permission:update employee');
                 Route::delete('{id}', [EmployeeController::class, 'destroy'])->middleware('permission:delete employee');
-                Route::get('salarySlip/{id}', [EmployeeController::class, 'salarySlip'])->middleware('permission:view employee salary');
-                Route::get('downloadSlip/{id}', [EmployeeController::class, 'downloadPdfSlip']);
+                Route::get('salarySlip/{id}', [SalaryController::class, 'salarySlip'])->middleware('permission:view employee salary');
+                Route::get('downloadSlip/{id}', [SalaryController::class, 'downloadPdfSlip']);
             });
         });
 

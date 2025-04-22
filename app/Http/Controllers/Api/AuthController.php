@@ -98,6 +98,71 @@ class AuthController extends Controller
     }
 
 
+    public function mailVerification(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email',
+        ]);
+    
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+    
+        $email = $request->input('email');
+        $user = User::where('email', $email)->first();
+    
+        if ($user) {
+            return response()->json(['message' => 'Email already registered.'], 409);
+        }
+    
+        $otp = rand(100000, 999999);
+    
+        // Store in cache for 10 minutes
+        Cache::put("email_verification_{$email}", [
+            'otp' => $otp,
+            'expires_at' => now()->addMinutes(10)
+        ], now()->addMinutes(10));
+    
+        // Send OTP via mail
+        Mail::send('emails.sendOtp', ['otp' => $otp, 'email' => $email], function ($message) use ($email) {
+            $message->to($email)->subject('Your Verification Code');
+        });
+    
+        return response()->json(['message' => 'Verification email sent successfully.']);
+    }
+
+    
+    public function verifyRegisterOtp(Request $request): JsonResponse
+{
+    $request->validate([
+        'email' => 'required|email',
+        'otp' => 'required|digits:6',
+    ]);
+
+    $email = $request->email;
+    $cachedData = Cache::get("email_verification_{$email}");
+
+    if (!$cachedData) {
+        return response()->json(['message' => 'OTP not found or expired.'], 400);
+    }
+
+    if (now()->greaterThan($cachedData['expires_at'])) {
+        Cache::forget("email_verification_{$email}");
+        return response()->json(['message' => 'OTP has expired.'], 410);
+    }
+
+    if ($cachedData['otp'] != $request->otp) {
+        return response()->json(['message' => 'Invalid OTP.'], 422);
+    }
+
+    // OTP is valid
+    Cache::forget("email_verification_{$email}"); // Optional: Clean up after use
+
+    return response()->json(['message' => 'OTP verified successfully.']);
+}
+
+
+
     /**
      * Login a user.
      */
@@ -233,9 +298,8 @@ class AuthController extends Controller
     public function verifyOtp(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'email'    => 'required|email|exists:users,email',
+            'email'    => 'required|email',
             'otp'      => 'required|integer',
-            'password' => 'required|string|min:8|confirmed',
         ]);
 
         if ($validator->fails()) {

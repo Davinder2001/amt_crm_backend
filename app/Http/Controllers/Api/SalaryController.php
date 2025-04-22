@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\SalaryHistory;
 use App\Http\Resources\SalaryResource;
 use Illuminate\Http\Request;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class SalaryController extends Controller
 {
@@ -63,4 +64,49 @@ class SalaryController extends Controller
             'employee' => new SalaryResource($employee->load('roles.permissions', 'companies', 'employeeDetail', 'salaryHistories')),
         ]);
     }
+
+
+       /**
+     * Generate salary slip for the specified employee.
+     */
+    public function salarySlip($id)
+    {
+        $employee = User::where('user_type', 'employee')->with(['roles.permissions', 'companies', 'meta'])->find($id); 
+    
+        if (!$employee) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Employee not found.'
+            ], 404);
+        }
+    
+        return response()->json([
+            'status' => true,
+            'message' => 'Employee retrieved successfully.',
+            'employee' => new SalaryResource($employee),
+        ], 200);
+    }
+
+    /**
+     * Download the salary slip as a PDF.
+     */
+    public function downloadPdfSlip($id)
+    {
+        $user = User::where('user_type', 'employee')->with([ 'roles.permissions', 'companies', 'meta', 'salaryHistories', 'employeeDetail'])->findOrFail($id);
+        $employeeData = (new SalaryResource($user))->toArray(request());
+
+        $pdf = PDF::loadView('pdf.salary-slip', [
+            'employee' => $employeeData,
+        ]);
+
+        $pdfContent = $pdf->output();
+
+        return response()->json([
+            'status'     => true,
+            'message'    => 'PDF generated successfully.',
+            'pdf_base64' => base64_encode($pdfContent),
+            'file_name'  => 'salary-slip-' . $user->id . '.pdf',
+        ]);
+    }
+
 }

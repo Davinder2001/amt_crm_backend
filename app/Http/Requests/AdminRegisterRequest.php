@@ -16,18 +16,28 @@ class AdminRegisterRequest extends FormRequest
     public function rules()
     {
         return [
-            'name'         => 'required|string|max:255',
-            'email'        => 'required|email|max:255',
-            'password'     => 'required|string|min:8',
-            'company_name' => 'required|string|max:255',
-            'number'       => 'required|string|max:20',
+            'first_name'                   => 'required|string|max:255',
+            'last_name'                    => 'nullable|string|max:255',
+            'number'                       => 'required|string|max:10',
+            'email'                        => 'required|email|max:255|unique:users,email',
+            'password'                     => 'required|string|min:8|confirmed',
+            'company_name'                 => 'required|string|max:255',
+            'business_address'             => 'required|string',
+            'pin_code'                     => 'required|string|max:20',
+            'business_proof_type'          => 'required|string|max:255',
+            'business_id'                  => 'required|string|max:255',
+            'business_proof_image_front'   => 'required|image|mimes:jpg,jpeg,png|max:5120',
+            'business_proof_image_back'    => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
         ];
     }
 
     protected function failedValidation(Validator $validator)
     {
         throw new HttpResponseException(
-            response()->json(['errors' => $validator->errors()], 422)
+            response()->json([
+                'status' => false,
+                'errors' => $validator->errors(),
+            ], 422)
         );
     }
 }

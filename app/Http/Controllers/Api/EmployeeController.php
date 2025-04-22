@@ -39,17 +39,17 @@ class EmployeeController extends Controller
      */
     public function index(Request $request)
     {
-        $userType = $request->user_type; 
+        $userType = $request->user_type;
         $employees = User::where('user_type', $userType)->with(['roles.permissions', 'companies', 'employeeDetail'])->get();
-    
+
         return response()->json([
             'message'   => 'Employees retrieved successfully.',
             'employees' => EmployeeResource::collection($employees),
             'total'     => $employees->count(),
         ], 200);
     }
-    
-    
+
+
 
     /**
      * Store employees.
@@ -57,36 +57,36 @@ class EmployeeController extends Controller
     public function store(Request $request, EmployeeCreateService $userCreateService)
     {
         $validator = Validator::make($request->all(), [
-                'name'                      => 'required|string|min:3|max:50',
-                'email'                     => 'required|email|max:100',
-                'password'                  => 'required|string|min:8|max:30',
-                'number'                    => 'required|string|size:10', 
-                'role'                      => 'required|exists:roles,name',
-                'salary'                    => 'required|numeric|min:0',
-                'dateOfHire'                => 'required|date',
-                'joiningDate'               => 'required|date',
-                'shiftTimings'              => 'required|string|max:20',
-                'address'                   => 'required|string|min:5|max:100',
-                'nationality'               => 'required|string|min:3|max:30',
-                'dob'                       => 'required|date',
-                'religion'                  => 'required|string|min:3|max:30',
-                'maritalStatus'             => 'required|string|max:20', 
-                'passportNo'                => 'required|string|size:8', 
-                'emergencyContact'          => 'required|string|size:10',
-                'emergencyContactRelation'  => 'required|string|min:3|max:30',
-                'currentSalary'             => 'required|numeric|min:0',
-                'workLocation'              => 'required|string|min:3|max:100',
-                'joiningType'               => 'required|in:full-time,part-time,contract',
-                'department'                => 'required|string|min:2|max:50',
-                'previousEmployer'          => 'required|string|min:3|max:50',
-                'medicalInfo'               => 'required|string|min:3|max:100',
-                'bankName'                  => 'required|string|min:2|max:50',
-                'accountNo'                 => 'required|string|min:9|max:18', 
-                'ifscCode'                  => 'required|string|size:11', 
-                'panNo'                     => 'required|string|size:10', 
-                'upiId'                     => 'required|string|min:8|max:50',
-                'addressProof'              => 'required|string|min:5|max:50', 
-                'profilePicture'            => 'required|string|max:255',
+            'name'                      => 'required|string|min:3|max:50',
+            'email'                     => 'required|email|max:100',
+            'password'                  => 'required|string|min:8|max:30',
+            'number'                    => 'required|string|size:10',
+            'role'                      => 'required|exists:roles,name',
+            'salary'                    => 'required|numeric|min:0',
+            'dateOfHire'                => 'required|date',
+            'joiningDate'               => 'required|date',
+            'shiftTimings'              => 'required|string|max:20',
+            'address'                   => 'required|string|min:5|max:100',
+            'nationality'               => 'required|string|min:3|max:30',
+            'dob'                       => 'required|date',
+            'religion'                  => 'required|string|min:3|max:30',
+            'maritalStatus'             => 'required|string|max:20',
+            'passportNo'                => 'required|string|size:8',
+            'emergencyContact'          => 'required|string|size:10',
+            'emergencyContactRelation'  => 'required|string|min:3|max:30',
+            'currentSalary'             => 'required|numeric|min:0',
+            'workLocation'              => 'required|string|min:3|max:100',
+            'joiningType'               => 'required|in:full-time,part-time,contract',
+            'department'                => 'required|string|min:2|max:50',
+            'previousEmployer'          => 'required|string|min:3|max:50',
+            'medicalInfo'               => 'required|string|min:3|max:100',
+            'bankName'                  => 'required|string|min:2|max:50',
+            'accountNo'                 => 'required|string|min:9|max:18',
+            'ifscCode'                  => 'required|string|size:11',
+            'panNo'                     => 'required|string|size:10',
+            'upiId'                     => 'required|string|min:8|max:50',
+            'addressProof'              => 'required|string|min:5|max:50',
+            'profilePicture'            => 'required|string|max:255',
 
         ]);
 
@@ -104,7 +104,6 @@ class EmployeeController extends Controller
                 'message'  => 'Employee created successfully.',
                 'employee' => new EmployeeResource($employee->load('roles', 'employeeDetail')),
             ], 201);
-
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Something went wrong. Please try again.',
@@ -136,7 +135,7 @@ class EmployeeController extends Controller
     public function update(Request $request, $id)
     {
         $employee = User::where('user_type', 'employee')->findOrFail($id);
-    
+
         try {
             $validator = Validator::make($request->all(), [
                 'name'         => 'sometimes|string|max:255',
@@ -149,28 +148,28 @@ class EmployeeController extends Controller
                 'joiningDate'  => 'sometimes|date',
                 'shiftTimings' => 'sometimes|string',
             ]);
-    
+
             if ($validator->fails()) {
                 return response()->json([
                     'message' => 'Validation failed.',
                     'errors'  => $validator->errors(),
                 ], 422);
             }
-    
+
             $data = $validator->validated();
-  
+
             if (!empty($data['password'])) {
                 $data['password'] = Hash::make($data['password']);
             }
-    
+
             if (!isset($data['role'])) {
                 return response()->json([
                     'message' => 'Role is required when updating an employee.',
                 ], 400);
             }
-    
+
             $employee->update(Arr::except($data, ['role', 'salary', 'dateOfHire', 'joiningDate', 'shiftTimings']));
-    
+
             $employee->syncRoles($data['role']);
             $metaFields = [
                 'salary'       => $data['salary']       ?? null,
@@ -178,7 +177,7 @@ class EmployeeController extends Controller
                 'joiningDate'  => $data['joiningDate']  ?? null,
                 'shiftTimings' => $data['shiftTimings'] ?? null,
             ];
-    
+
             foreach ($metaFields as $metaKey => $metaValue) {
                 if (!is_null($metaValue)) {
                     UserMeta::updateOrCreate(
@@ -187,12 +186,11 @@ class EmployeeController extends Controller
                     );
                 }
             }
-    
+
             return response()->json([
                 'message'  => 'Employee updated successfully.',
                 'employee' => new EmployeeResource($employee->load('roles')),
             ], 200);
-    
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Something went wrong. Please try again.',
@@ -200,7 +198,7 @@ class EmployeeController extends Controller
             ], 500);
         }
     }
-    
+
 
     /**
      * Remove the specified employee.
@@ -212,57 +210,4 @@ class EmployeeController extends Controller
 
         return response()->json(['message' => 'Employee deleted successfully.']);
     }
-
-   /**
-     * Generate salary slip for the specified employee.
-     */
-    public function salarySlip($id)
-    {
-        $employee = User::where('user_type', 'employee')
-            ->with(['roles.permissions', 'companies', 'meta'])
-            ->find($id); 
-    
-        if (!$employee) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Employee not found.'
-            ], 404);
-        }
-    
-        return response()->json([
-            'status' => true,
-            'message' => 'Employee retrieved successfully.',
-            'employee' => new SalaryResource($employee),
-        ], 200);
-    }
-
-
-    /**
-     * Download the salary slip as a PDF.
-     */
-    public function downloadPdfSlip($id)
-    {
-        $employee = User::where('user_type', 'employee')
-            ->with(['roles.permissions', 'companies', 'meta'])
-            ->find($id);
-
-        if (!$employee) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Employee not found.'
-            ], 404);
-        }
-
-        // Generate PDF view
-        $pdf = Pdf::loadView('pdf.salary-slip', ['employee' => $employee]);
-        $pdfContent = $pdf->output();
-
-        return response()->json([
-            'status' => true,
-            'message' => 'PDF generated successfully.',
-            'pdf_base64' => base64_encode($pdfContent),
-            'file_name' => 'salary-slip-' . $employee->id . '.pdf',
-        ]);
-    }
-    
 }

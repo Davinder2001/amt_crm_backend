@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\User;
+use App\Models\Attendance;
+use App\Models\Shift;
 
 class Company extends Model
 {
@@ -16,10 +19,24 @@ class Company extends Model
         'company_slug',
         'payment_status',
         'verification_status',
+        'business_address',
+        'pin_code',
+        'business_proof_type',
+        'business_id',
+        'business_proof_front',
+        'business_proof_back',
     ];
 
     /**
-     * The attributes that should be cast to native types.
+     * The user who originally registered / administers this company.
+     */
+    public function admin()
+    {
+        return $this->belongsTo(User::class, 'admin_id');
+    }
+
+    /**
+     * All users associated with this company.
      */
     public function users()
     {
@@ -27,7 +44,7 @@ class Company extends Model
     }
 
     /**
-     * The attributes that should be cast to native types.
+     * Attendance records for this company.
      */
     public function attendances()
     {
@@ -35,12 +52,10 @@ class Company extends Model
     }
 
     /**
-     * The attributes that should be cast to native types.
+     * Shift definitions for this company.
      */
     public function shifts()
     {
         return $this->hasMany(Shift::class);
     }
-
 }
-

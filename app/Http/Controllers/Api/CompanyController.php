@@ -58,7 +58,7 @@ class CompanyController extends Controller
         return new CompanyResource($company);
     }
 
-    
+
     /**
      * Remove the specified resource from storage.
      */
@@ -78,26 +78,26 @@ class CompanyController extends Controller
     public function selectedCompanies($id)
     {
         $user = Auth::user();
-    
+
         $companyUser = CompanyUser::where('user_id', $user->id)
             ->where('company_id', $id)
             ->with('company')
             ->first();
-    
+
         if (!$companyUser) {
             return response()->json(['error' => 'Unauthorized company'], 403);
         }
-    
+
         if (!$companyUser->company || $companyUser->company->verification_status !== 'verified') {
             return response()->json(['error' => 'Company is not verified.'], 403);
         }
-    
+
         CompanyUser::where('user_id', $user->id)->update(['status' => 0]);
         CompanyUser::where('user_id', $user->id)->where('company_id', $id)->update(['status' => 1]);
-    
+
         return response()->json(['message' => 'Company selected successfully']);
     }
-    
+
 
     /**
      * Get the selected company for the authenticated user.
@@ -105,11 +105,11 @@ class CompanyController extends Controller
     public function getSelectedCompanies()
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-    
+
         if (!$selectedCompany) {
             return response()->json(['error' => 'No active company selected'], 404);
         }
-    
+
         if (isset($selectedCompany->super_admin) && $selectedCompany->super_admin === true) {
             return response()->json([
                 'message'           => 'Selected company retrieved successfully.',
@@ -117,11 +117,24 @@ class CompanyController extends Controller
                 'company_user_role' => 'super-admin',
             ]);
         }
-    
+
         return response()->json([
             'message'           => 'Selected company retrieved successfully.',
             'selected_company'  => $selectedCompany->company ?? null,
             'company_user_role' => $selectedCompany->role,
+        ]);
+    }
+
+
+    /**
+     * Get the names of all companies.
+     */
+    public function getAllCompanyNames()
+    {
+        $companies = Company::all(['company_name']);
+
+        return response()->json([
+            'companies' => $companies,
         ]);
     }
 }
