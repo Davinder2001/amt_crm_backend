@@ -138,12 +138,13 @@ class ItemResource extends JsonResource
                         2
                     );
                     return [
-                        'id'          => $variant->id,
-                        'price'       => $variant->price,
-                        'stock'       => $variant->stock,
-                        'images'      => $variant->images,
-                        'final_cost'  => $variantFinal,
-                        'attributes'  => $variant->attributeValues->map(fn($val) => [
+                        'id'            => $variant->id,
+                        'ragular_price' => $variant->ragular_price,
+                        'price'         => $variant->price,
+                        'stock'         => $variant->stock,
+                        'images'        => $variant->images,
+                        'final_cost'    => $variantFinal,
+                        'attributes'    => $variant->attributeValues->map(fn($val) => [
                             'attribute' => $val->attribute->name,
                             'value'     => $val->value,
                         ]),
