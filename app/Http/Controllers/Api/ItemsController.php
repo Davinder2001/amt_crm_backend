@@ -92,7 +92,7 @@ class ItemsController extends Controller
         if (isset($data['variants'])) {
             foreach ($data['variants'] as $variantData) {
                 $variant = $item->variants()->create([
-                    'regular_price' => $variantData['regular_price'],
+                    'regular_price' => $variantData['regular_price'] ?? 0,
                     'price'         => $variantData['price'],
                     'stock'         => $variantData['stock'] ?? 1,
                     'images'        => $imageLinks,
@@ -165,83 +165,82 @@ class ItemsController extends Controller
      * Update the specified resource in storage.
      */
     public function update(Request $request, $id): JsonResponse
-{
-    $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-    $item = Item::find($id);
+    {
+        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+        $item = Item::find($id);
 
-    if (!$item) {
-        return response()->json(['message' => 'Item not found.'], 404);
-    }
+        if (!$item) {
+            return response()->json(['message' => 'Item not found.'], 404);
+        }
 
-    if (!$selectedCompany->super_admin && $item->company_id !== $selectedCompany->company_id) {
-        return response()->json(['message' => 'Unauthorized.'], 403);
-    }
+        if (!$selectedCompany->super_admin && $item->company_id !== $selectedCompany->company_id) {
+            return response()->json(['message' => 'Unauthorized.'], 403);
+        }
 
-    $validator = Validator::make($request->all(), [
-        'name'                => 'sometimes|required|string|max:255',
-        'quantity_count'      => 'sometimes|required|integer',
-        'measurement'         => 'nullable|string',
-        'purchase_date'       => 'nullable|date',
-        'date_of_manufacture' => 'sometimes|required|date',
-        'date_of_expiry'      => 'nullable|date',
-        'brand_name'          => 'sometimes|required|string|max:255',
-        'replacement'         => 'nullable|string|max:255',
-        'category'            => 'nullable|string|max:255',
-        'vendor_name'         => 'nullable|string|max:255',
-        'availability_stock'  => 'sometimes|required|integer',
-        'cost_price'          => 'sometimes|required|numeric|min:0',
-        'selling_price'       => 'sometimes|required|numeric|min:0',
-        'images.*'            => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
-        'tax_id'              => 'nullable|exists:taxes,id',
-    ]);
+        $validator = Validator::make($request->all(), [
+            'name'                => 'sometimes|required|string|max:255',
+            'quantity_count'      => 'sometimes|required|integer',
+            'measurement'         => 'nullable|string',
+            'purchase_date'       => 'nullable|date',
+            'date_of_manufacture' => 'sometimes|required|date',
+            'date_of_expiry'      => 'nullable|date',
+            'brand_name'          => 'sometimes|required|string|max:255',
+            'replacement'         => 'nullable|string|max:255',
+            'category'            => 'nullable|string|max:255',
+            'vendor_name'         => 'nullable|string|max:255',
+            'availability_stock'  => 'sometimes|required|integer',
+            'cost_price'          => 'sometimes|required|numeric|min:0',
+            'selling_price'       => 'sometimes|required|numeric|min:0',
+            'images.*'            => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
+            'tax_id'              => 'nullable|exists:taxes,id',
+        ]);
 
-    if ($validator->fails()) {
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation errors.',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        $data = $validator->validated();
+
+        if ($request->hasFile('images')) {
+            $newImages = [];
+            foreach ($request->file('images') as $image) {
+                $filename = uniqid('item_') . '.' . $image->getClientOriginalExtension();
+                $image->move(public_path('uploads/items'), $filename);
+                $newImages[] = asset('uploads/items/' . $filename);
+            }
+
+            $existingImages = $item->images ?? [];
+            $data['images'] = array_merge($existingImages, $newImages);
+        }
+
+        if (empty($item->item_code)) {
+            $lastItemCode = Item::where('company_id', $item->company_id)->max('item_code');
+            $data['item_code'] = $lastItemCode ? $lastItemCode + 1 : 1;
+        }
+
+        $item->update($data);
+
+        if (array_key_exists('tax_id', $data)) {
+            $existingItemTax = ItemTax::where('store_item_id', $item->id)->first();
+
+            if ($existingItemTax) {
+                $existingItemTax->update(['tax_id' => $data['tax_id']]);
+            } else {
+                ItemTax::create([
+                    'store_item_id' => $item->id,
+                    'tax_id'        => $data['tax_id'],
+                ]);
+            }
+        }
+
         return response()->json([
-            'message' => 'Validation errors.',
-            'errors'  => $validator->errors(),
-        ], 422);
+            'message' => 'Item updated successfully.',
+            'item'    => new ItemResource($item->load('variants.attributeValues', 'categories')),
+        ]);
     }
-
-    $data = $validator->validated();
-
-    if ($request->hasFile('images')) {
-        $newImages = [];
-        foreach ($request->file('images') as $image) {
-            $filename = uniqid('item_') . '.' . $image->getClientOriginalExtension();
-            $image->move(public_path('uploads/items'), $filename);
-            $newImages[] = asset('uploads/items/' . $filename);
-        }
-
-        $existingImages = $item->images ?? [];
-        $data['images'] = array_merge($existingImages, $newImages);
-    }
-
-    if (empty($item->item_code)) {
-        $lastItemCode = Item::where('company_id', $item->company_id)->max('item_code');
-        $data['item_code'] = $lastItemCode ? $lastItemCode + 1 : 1;
-    }
-
-    $item->update($data);
-
-    // 🧾 Handle Tax ID
-    if (array_key_exists('tax_id', $data)) {
-        $existingItemTax = ItemTax::where('store_item_id', $item->id)->first();
-
-        if ($existingItemTax) {
-            $existingItemTax->update(['tax_id' => $data['tax_id']]);
-        } else {
-            ItemTax::create([
-                'store_item_id' => $item->id,
-                'tax_id'        => $data['tax_id'],
-            ]);
-        }
-    }
-
-    return response()->json([
-        'message' => 'Item updated successfully.',
-        'item'    => new ItemResource($item->load('variants.attributeValues', 'categories')),
-    ]);
-}
 
 
     /**
@@ -263,6 +262,7 @@ class ItemsController extends Controller
         $item->delete();
         return response()->json(['message' => 'Item deleted successfully.']);
     }
+
 
     /**
      * Store multiple items in bulk.

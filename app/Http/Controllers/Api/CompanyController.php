@@ -137,4 +137,49 @@ class CompanyController extends Controller
             'companies' => $companies,
         ]);
     }
+
+    /**
+     * Get the names of all companies for a specific user.
+     */
+    public function getPendingCompanies()
+    {
+        $pendingCompanies = Company::where('payment_status', 'pending')
+            ->orWhere('verification_status', 'pending')
+            ->get();
+
+        return CompanyResource::collection($pendingCompanies);
+    }
+
+    /**
+     * Mark a company's payment as verified.
+     */
+    public function verifyPayment($id)
+    {
+        $company = Company::findOrFail($id);
+        $company->payment_status = 'completed';
+        $company->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Payment verified successfully.',
+            'data' => new CompanyResource($company),
+        ]);
+    }
+
+    /**
+     * Mark a company's verification status as verified.
+     */
+    public function verifyStatus($id)
+    {
+        $company = Company::findOrFail($id);
+        $company->verification_status = 'verified';
+        $company->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Verification status updated successfully.',
+            'data' => new CompanyResource($company),
+        ]);
+    }
+
 }

@@ -15,17 +15,19 @@ class UserUidService
     public static function generateNewUid(): string
     {
         return DB::transaction(function () {
-            // Lock the table to avoid concurrent modifications
-            $lastUid = DB::table('users')->lockForUpdate()->max('uid');
 
-            if ($lastUid) {
-                $numericPart = (int) preg_replace('/\D/', '', $lastUid);
-                $newNumber   = $numericPart + 1;
+            $lastUser = DB::table('users')->select('uid')
+                ->orderByDesc('uid')->lockForUpdate()->first();
+    
+            if ($lastUser && preg_match('/\d+/', $lastUser->uid, $matches)) {
+                $numericPart = (int) $matches[0];
+                $newNumber = $numericPart + 1;
             } else {
                 $newNumber = 1;
             }
-
+    
             return 'AMT' . str_pad($newNumber, 10, '0', STR_PAD_LEFT);
         });
     }
+    
 }

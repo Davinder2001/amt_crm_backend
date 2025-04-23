@@ -48,4 +48,13 @@ class Invoice extends Model
     {
         return $this->belongsTo(Company::class);
     }
+
+    /**
+     * The attributes that should be cast to native types.
+     */
+    public function credit()
+    {
+        return $this->hasOne(CustomerCredit::class);
+    }
+
 }

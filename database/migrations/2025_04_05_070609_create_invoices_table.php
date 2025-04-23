@@ -19,7 +19,7 @@ class CreateInvoicesTable extends Migration
             $table->decimal('discount_amount', 10, 2)->default(0);
             $table->decimal('discount_percentage', 5, 2)->default(0);
             $table->decimal('final_amount', 10, 2);
-            $table->string('payment_method')->nullable();    
+            $table->enum('payment_method', ['cash', 'online', 'card', 'due'])->nullable();
             $table->foreignId('issued_by')->constrained('users')->onDelete('cascade');
             $table->longText('pdf_base64')->nullable();
             $table->timestamps();

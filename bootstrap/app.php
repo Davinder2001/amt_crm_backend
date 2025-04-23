@@ -7,6 +7,7 @@ use App\Http\Middleware\CheckPermission;
 use App\Http\Middleware\SetActiveCompany;
 use App\Http\Middleware\InjectUserType;
 use App\Http\Middleware\Authenticate;
+use App\Http\Middleware\CheckSuperAdmin;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -17,10 +18,11 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
-            'permission'       => CheckPermission::class,
-            'setActiveCompany' => SetActiveCompany::class,
-            'injectUserType'   => InjectUserType::class,
-            'auth'   =>  Authenticate::class,
+            'permission'        => CheckPermission::class,
+            'setActiveCompany'  => SetActiveCompany::class,
+            'injectUserType'    => InjectUserType::class,
+            'auth'              => Authenticate::class,
+            'check.superadmin'  => CheckSuperAdmin::class,
         ]);
 
         $middleware->api([

@@ -26,8 +26,8 @@ class AdminRegisterRequest extends FormRequest
             'pin_code'                     => 'required|string|max:20',
             'business_proof_type'          => 'required|string|max:255',
             'business_id'                  => 'required|string|max:255',
-            'business_proof_image_front'   => 'required|image|mimes:jpg,jpeg,png|max:5120',
-            'business_proof_image_back'    => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
+            'business_proof_image_front'   => 'required|mimes:jpg,jpeg,png,pdf|max:5120',
+            'business_proof_image_back'    => 'nullable|mimes:jpg,jpeg,png,pdf|max:5120',
         ];
     }
 

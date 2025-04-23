@@ -23,7 +23,9 @@ use App\Http\Controllers\Api\{
     HRController,
     CategoryController,
     TaskHistoryController,
-    ItemTaxController
+    ItemTaxController,
+    CreditManagementController,
+    AdminManagementController
 };
 
 
@@ -47,6 +49,30 @@ Route::prefix('v1')->group(function () {
 
     // Protected Routes
     Route::middleware(['auth:sanctum', 'setActiveCompany'])->group(function () {
+
+
+        //Super Admin Routes
+        Route::middleware(['check.superadmin'])->group(function () {
+            
+            Route::get('/companies/pending', [CompanyController::class, 'getPendingCompanies']);
+            Route::post('/companies/{id}/payment-verify', [CompanyController::class, 'verifyPayment']);
+            Route::post('/companies/{id}/status-verify', [CompanyController::class, 'verifyStatus']);
+
+            Route::get('/admin-management', [AdminManagementController::class, 'index']);
+            Route::post('/admin-management/{id}/status', [AdminManagementController::class, 'updateStatus']);
+
+
+
+        });
+        
+
+
+
+
+
+
+
+
 
         // Auth
         Route::post('logout', [AuthController::class, 'logout']);
@@ -196,6 +222,16 @@ Route::prefix('v1')->group(function () {
             Route::post('/', [InvoicesController::class, 'store']);
             Route::post('/print', [InvoicesController::class, 'storeAndPrint']);
             Route::post('/mail', [InvoicesController::class, 'storeAndMail']);
+
+
+            
+        Route::prefix('credits')->group(function () {
+            Route::get('/{id}', [CreditManagementController::class, 'index']);
+            Route::post('/{id}/pay', [CreditManagementController::class, 'closeDue']);
+        });
+        
+
+
         });
     
 
@@ -252,6 +288,8 @@ Route::prefix('v1')->group(function () {
             Route::put('/{tax}', [ItemTaxController::class, 'update']);
             Route::delete('/{tax}', [ItemTaxController::class, 'destroy']);
         });
+
+
 
         
     });
