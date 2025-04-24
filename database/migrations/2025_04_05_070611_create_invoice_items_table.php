@@ -14,6 +14,8 @@ class CreateInvoiceItemsTable extends Migration
             $table->string('description');
             $table->integer('quantity');
             $table->decimal('unit_price', 10, 2);
+            $table->decimal('tax_percentage', 5, 2)->default(0);
+            $table->decimal('tax_amount', 10, 2)->default(0);  
             $table->decimal('total', 10, 2);
             $table->timestamps();
         });

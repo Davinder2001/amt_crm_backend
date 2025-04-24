@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use App\Models\Tax;
 use App\Models\ItemTax;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Validator;
 use App\Services\SelectedCompanyService;
@@ -105,16 +106,28 @@ class ItemsController extends Controller
                 }
             }
         }
-    
 
         if (!empty($data['categories']) && is_array($data['categories'])) {
+
             foreach ($data['categories'] as $categoryId) {
                 CategoryItem::create([
                     'store_item_id' => $item->id,
-                    'category_id'   => $categoryId
+                    'category_id'   => $categoryId,
                 ]);
             }
+        } else {
+
+            $uncategorized = Category::firstOrCreate([
+                'company_id' => $selectedCompany->company_id,
+                'name'       => 'Uncategorized',
+            ]);
+
+            CategoryItem::create([
+                'store_item_id' => $item->id,
+                'category_id'   => $uncategorized->id,
+            ]);
         }
+
         $taxId = $data['tax_id'] ?? null;
 
         if ($taxId) {
@@ -277,6 +290,7 @@ class ItemsController extends Controller
             'vendor_no'    => 'required|string|max:255',
             'bill_photo'   => 'nullable',
             'items'        => 'required|json',
+            'tax_id'       => 'nullable|integer|exists:taxes,id',
         ]);
 
         if ($validator->fails()) {
@@ -308,12 +322,38 @@ class ItemsController extends Controller
 
         $items = json_decode($data['items'], true);
 
-        foreach ($items as $itemData) {
-            Item::create([
+        $taxPercentage = null;
+
+        if (!empty($data['tax_id'])) {
+            $tax = Tax::find($data['tax_id']);
+            if ($tax) {
+                $taxPercentage = $tax->rate;
+            }
+        }
+
+        
+        $itemCostsWithTax = array_map(function ($item) use ($taxPercentage) {
+            $price = (float) $item['price'];
+            $costWithTax = $price + ($price * $taxPercentage / 100);
+            return round($costWithTax, 2);
+        }, $items);
+        
+
+        $uncategorizedCategory = Category::firstOrCreate([
+            'company_id' => $selectedCompany->company_id,
+            'name'       => 'Uncategorized',
+        ]);
+
+        
+
+        foreach ($items as $index => $itemData) {
+
+            $item = Item::create([
                 'company_id'         => $selectedCompany->company_id,
                 'item_code'          => Item::where('company_id', $selectedCompany->company_id)->max('item_code') + 1 ?? 1,
                 'name'               => $itemData['name'],
                 'quantity_count'     => $itemData['quantity'],
+                'cost_price'         => $itemCostsWithTax[$index],
                 'measurement'        => null,
                 'purchase_date'      => now(),
                 'date_of_manufacture'=> now(),
@@ -324,7 +364,26 @@ class ItemsController extends Controller
                 'availability_stock' => $itemData['quantity'],
                 'images'             => $imagePath ? json_encode([$imagePath]) : null,
             ]);
+
+
+
+            DB::table('category_item')->insert([
+                'store_item_id' => $item->id,
+                'category_id'   => $uncategorizedCategory->id,
+            ]);
+            
+
+            if (!empty($data['tax_id'])) {
+                DB::table('item_tax')->insert([
+                    'store_item_id' => $item->id,
+                    'tax_id'        => $data['tax_id'],
+                    'created_at'    => now(),
+                    'updated_at'    => now(),
+                ]);
+            }
         }
+
+        
 
         return response()->json([
             'message' => 'Bulk items stored successfully.',

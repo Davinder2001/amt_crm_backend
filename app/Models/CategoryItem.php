@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Scopes\CompanyScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class CategoryItem extends Model
@@ -16,6 +17,15 @@ class CategoryItem extends Model
         'store_item_id',
         'category_id',
     ];
+
+
+    /**
+     * The attributes that should be cast to native types.
+     */
+    protected static function booted()
+    {
+        static::addGlobalScope(new CompanyScope());
+    }
 
     /**
      * The attributes that should be cast to native types.

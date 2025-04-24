@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\File;
 use Smalot\PdfParser\Parser;
 use App\Models\Item;
+use App\Models\Category;
 use App\Services\SelectedCompanyService;
 
 
@@ -115,8 +116,9 @@ class ProductOcrController extends Controller
             'products.*.name' => 'required|string',
             'products.*.quantity' => 'required|integer|min:1',
             'products.*.price' => 'required|numeric|min:0',
+            'tax_id' => 'nullable|integer|exists:taxes,id',
         ]);
-
+    
         if ($validator->fails()) {
             return response()->json([
                 'status' => false,
@@ -124,16 +126,23 @@ class ProductOcrController extends Controller
                 'errors' => $validator->errors(),
             ], 422);
         }
-
+    
         $products = $request->input('products');
+        $taxId = $request->input('tax_id', 0);
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
         $lastItemCode = Item::where('company_id', $selectedCompany->id)->max('item_code') ?? 0;
-
+    
+        // 🟢 Find or create the "Uncategorized" category
+        $uncategorizedCategory = Category::firstOrCreate([
+            'company_id' => $selectedCompany->id,
+            'name' => 'Uncategorized',
+        ]);
+    
         $savedItems = [];
-
+    
         foreach ($products as $product) {
             $lastItemCode++;
-
+    
             $item = Item::create([
                 'company_id'     => $selectedCompany->id,
                 'item_code'      => $lastItemCode,
@@ -141,14 +150,23 @@ class ProductOcrController extends Controller
                 'quantity_count' => $product['quantity'],
                 'price'          => $product['price'],
             ]);
-
+    
+            // 🟢 Attach tax if provided
+            if ($taxId > 0) {
+                $item->taxes()->attach($taxId);
+            }
+    
+            // 🟢 Attach category
+            $item->categories()->attach($uncategorizedCategory->id);
+    
             $savedItems[] = $item;
         }
-
+    
         return response()->json([
             'status' => true,
             'message' => 'Products saved successfully.',
             'items' => $savedItems,
         ], 201);
     }
+    
 }

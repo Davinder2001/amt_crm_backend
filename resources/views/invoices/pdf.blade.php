@@ -126,7 +126,7 @@
                         <td>{{ $index + 1 }}</td>
                         <td>{{ $item->description }}</td>
                         <td>{{ number_format($item->unit_price, 2) }}</td>
-                        <td>{{ $item->tax_rate }}%</td>
+                        <td>{{ $item->tax_percentage }}%</td>
                         <td>{{ $item->quantity }}</td>
                         <td>{{ number_format($item->total, 2) }}</td>
                     </tr>

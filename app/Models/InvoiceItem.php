@@ -12,8 +12,11 @@ class InvoiceItem extends Model
         'description',
         'quantity',
         'unit_price',
+        'tax_percentage',
+        'tax_amount',
         'total',
     ];
+
 
     /**
      * The attributes that should be cast to native types.

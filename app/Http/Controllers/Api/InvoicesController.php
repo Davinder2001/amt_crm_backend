@@ -94,6 +94,7 @@ class InvoicesController extends Controller
     public function download($id)
     {
         $invoice         = Invoice::with('items')->findOrFail($id);
+        // dd($invoice->items);
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
         $companyName     = $selectedCompany->company->company_name;
         $issuedByName    = Auth::user()->name;
@@ -137,6 +138,7 @@ class InvoicesController extends Controller
         }
 
         $data            = $validator->validated();
+        
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
         $issuedById      = Auth::id();
 
@@ -150,12 +152,27 @@ class InvoicesController extends Controller
 
             $subtotal = collect($data['items'])->sum(function ($line) {
                 $item = Item::findOrFail($line['item_id']);
+            
+                // Step 1: Determine base price
+                $price = $item->selling_price;
+            
                 if (!empty($line['variant_id'])) {
-                    $variant = ItemVariant::where('id', $line['variant_id'])->where('item_id', $item->id)->firstOrFail();
-                    return $variant->price * $line['quantity'];
+                    $variant = ItemVariant::where('id', $line['variant_id'])
+                        ->where('item_id', $item->id)
+                        ->firstOrFail();
+                    $price = $variant->price;
                 }
-                return $item->selling_price * $line['quantity'];
+            
+                // Step 2: Get tax rate from item_tax table
+                $taxRate = DB::table('item_tax')
+                    ->join('taxes', 'item_tax.tax_id', '=', 'taxes.id')
+                    ->where('item_tax.store_item_id', $item->id)
+                    ->value('taxes.rate') ?? 0;
+            
+                $priceWithTax = $price + ($price * $taxRate / 100);
+                return $priceWithTax * $line['quantity'];
             });
+            
 
 
             $discountAmount     = $data['discount_price'] ?? 0;
@@ -193,6 +210,7 @@ class InvoicesController extends Controller
                 'company_id'          => $selectedCompany->id,
             ]);
 
+            
             $historyItems = [];
 
             foreach ($data['items'] as $line) {
@@ -206,19 +224,26 @@ class InvoicesController extends Controller
                 $item->decrement('quantity_count', $line['quantity']);
                 $lineTotal = $unitPrice * $line['quantity'];
 
-                // dd($line);
+                $taxPercentage = DB::table('item_tax')
+                ->join('taxes', 'item_tax.tax_id', '=', 'taxes.id')
+                ->where('item_tax.store_item_id', $item->id)
+                ->value('taxes.rate') ?? 0;
 
-                // $baseCost = $item->selling_price;
+                $taxAmount = $unitPrice * $taxPercentage / 100;
+
+                $totalAmount = $lineTotal + $taxAmount;
 
                 $inv->items()->create([
-                    'item_id'     => $item->id,
-                    'variant_id'  => $line['variant_id'] ?? null,
-                    'description' => $item->name,
-                    'quantity'    => $line['quantity'],
-                    'unit_price'  => $unitPrice,
-                    'total'       => $lineTotal,
+                    'item_id'        => $item->id,
+                    'variant_id'     => $line['variant_id'] ?? null,
+                    'description'    => $item->name,
+                    'quantity'       => $line['quantity'],
+                    'unit_price'     => $unitPrice,
+                    'tax_percentage' => $taxPercentage,
+                    'tax_amount'     => $taxAmount,
+                    'total'          => $totalAmount,
                 ]);
-
+                
                 $historyItems[] = [
                     'description' => $item->name,
                     'quantity'    => $line['quantity'],
