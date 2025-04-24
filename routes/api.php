@@ -58,8 +58,9 @@ Route::prefix('v1')->group(function () {
             Route::post('/companies/{id}/payment-verify', [CompanyController::class, 'verifyPayment']);
             Route::post('/companies/{id}/status-verify', [CompanyController::class, 'verifyStatus']);
 
-            Route::get('/admin-management', [AdminManagementController::class, 'index']);
+            Route::get('/admins-management', [AdminManagementController::class, 'index']);
             Route::post('/admin-management/{id}/status', [AdminManagementController::class, 'updateStatus']);
+            Route::get('/admins/{id}', [AdminManagementController::class, 'show']);
 
 
 

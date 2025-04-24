@@ -21,7 +21,7 @@ class User extends Authenticatable
         'number',
         'user_type',
         'uid',
-        'status',
+        'user_status',
     ];
 
     protected $hidden = [
@@ -33,6 +33,8 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+
 
     /**
      * Auto-generate UID when creating a new user
@@ -56,31 +58,49 @@ class User extends Authenticatable
         static::addGlobalScope(new CompanyScope);
     }
 
+    /**
+     * Define the relationship with the Company model
+     */
     public function companies()
     {
         return $this->belongsToMany(Company::class, 'company_user')->withPivot('user_type')->withTimestamps();
     }
 
+    /**
+     * Define the relationship with the UserMeta model
+     */
     public function meta()
     {
         return $this->hasMany(UserMeta::class);
     }
 
+    /**
+     * Define the relationship with the attendances model
+     */
     public function attendances()
     {
         return $this->hasMany(Attendance::class);
     }
 
+    /**
+     * Define the relationship with the EmployeeDetail model
+     */
     public function employeeDetail()
     {
         return $this->hasOne(EmployeeDetail::class, 'user_id', 'id');
     }
 
+    /**
+     * Define the relationship with the SalaryHistory model
+     */
     public function salaryHistories()
     {
         return $this->hasMany(SalaryHistory::class, 'user_id', 'id')->latest();
     }
 
+    /**
+     * Define the relationship with the Salary model
+     */
     public function salaryDetails()
     {
         return [

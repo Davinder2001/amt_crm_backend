@@ -84,7 +84,6 @@ class AuthController extends Controller
 
         try {
             $result = $this->registrationService->register($data);
-            $result['user']->assignRole('admin');
 
             return response()->json([
                 'message' => 'Admin registered successfully. Company and role assigned.',
@@ -198,7 +197,6 @@ class AuthController extends Controller
     }
 
 
-
     /**
      * Login a company user.
      */
@@ -218,6 +216,10 @@ class AuthController extends Controller
 
         if (!$user || !Hash::check($data['password'], $user->password)) {
             return response()->json(['error' => 'Invalid credentials.'], 401);
+        }
+
+        if ($user->user_status === 'blocked') {
+            return response()->json(['error' => 'Your account has been blocked. Please contact your administrator.'], 403);
         }
 
         $userCompanies = CompanyUser::where('user_id', $user->id)->get();
