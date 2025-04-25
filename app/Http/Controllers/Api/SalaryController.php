@@ -66,7 +66,7 @@ class SalaryController extends Controller
     }
 
 
-       /**
+    /**
      * Generate salary slip for the specified employee.
      */
     public function salarySlip($id)
@@ -87,26 +87,28 @@ class SalaryController extends Controller
         ], 200);
     }
 
+
     /**
      * Download the salary slip as a PDF.
      */
     public function downloadPdfSlip($id)
     {
-        $user = User::where('user_type', 'employee')->with([ 'roles.permissions', 'companies', 'meta', 'salaryHistories', 'employeeDetail'])->findOrFail($id);
-        $employeeData = (new SalaryResource($user))->toArray(request());
+        $user           =   User::where('user_type', 'employee')
+                            ->with(['roles.permissions', 'companies', 
+                            'meta', 'salaryHistories', 'employeeDetail'])
+                            ->findOrFail($id);
 
+        $employeeData   =   (new SalaryResource($user))->toArray(request());
+    
         $pdf = PDF::loadView('pdf.salary-slip', [
-            'employee' => $employeeData,
+            'employee' => $employeeData
         ]);
-
-        $pdfContent = $pdf->output();
-
+    
         return response()->json([
             'status'     => true,
             'message'    => 'PDF generated successfully.',
-            'pdf_base64' => base64_encode($pdfContent),
+            'pdf_base64' => base64_encode($pdf->output()),
             'file_name'  => 'salary-slip-' . $user->id . '.pdf',
         ]);
     }
-
 }

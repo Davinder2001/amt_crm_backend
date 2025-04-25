@@ -14,13 +14,16 @@ class EmployeeResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $baseImageUrl = config('app.image_uri');
         $company = $this->companies->first(); 
+
 
         return [
             'id'            => $this->id,
             'name'          => $this->name,
             'email'         => $this->email,
             'number'        => $this->number,
+            'profilePicture' => $baseImageUrl. '/' .$this->profile_image,
             'user_type'     => $this->user_type,
             'user_status'   => $this->user_status,
             'company_name'  => $company ? $company->company_name : null,

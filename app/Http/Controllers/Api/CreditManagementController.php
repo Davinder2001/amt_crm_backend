@@ -11,7 +11,7 @@ use App\Http\Resources\CustomerCreditResource;
 
 class CreditManagementController extends Controller
 {
-    public function index($customerId)
+    public function show($customerId)
     {
         $credits = CustomerCredit::with('invoice', 'customer')
             ->where('customer_id', $customerId)

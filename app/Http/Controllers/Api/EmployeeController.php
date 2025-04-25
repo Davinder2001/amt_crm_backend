@@ -116,16 +116,26 @@ class EmployeeController extends Controller
     /**
      * Display the specified employee.
      */
-    public function show($id)
+    public function show(Request $request, $id)
     {
-        $employee = User::where('user_type', 'employee')->with(['roles.permissions', 'company'])->findOrFail($id);
+        $userType = $request->user_type;
+
+        $employee = User::where('user_type', $userType)
+            ->where('id', $id)
+            ->with(['roles.permissions', 'companies', 'employeeDetail'])
+            ->first();
+
+        if (!$employee) {
+            return response()->json([
+                'message' => 'Employee not found.',
+            ], 404);
+        }
 
         return response()->json([
             'message'  => 'Employee retrieved successfully.',
             'employee' => new EmployeeResource($employee),
         ]);
     }
-
 
 
     /**

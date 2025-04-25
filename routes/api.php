@@ -227,7 +227,8 @@ Route::prefix('v1')->group(function () {
 
             
         Route::prefix('credits')->group(function () {
-            Route::get('/{id}', [CreditManagementController::class, 'index']);
+            Route::get('/', [CreditManagementController::class, 'index']);
+            Route::get('/{id}', [CreditManagementController::class, 'show']);
             Route::post('/{id}/pay', [CreditManagementController::class, 'closeDue']);
         });
         

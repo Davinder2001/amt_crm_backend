@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Salary Slip - {{ $employee->name }}</title>
+    <title>Salary Slip - {{ $employee['name'] }}</title>
     <style>
         body {
             font-family: DejaVu Sans, sans-serif;
@@ -37,16 +37,16 @@
 
     <table class="details">
         <tr>
-            <td><strong>Employee Name:</strong> {{ $employee->name }}</td>
-            <td><strong>Employee Email:</strong> {{ $employee->email }}</td>
+            <td><strong>Employee Name:</strong> {{ $employee['name'] }}</td>
+            <td><strong>Employee Email:</strong> {{ $employee['email'] }}</td>
         </tr>
         <tr>
-            <td><strong>Phone:</strong> {{ $employee->number }}</td>
-            <td><strong>Company:</strong> {{ $employee->companies->first()->company_name ?? 'N/A' }}</td>
+            <td><strong>Phone:</strong> {{ $employee['number'] }}</td>
+            <td><strong>Company:</strong> {{ $employee['company_name'] ?? 'N/A' }}</td>
         </tr>
         <tr>
             <td><strong>Salary Date:</strong> {{ now()->format('d M, Y') }}</td>
-            <td><strong>Employee ID:</strong> {{ $employee->id }}</td>
+            <td><strong>Employee ID:</strong> {{ $employee['id'] }}</td>
         </tr>
     </table>
 
@@ -64,14 +64,14 @@
             <tr>
                 <td>1</td>
                 <td>Basic Salary</td>
-                <td>₹{{ number_format($salaryDetails['current_salary'] ?? 0, 2) }}</td>
+                <td>₹{{ number_format($employee['employee_salary']['current_salary'] ?? 0, 2) }}</td>
                 <td>-</td>
                 <td>-</td>
             </tr>
         </tbody>
     </table>
 
-    <p><strong>Total Salary:</strong> ₹{{ number_format($salaryDetails['current_salary'] ?? 0, 2) }}</p>
+    <p><strong>Total Salary:</strong> ₹{{ number_format($employee['employee_salary']['current_salary'] ?? 0, 2) }}</p>
 
 </body>
 </html>
