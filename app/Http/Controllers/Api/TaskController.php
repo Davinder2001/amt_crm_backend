@@ -19,14 +19,7 @@ class TaskController extends Controller
      */
     public function index()
     {
-        $user = Auth::user();
-    
-        if ($user->role === 'admin') {
-            $tasks = Task::all();
-        } else {
-            $tasks = Task::where('assigned_to', $user->id)->orWhere('assigned_by', $user->id)->get();
-        }
-    
+        $tasks = Task::all();
         return TaskResource::collection($tasks);
     }
     
@@ -149,4 +142,59 @@ class TaskController extends Controller
 
         return response()->json(['message' => 'Task deleted successfully'], 200);
     }
+
+
+    /**
+     * Display a listing of tasks assigned to the user with pending status.
+     */
+    public function assignedPendingTasks()
+    {
+       
+        $user = Auth::user();
+        $tasks = Task::where('assigned_to', $user->id)->where('status', 'pending')->get();
+        
+        if ($tasks->isEmpty()) {
+            return response()->json(['error' => 'No working tasks found'], 404);
+        }
+
+        return TaskResource::collection($tasks);
+    }
+
+    /**
+     * Display a listing of tasks assigned to the user with working status.
+     */
+    public function workingTask()
+    {
+        $user = Auth::user();
+        $tasks = Task::where('assigned_to', $user->id)->where('status', 'working')->get();
+
+        if ($tasks->isEmpty()) {
+            return response()->json(['error' => 'No working tasks found'], 404);
+        }
+
+        return TaskResource::collection($tasks);
+    }
+
+    /**
+     * Change task status from pending to working.
+     */
+    public function markAsWorking($id)
+    {
+        $task = Task::find($id);
+
+        if (!$task) {
+            return response()->json(['error' => 'Task not found'], 404);
+        }
+
+        if ($task->status !== 'pending') {
+            return response()->json(['error' => 'Task is not in pending status'], 400);
+        }
+
+        $task->status = 'working';
+        $task->save();
+
+        return response()->json(['message' => 'Task status updated to working', 'task' => $task], 200);
+    }
+
+
 }

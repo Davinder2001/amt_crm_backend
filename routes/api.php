@@ -25,7 +25,8 @@ use App\Http\Controllers\Api\{
     TaskHistoryController,
     ItemTaxController,
     CreditManagementController,
-    AdminManagementController
+    AdminManagementController,
+    PredefinedTaskController
 };
 
 
@@ -94,11 +95,13 @@ Route::prefix('v1')->group(function () {
             Route::post('remove-permission', [RolePermissionController::class, 'removePermissionFromRole']);
         });
 
+
         Route::prefix('users/{id}')->group(function () {
             Route::post('assign-role', [RolePermissionController::class, 'assignRole']);
             Route::post('remove-role', [RolePermissionController::class, 'removeRole']);
             Route::put('update-role', [RolePermissionController::class, 'updateRole']);
         });
+
 
         // Users
         Route::get('user', [UserController::class, 'authUser']);
@@ -108,18 +111,22 @@ Route::prefix('v1')->group(function () {
         Route::put('users/{user}', [UserController::class, 'update'])->middleware('permission:edit users');
         Route::delete('users/{user}', [UserController::class, 'destroy'])->middleware('permission:delete users');
 
+
         // Tasks
-        // Route::prefix('tasks')->middleware('permission:view task')->group(function () {
         Route::prefix('tasks')->group(function () {
-            Route::get('/', [TaskController::class, 'index']);
-            Route::get('{id}', [TaskController::class, 'show']);
+            Route::get('/pending', [TaskController::class, 'assignedPendingTasks']);
+            Route::get('/working', [TaskController::class, 'workingTask']);
+            Route::get('/all-history', [TaskHistoryController::class, 'allHistory']);
+            Route::get('/history/{id}', [TaskHistoryController::class, 'historyByTask']);
             Route::post('/history/{id}', [TaskHistoryController::class, 'store']);
-            Route::get('/history/{id}', [TaskHistoryController::class, 'historyByTask']);        
             Route::post('{id}/approve', [TaskHistoryController::class, 'approve']);
             Route::post('{id}/reject', [TaskHistoryController::class, 'reject']);
             Route::post('{id}/accept', [TaskHistoryController::class, 'acceptTask']);
+            Route::post('{id}/mark-working', [TaskController::class, 'markAsWorking']);
+            Route::get('/', [TaskController::class, 'index']);
+            Route::get('{id}', [TaskController::class, 'show']);
         });
-        Route::get('/all-history', [TaskHistoryController::class, 'allHistory']);        
+            
         
         
         Route::prefix('task-history')->group(function () {
@@ -127,11 +134,13 @@ Route::prefix('v1')->group(function () {
             Route::post('{id}/reject', [TaskHistoryController::class, 'reject']);
         });
 
+
         Route::prefix('tasks')->group(function () {
             Route::post('/', [TaskController::class, 'store'])->middleware('permission:add task');
             Route::put('{id}', [TaskController::class, 'update'])->middleware('permission:update task');
             Route::delete('{id}', [TaskController::class, 'destroy'])->middleware('permission:delete task');
         });
+
 
         // Employee Management
         Route::middleware(['injectUserType:employee'])->group(function () {
@@ -145,6 +154,7 @@ Route::prefix('v1')->group(function () {
                 Route::get('downloadSlip/{id}', [SalaryController::class, 'downloadPdfSlip']);
             });
         });
+
 
         // Companies
         Route::prefix('companies')->group(function () {
@@ -291,6 +301,14 @@ Route::prefix('v1')->group(function () {
             Route::delete('/{tax}', [ItemTaxController::class, 'destroy']);
         });
 
+
+        Route::prefix('predefined-tasks')->group(function () {
+            Route::get('/', [PredefinedTaskController::class, 'index']);
+            Route::get('/{id}', [PredefinedTaskController::class, 'show']);
+            Route::post('/', [PredefinedTaskController::class, 'store']);
+            Route::put('/{id}', [PredefinedTaskController::class, 'update']);
+            Route::delete('/{id}', [PredefinedTaskController::class, 'destroy']);
+        });
 
 
         
