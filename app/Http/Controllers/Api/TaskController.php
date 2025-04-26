@@ -4,13 +4,14 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Task;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use App\Notifications\SystemNotification;
 use Illuminate\Support\Facades\Storage;
 use App\Services\SelectedCompanyService;
 use App\Http\Resources\TaskResource;
 use Illuminate\Support\Facades\Auth;
-
 
 class TaskController extends Controller
 {
@@ -22,14 +23,14 @@ class TaskController extends Controller
         $tasks = Task::all();
         return TaskResource::collection($tasks);
     }
-    
+
     /**
      * Store a newly created task in storage.
      */
     public function store(Request $request)
     {
-        $authUser = $request->user();
-        $activeCompanyId = SelectedCompanyService::getSelectedCompanyOrFail();
+        $authUser           = $request->user();
+        $activeCompanyId    = SelectedCompanyService::getSelectedCompanyOrFail();
 
         $validator = Validator::make($request->all(), [
             'name'          => 'required|string|max:255',
@@ -50,16 +51,20 @@ class TaskController extends Controller
         $data = $request->except('attachment');
 
         if ($request->hasFile('attachment')) {
-            $path = $request->file('attachment')->store('task_attachments', 'public');
-            $data['attachment_path'] = $path;
+            $path                       = $request->file('attachment')->store('task_attachments', 'public');
+            $data['attachment_path']    = $path;
         }
 
-        $data['assigned_by'] = $authUser->id;
-        $data['company_id'] = $activeCompanyId->company_id;
-        $data['notify'] = $request->has('notify') ? (bool) $request->notify : true;
-        $data['status'] = $request->input('status', 'pending');
+        $data['assigned_by']    = $authUser->id;
+        $data['company_id']     = $activeCompanyId->company_id;
+        $data['notify']         = (bool) $request->notify;
+        $data['status']         = $request->input('status', 'pending');
 
         $task = Task::create($data);
+
+        if ($data['notify']) {
+            $this->notifyAdmins('New Task Added', "A new task '{$task->name}' has been added.", "/tasks/{$task->id}");
+        }
 
         return response()->json(new TaskResource($task), 201);
     }
@@ -113,15 +118,15 @@ class TaskController extends Controller
                 Storage::disk('public')->delete($task->attachment_path);
             }
 
-            $path = $request->file('attachment')->store('task_attachments', 'public');
-            $data['attachment_path'] = $path;
+            $path                       = $request->file('attachment')->store('task_attachments', 'public');
+            $data['attachment_path']    = $path;
         }
 
         $task->update($data);
+        $this->notifyAdmins('Task Updated', "Task '{$task->name}' has been updated.", "/tasks/{$task->id}");
 
         return response()->json(new TaskResource($task), 200);
     }
-
 
     /**
      * Remove the specified task from storage.
@@ -138,23 +143,24 @@ class TaskController extends Controller
             Storage::disk('public')->delete($task->attachment_path);
         }
 
+        $taskName = $task->name;
         $task->delete();
+
+        $this->notifyAdmins('Task Deleted', "Task '{$taskName}' has been deleted.", "/tasks");
 
         return response()->json(['message' => 'Task deleted successfully'], 200);
     }
-
 
     /**
      * Display a listing of tasks assigned to the user with pending status.
      */
     public function assignedPendingTasks()
     {
-       
-        $user = Auth::user();
-        $tasks = Task::where('assigned_to', $user->id)->where('status', 'pending')->get();
-        
+        $user   = Auth::user();
+        $tasks  = Task::where('assigned_to', $user->id)->where('status', 'pending')->get();
+
         if ($tasks->isEmpty()) {
-            return response()->json(['error' => 'No working tasks found'], 404);
+            return response()->json(['error' => 'No pending tasks found'], 404);
         }
 
         return TaskResource::collection($tasks);
@@ -165,8 +171,8 @@ class TaskController extends Controller
      */
     public function workingTask()
     {
-        $user = Auth::user();
-        $tasks = Task::where('assigned_to', $user->id)->where('status', 'working')->get();
+        $user   = Auth::user();
+        $tasks  = Task::where('assigned_to', $user->id)->where('status', 'working')->get();
 
         if ($tasks->isEmpty()) {
             return response()->json(['error' => 'No working tasks found'], 404);
@@ -192,9 +198,30 @@ class TaskController extends Controller
 
         $task->status = 'working';
         $task->save();
+        $this->notifyAdmins('Task Started', "Task '{$task->name}' is now working.", "/tasks/{$task->id}");
 
-        return response()->json(['message' => 'Task status updated to working', 'task' => $task], 200);
+        return response()->json(['message' => 'Task status updated to working', 'task' => new TaskResource($task)], 200);
     }
 
+    /**
+     * Notify all Admins for current selected company.
+     */
+    protected function notifyAdmins($title, $message, $url)
+    {
+        $activeCompanyId    = SelectedCompanyService::getSelectedCompanyOrFail();
 
+        $admins             = User::role('admin')
+                            ->whereHas('companies', function ($query) use ($activeCompanyId) {
+                            $query->where('company_user.company_id', $activeCompanyId->company_id);
+                            })->get();
+
+        foreach ($admins as $admin) {
+            $admin->notify(new SystemNotification(
+                title: $title,
+                message: $message,
+                type: 'info',
+                url: $url
+            ));
+        }
+    }
 }

@@ -77,12 +77,8 @@ class CompanyController extends Controller
      */
     public function selectedCompanies($id)
     {
-        $user = Auth::user();
-
-        $companyUser = CompanyUser::where('user_id', $user->id)
-            ->where('company_id', $id)
-            ->with('company')
-            ->first();
+        $user           = Auth::user();
+        $companyUser    = CompanyUser::where('user_id', $user->id)->where('company_id', $id)->with('company')->first();
 
         if (!$companyUser) {
             return response()->json(['error' => 'Unauthorized company'], 403);
@@ -143,10 +139,7 @@ class CompanyController extends Controller
      */
     public function getPendingCompanies()
     {
-        $pendingCompanies = Company::where('payment_status', 'pending')
-            ->orWhere('verification_status', 'pending')
-            ->get();
-
+        $pendingCompanies = Company::where('payment_status', 'pending')->orWhere('verification_status', 'pending')->get();
         return CompanyResource::collection($pendingCompanies);
     }
 
@@ -160,9 +153,9 @@ class CompanyController extends Controller
         $company->save();
 
         return response()->json([
-            'status' => 'success',
-            'message' => 'Payment verified successfully.',
-            'data' => new CompanyResource($company),
+            'status'    => 'success',
+            'message'   => 'Payment verified successfully.',
+            'data'      => new CompanyResource($company),
         ]);
     }
 
@@ -176,10 +169,9 @@ class CompanyController extends Controller
         $company->save();
 
         return response()->json([
-            'status' => 'success',
-            'message' => 'Verification status updated successfully.',
-            'data' => new CompanyResource($company),
+            'status'    => 'success',
+            'message'   => 'Verification status updated successfully.',
+            'data'      => new CompanyResource($company),
         ]);
     }
-
 }

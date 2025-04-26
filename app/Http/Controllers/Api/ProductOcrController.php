@@ -25,42 +25,42 @@ class ProductOcrController extends Controller
     
         if ($validator->fails()) {
             return response()->json([
-                'status' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
+                'status'    => false,
+                'message'   => 'Validation failed',
+                'errors'    => $validator->errors(),
             ], 422);
         }
     
         File::ensureDirectoryExists(public_path('ocr_uploads'));
     
-        $file = $request->file('image');
-        $fileName = uniqid('ocr_', true) . '.' . $file->getClientOriginalExtension();
+        $file       = $request->file('image');
+        $fileName   = uniqid('ocr_', true) . '.' . $file->getClientOriginalExtension();
         $file->move(public_path('ocr_uploads'), $fileName);
-        $filePath = public_path('ocr_uploads/' . $fileName);
+        $filePath   = public_path('ocr_uploads/' . $fileName);
     
         $rawText = '';
     
         try {
             if ($file->getClientOriginalExtension() === 'pdf') {
-                $parser = new Parser();
-                $pdf = $parser->parseFile($filePath);
-                $rawText = $pdf->getText();
+                $parser     = new Parser();
+                $pdf        = $parser->parseFile($filePath);
+                $rawText    = $pdf->getText();
             } else {
-                $rawText = (new TesseractOCR($filePath))->run();
+                $rawText    = (new TesseractOCR($filePath))->run();
             }
         } catch (\Exception $e) {
             File::delete($filePath);
     
             return response()->json([
-                'status' => false,
-                'message' => 'Failed to parse file.',
-                'error' => $e->getMessage(),
+                'status'    => false,
+                'message'   => 'Failed to parse file.',
+                'error'     => $e->getMessage(),
             ], 500);
         }
     
-        $lines = explode("\n", trim($rawText));
+        $lines          = explode("\n", trim($rawText));
         $extractedItems = [];
-        $grandTotal = 0;
+        $grandTotal     = 0;
     
         foreach ($lines as $index => $line) {
             if ($index === 0 || trim($line) === '') continue;
@@ -74,7 +74,7 @@ class ProductOcrController extends Controller
                     continue;
                 }
     
-                $subTotal = (int) $quantity * (float) $price;
+                $subTotal   = (int) $quantity * (float) $price;
                 $grandTotal += $subTotal;
     
                 $extractedItems[] = [
@@ -90,9 +90,9 @@ class ProductOcrController extends Controller
     
         if (empty($extractedItems)) {
             return response()->json([
-                'status' => false,
-                'message' => 'No valid product data found in the file.',
-                'raw_text' => $rawText,
+                'status'    => false,
+                'message'   => 'No valid product data found in the file.',
+                'raw_text'  => $rawText,
             ], 422);
         }
     
@@ -112,27 +112,26 @@ class ProductOcrController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'products'   => 'required|array|min:1',
-            'products.*.name' => 'required|string',
-            'products.*.quantity' => 'required|integer|min:1',
-            'products.*.price' => 'required|numeric|min:0',
-            'tax_id' => 'nullable|integer|exists:taxes,id',
+            'products'              => 'required|array|min:1',
+            'products.*.name'       => 'required|string',
+            'products.*.quantity'   => 'required|integer|min:1',
+            'products.*.price'      => 'required|numeric|min:0',
+            'tax_id'                => 'nullable|integer|exists:taxes,id',
         ]);
     
         if ($validator->fails()) {
             return response()->json([
-                'status' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
+                'status'    => false,
+                'message'   => 'Validation failed',
+                'errors'    => $validator->errors(),
             ], 422);
         }
     
-        $products = $request->input('products');
-        $taxId = $request->input('tax_id', 0);
-        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $lastItemCode = Item::where('company_id', $selectedCompany->id)->max('item_code') ?? 0;
+        $products           = $request->input('products');
+        $taxId              = $request->input('tax_id', 0);
+        $selectedCompany    = SelectedCompanyService::getSelectedCompanyOrFail();
+        $lastItemCode       = Item::where('company_id', $selectedCompany->id)->max('item_code') ?? 0;
     
-        // 🟢 Find or create the "Uncategorized" category
         $uncategorizedCategory = Category::firstOrCreate([
             'company_id' => $selectedCompany->id,
             'name' => 'Uncategorized',
@@ -151,14 +150,11 @@ class ProductOcrController extends Controller
                 'price'          => $product['price'],
             ]);
     
-            // 🟢 Attach tax if provided
             if ($taxId > 0) {
                 $item->taxes()->attach($taxId);
             }
     
-            // 🟢 Attach category
             $item->categories()->attach($uncategorizedCategory->id);
-    
             $savedItems[] = $item;
         }
     
@@ -167,6 +163,5 @@ class ProductOcrController extends Controller
             'message' => 'Products saved successfully.',
             'items' => $savedItems,
         ], 201);
-    }
-    
+    }   
 }

@@ -103,7 +103,9 @@
             <div class="details">
                 <p><strong>Name:</strong> {{ $invoice->client_name }}</p>
                 <p><strong>Contact:</strong> {{ $invoice->client_phone }}</p>
-                <p><strong>Address:</strong> {{ $invoice->client_address }}</p>
+                @if (!empty($invoice->client_address))
+                    <p><strong>Address:</strong> {{ $invoice->client_address }}</p>
+                @endif
                 <p><strong>Invoice No:</strong> {{ $invoice->invoice_number }}</p>
                 <p><strong>Date:</strong> {{ $invoice->invoice_date }}</p>
                 <p><strong>Payment Mode:</strong> {{ $invoice->payment_method }}</p>
@@ -141,12 +143,14 @@
                 </tr>
                 <tr>
                     <td><strong>Discount:</strong></td>
-                    <td>- ₹{{ number_format($invoice->discount_amount, 2) }}</td>
+                    <td>- ₹{{ number_format($invoice->discount_amount, 2) }} / {{ $invoice->discount_percentage }}%</td>
                 </tr>
-                <tr>
-                    <td><strong>Tax:</strong></td>
-                    <td>₹{{ number_format($invoice->tax_amount, 2) }}</td>
-                </tr>
+                @if (!empty($invoice->tax_amount) && $invoice->tax_amount > 0)
+                    <tr>
+                        <td><strong>Tax:</strong></td>
+                        <td>₹{{ number_format($invoice->tax_amount, 2) }}</td>
+                    </tr>
+                @endif
                 <tr>
                     <td><strong>Total:</strong></td>
                     <td><strong>₹{{ number_format($invoice->final_amount, 2) }}</strong></td>

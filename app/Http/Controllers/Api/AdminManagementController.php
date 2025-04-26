@@ -15,9 +15,7 @@ class AdminManagementController extends Controller
      */
     public function index()
     {
-        $admins = User::where('user_type', 'admin')
-            ->with(['roles.permissions'])
-            ->get();
+        $admins = User::where('user_type', 'admin')->with(['roles.permissions'])->get();
     
         return response()->json([
             'status' => 'success',
@@ -31,12 +29,10 @@ class AdminManagementController extends Controller
      */
     public function updateStatus(Request $request, $id)
     {
-        // Step 1: Create validator
         $validator = Validator::make($request->all(), [
             'status' => 'required|in:active,blocked,warning',
         ]);
     
-        // Step 2: If validation fails, return custom response
         if ($validator->fails()) {
             return response()->json([
                 'status' => 'error',
@@ -46,8 +42,6 @@ class AdminManagementController extends Controller
         }
     
         $user = User::where('user_type', 'admin')->find($id);
-       
-    
         $user->user_status = $request->status;
         $user->save();
     
@@ -64,9 +58,7 @@ class AdminManagementController extends Controller
      */
     public function show($id)
     {
-        $admin = User::where('user_type', 'admin')
-        ->with(['roles.permissions', 'companies'])
-        ->find($id);
+        $admin = User::where('user_type', 'admin')->with(['roles.permissions', 'companies'])->find($id);
 
         if (!$admin) {
             return response()->json([

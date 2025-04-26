@@ -46,9 +46,8 @@ class AuthController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $data = $validator->validated();
-
-        $alreadyUser = User::where('number', $data['number'])->where('user_type', 'user')->exists();
+        $data           = $validator->validated();
+        $alreadyUser    = User::where('number', $data['number'])->where('user_type', 'user')->exists();
 
         if ($alreadyUser) {
             return response()->json([
@@ -111,8 +110,8 @@ class AuthController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
     
-        $email = $request->input('email');
-        $user = User::where('email', $email)->first();
+        $email  = $request->input('email');
+        $user   = User::where('email', $email)->first();
     
         if ($user) {
             return response()->json(['message' => 'Email already registered.'], 409);
@@ -143,7 +142,7 @@ class AuthController extends Controller
             'otp' => 'required|digits:6',
         ]);
 
-        $email = $request->email;
+        $email      = $request->email;
         $cachedData = Cache::get("email_verification_{$email}");
 
         if (!$cachedData) {
@@ -244,7 +243,6 @@ class AuthController extends Controller
         $accessToken = $tokenResult->accessToken;
         $accessToken->expires_at = now()->addHours(24);
         $accessToken->save();
-
 
         return response()->json([
             'message'      => 'Logged in successfully.',

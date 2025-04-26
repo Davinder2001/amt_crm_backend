@@ -15,8 +15,8 @@ class CatalogController extends Controller
      */
     public function index(): JsonResponse
     {
-        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $catalogItems = Item::where('company_id', $selectedCompany->company_id)->where('catalog', true)->get();
+        $selectedCompany    = SelectedCompanyService::getSelectedCompanyOrFail();
+        $catalogItems       = Item::where('company_id', $selectedCompany->company_id)->where('catalog', true)->get();
         return response()->json($catalogItems);
     }
 
@@ -25,8 +25,8 @@ class CatalogController extends Controller
      */
     public function addToCatalog($id): JsonResponse
     {
-        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $item = Item::where('company_id', $selectedCompany->company_id)->find($id);
+        $selectedCompany    = SelectedCompanyService::getSelectedCompanyOrFail();
+        $item               = Item::where('company_id', $selectedCompany->company_id)->find($id);
 
         if (!$item) {
             return response()->json(['message' => 'Item not found.'], 404);
@@ -44,8 +44,8 @@ class CatalogController extends Controller
      */
     public function removeFromCatalog($id): JsonResponse
     {
-        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $item = Item::where('company_id', $selectedCompany->company_id)->find($id);
+        $selectedCompany    = SelectedCompanyService::getSelectedCompanyOrFail();
+        $item               = Item::where('company_id', $selectedCompany->company_id)->find($id);
 
         if (!$item) {
             return response()->json(['message' => 'Item not found.'], 404);

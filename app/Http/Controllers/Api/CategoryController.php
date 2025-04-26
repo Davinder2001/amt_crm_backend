@@ -15,8 +15,8 @@ class CategoryController extends Controller
 {
     public function index(): AnonymousResourceCollection
     {
-        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $categories = Category::with('childrenRecursive')->where('company_id', $selectedCompany->company_id)->whereNull('parent_id')->get();
+        $selectedCompany    = SelectedCompanyService::getSelectedCompanyOrFail();
+        $categories         = Category::with('childrenRecursive')->where('company_id', $selectedCompany->company_id)->whereNull('parent_id')->get();
         return CategoryResource::collection($categories);
     }
 
@@ -51,8 +51,8 @@ class CategoryController extends Controller
 
     public function update(Request $request, $id): JsonResponse
     {
-        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $category = Category::where('company_id', $selectedCompany->company_id)->findOrFail($id);
+        $selectedCompany    = SelectedCompanyService::getSelectedCompanyOrFail();
+        $category           = Category::where('company_id', $selectedCompany->company_id)->findOrFail($id);
 
         $validator = Validator::make($request->all(), [
             'name'      => 'required|string|max:255|unique:categories,name,' . $id . ',id,company_id,' . $selectedCompany->company_id,
@@ -78,8 +78,8 @@ class CategoryController extends Controller
 
     public function destroy($id): JsonResponse
     {
-        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $category = Category::where('company_id', $selectedCompany->company_id)->findOrFail($id);
+        $selectedCompany    = SelectedCompanyService::getSelectedCompanyOrFail();
+        $category           = Category::where('company_id', $selectedCompany->company_id)->findOrFail($id);
         $category->delete();
 
         return response()->json(['message' => 'Category deleted.'], 200);
@@ -89,10 +89,8 @@ class CategoryController extends Controller
 
     public function show($id): JsonResponse
     {
-        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $category = Category::with('children')
-            ->where('company_id', $selectedCompany->company_id)
-            ->findOrFail($id);
+        $selectedCompany    = SelectedCompanyService::getSelectedCompanyOrFail();
+        $category           = Category::with('children')->where('company_id', $selectedCompany->company_id)->findOrFail($id);
 
         return response()->json([
             'category' => new CategoryResource($category),

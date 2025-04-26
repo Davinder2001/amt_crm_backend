@@ -19,8 +19,8 @@ class AttendanceController extends Controller
      */
     public function recordAttendance(Request $request): JsonResponse
     {
-        $user = $request->user();
-        $company = $user->companies()->first();
+        $user       = $request->user();
+        $company    = $user->companies()->first();
     
         if (!$company) {
             return response()->json([
@@ -219,9 +219,7 @@ class AttendanceController extends Controller
             ], 200);
         }
 
-        $attendances = Attendance::where('user_id', $user->id)
-            ->orderBy('attendance_date', 'desc')
-            ->get();
+        $attendances = Attendance::where('user_id', $user->id)->orderBy('attendance_date', 'desc')->get();
 
         return response()->json([
             'attendance' => new AttendanceResource($attendances),
@@ -237,14 +235,12 @@ class AttendanceController extends Controller
         $date = $request->query('date');
     
         if ($date) {
-            $attendances = Attendance::with('user')
-                ->where('attendance_date', $date)
-                ->orderBy('user_id')
-                ->get();
+
+            $attendances = Attendance::with('user')->where('attendance_date', $date)->orderBy('user_id')->get();
+        
         } else {
-            $attendances = Attendance::with('user')
-                ->orderBy('attendance_date', 'desc')
-                ->get();
+        
+            $attendances = Attendance::with('user')->orderBy('attendance_date', 'desc')->get();
         }
     
         return response()->json([

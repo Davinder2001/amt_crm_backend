@@ -16,8 +16,8 @@ class StoreVendorController extends Controller
      */
     public function index(): JsonResponse
     {
-        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $vendors = StoreVendor::where('company_id', $selectedCompany->company_id)->get();
+        $selectedCompany    = SelectedCompanyService::getSelectedCompanyOrFail();
+        $vendors            = StoreVendor::where('company_id', $selectedCompany->company_id)->get();
         return response()->json($vendors);
     }
 
@@ -40,7 +40,7 @@ class StoreVendorController extends Controller
             ], 422);
         }
 
-        $data = $validator->validated();
+        $data               = $validator->validated();
         $data['company_id'] = $selectedCompany->company_id;
 
         $vendor = StoreVendor::create($data);
@@ -76,8 +76,8 @@ class StoreVendorController extends Controller
      */
     public function update(Request $request, $id): JsonResponse
     {
-        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $vendor = StoreVendor::find($id);
+        $selectedCompany    = SelectedCompanyService::getSelectedCompanyOrFail();
+        $vendor             = StoreVendor::find($id);
 
         if (!$vendor) {
             return response()->json(['message' => 'Vendor not found.'], 404);
@@ -111,8 +111,8 @@ class StoreVendorController extends Controller
      */
     public function destroy($id): JsonResponse
     {
-        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $vendor = StoreVendor::find($id);
+        $selectedCompany    = SelectedCompanyService::getSelectedCompanyOrFail();
+        $vendor             = StoreVendor::find($id);
 
         if (!$vendor) {
             return response()->json(['message' => 'Vendor not found.'], 404);

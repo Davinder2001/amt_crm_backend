@@ -15,9 +15,11 @@ class CustomerController extends Controller
      */
     public function index()
     {
-        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $customers = Customer::where('company_id', $selectedCompany->id)->latest()->get();
-        return response()->json(['customers' => $customers]);
+        $selectedCompany    = SelectedCompanyService::getSelectedCompanyOrFail();
+        $customers          = Customer::where('company_id', $selectedCompany->id)->latest()->get();
+        return response()->json([
+            'customers' => $customers
+        ]);
     }
 
     /**
@@ -40,9 +42,9 @@ class CustomerController extends Controller
             ], 422);
         }
 
-        $data = $validator->validated();
+        $data               = $validator->validated();
         $data['company_id'] = $selectedCompany->id;
-        $customer = Customer::create($data);
+        $customer           = Customer::create($data);
 
         return response()->json([
             'message' => 'Customer created successfully',
@@ -55,8 +57,8 @@ class CustomerController extends Controller
      */
     public function show($id)
     {
-        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $customer = Customer::where('company_id', $selectedCompany->id)->find($id);
+        $selectedCompany    = SelectedCompanyService::getSelectedCompanyOrFail();
+        $customer           = Customer::where('company_id', $selectedCompany->id)->find($id);
 
         if (!$customer) {
             return response()->json(['message' => 'Customer not found'], 404);
@@ -70,8 +72,8 @@ class CustomerController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $customer = Customer::where('company_id', $selectedCompany->id)->find($id);
+        $selectedCompany    = SelectedCompanyService::getSelectedCompanyOrFail();
+        $customer           = Customer::where('company_id', $selectedCompany->id)->find($id);
 
         if (!$customer) {
             return response()->json(['message' => 'Customer not found'], 404);
@@ -103,8 +105,8 @@ class CustomerController extends Controller
      */
     public function destroy($id)
     {
-        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $customer = Customer::where('company_id', $selectedCompany->id)->find($id);
+        $selectedCompany    = SelectedCompanyService::getSelectedCompanyOrFail();
+        $customer           = Customer::where('company_id', $selectedCompany->id)->find($id);
 
         if (!$customer) {
             return response()->json(['message' => 'Customer not found'], 404);

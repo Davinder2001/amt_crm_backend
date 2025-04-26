@@ -29,7 +29,7 @@ class TaskHistoryController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'description'      => 'required|string',
-            'attachments.*'    => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
+            'attachments.*'    => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
         ]);
 
         if ($validator->fails()) {
@@ -74,6 +74,7 @@ class TaskHistoryController extends Controller
             'history' => $history
         ], 201);
     }
+
 
     /**
      * Approve a submitted task history (admin only).
@@ -134,8 +135,8 @@ class TaskHistoryController extends Controller
      */
     public function allHistory()
     {
-        $user = Auth::user();
-        $query = TaskHistory::with(['submitter', 'task']);
+        $user   = Auth::user();
+        $query  = TaskHistory::with(['submitter', 'task']);
 
         if ($user->role !== 'admin') {
             $query->whereHas('task', function ($q) use ($user) {
@@ -177,5 +178,4 @@ class TaskHistoryController extends Controller
             'history' => $history,
         ], 200);
     }
-
 }

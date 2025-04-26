@@ -16,14 +16,15 @@ class ItemTaxController extends Controller
      */
     public function index()
     {
-        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $taxes = Tax::where('company_id', $selectedCompany->id)->get();
+        $selectedCompany    = SelectedCompanyService::getSelectedCompanyOrFail();
+        $taxes              = Tax::where('company_id', $selectedCompany->id)->get();
 
         return response()->json([
             'success' => true,
             'data' => TaxResource::collection($taxes)
         ]);
     }
+
 
     /**
      * Store a newly created resource in storage.
@@ -37,24 +38,24 @@ class ItemTaxController extends Controller
 
         if ($validator->fails()) {
             return response()->json([
-                'success' => false,
-                'message' => 'Validation errors',
-                'errors' => $validator->errors()
+                'success'   => false,
+                'message'   => 'Validation errors',
+                'errors'    => $validator->errors()
             ], 422);
         }
 
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
 
         $tax = Tax::create([
-            'company_id' => $selectedCompany->id,
-            'name' => $request->name,
-            'rate' => $request->rate,
+            'company_id'    => $selectedCompany->id,
+            'name'          => $request->name,
+            'rate'          => $request->rate,
         ]);
 
         return response()->json([
-            'success' => true,
-            'message' => 'Tax created successfully',
-            'data' => new TaxResource($tax)
+            'success'   => true,
+            'message'   => 'Tax created successfully',
+            'data'      => new TaxResource($tax)
         ], 201);
     }
 
@@ -68,6 +69,7 @@ class ItemTaxController extends Controller
             'data' => new TaxResource($tax)
         ]);
     }
+
 
     /**
      * Update the specified resource in storage.
@@ -96,6 +98,7 @@ class ItemTaxController extends Controller
         ]);
     }
     
+
     /**
      * Remove the specified resource from storage.
      */

@@ -11,9 +11,8 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Resources\EmployeeResource;
-use App\Http\Resources\SalaryResource;
 use App\Services\SelectedCompanyService;
-use Barryvdh\DomPDF\Facade\Pdf;
+
 
 
 class EmployeeController extends Controller
@@ -39,8 +38,8 @@ class EmployeeController extends Controller
      */
     public function index(Request $request)
     {
-        $userType = $request->user_type;
-        $employees = User::where('user_type', $userType)->with(['roles.permissions', 'companies', 'employeeDetail'])->get();
+        $userType   = $request->user_type;
+        $employees  = User::where('user_type', $userType)->with(['roles.permissions', 'companies', 'employeeDetail'])->get();
 
         return response()->json([
             'message'   => 'Employees retrieved successfully.',
@@ -119,11 +118,7 @@ class EmployeeController extends Controller
     public function show(Request $request, $id)
     {
         $userType = $request->user_type;
-
-        $employee = User::where('user_type', $userType)
-            ->where('id', $id)
-            ->with(['roles.permissions', 'companies', 'employeeDetail'])
-            ->first();
+        $employee = User::where('user_type', $userType)->where('id', $id)->with(['roles.permissions', 'companies', 'employeeDetail'])->first();
 
         if (!$employee) {
             return response()->json([
@@ -191,8 +186,8 @@ class EmployeeController extends Controller
             foreach ($metaFields as $metaKey => $metaValue) {
                 if (!is_null($metaValue)) {
                     UserMeta::updateOrCreate(
-                        ['user_id' => $employee->id, 'meta_key' => $metaKey],
-                        ['meta_value' => $metaValue]
+                        ['user_id'      => $employee->id, 'meta_key' => $metaKey],
+                        ['meta_value'   => $metaValue]
                     );
                 }
             }

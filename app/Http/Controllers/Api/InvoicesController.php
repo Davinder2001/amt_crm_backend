@@ -94,7 +94,6 @@ class InvoicesController extends Controller
     public function download($id)
     {
         $invoice         = Invoice::with('items')->findOrFail($id);
-        // dd($invoice->items);
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
         $companyName     = $selectedCompany->company->company_name;
         $issuedByName    = Auth::user()->name;
@@ -138,7 +137,6 @@ class InvoicesController extends Controller
         }
 
         $data            = $validator->validated();
-        
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
         $issuedById      = Auth::id();
 
@@ -152,8 +150,6 @@ class InvoicesController extends Controller
 
             $subtotal = collect($data['items'])->sum(function ($line) {
                 $item = Item::findOrFail($line['item_id']);
-            
-                // Step 1: Determine base price
                 $price = $item->selling_price;
             
                 if (!empty($line['variant_id'])) {
@@ -163,7 +159,6 @@ class InvoicesController extends Controller
                     $price = $variant->price;
                 }
             
-                // Step 2: Get tax rate from item_tax table
                 $taxRate = DB::table('item_tax')
                     ->join('taxes', 'item_tax.tax_id', '=', 'taxes.id')
                     ->where('item_tax.store_item_id', $item->id)
@@ -184,21 +179,22 @@ class InvoicesController extends Controller
                 ['name' => $data['client_name'], 'email' => $data['email'] ?? null]
             );
 
-            $companyCode = $selectedCompany->company->company_id;
-            $datePrefix  = now()->format('Ymd');
-            $last        = Invoice::where('company_id', $selectedCompany->id)
-                ->whereDate('invoice_date', now()->toDateString())
-                ->orderBy('invoice_number', 'desc')
-                ->first();
+            $companyCode =  $selectedCompany->company->company_id;
+            $datePrefix  =  now()->format('Ymd');
+            $last        =  Invoice::where('company_id', $selectedCompany->id)
+                            ->whereDate('invoice_date', now()->toDateString())
+                            ->orderBy('invoice_number', 'desc')
+                            ->first();
 
-            $nextSeq = $last ? ((int) substr($last->invoice_number, -4)) + 1 : 1;
-            $invoiceNumber = "{$companyCode}{$datePrefix}" . str_pad($nextSeq, 4, '0', STR_PAD_LEFT);
+            $nextSeq        = $last ? ((int) substr($last->invoice_number, -4)) + 1 : 1;
+            $invoiceNumber  = "{$companyCode}{$datePrefix}" . str_pad($nextSeq, 4, '0', STR_PAD_LEFT);
 
             
 
             $inv = Invoice::create([
                 'invoice_number'      => $invoiceNumber,
-                'client_name'         => $data['client_name'],
+                'client_name'         => $data['client_name'] ?? 'Guest',
+                'client_phone'        => $data['number'] ?? null,
                 'client_email'        => $data['email'] ?? null,
                 'invoice_date'        => $data['invoice_date'],
                 'total_amount'        => $subtotal,
@@ -217,9 +213,9 @@ class InvoicesController extends Controller
                 $item = Item::findOrFail($line['item_id']);
 
                 $unitPrice = !empty($line['variant_id'])
-                    ? ItemVariant::where('id', $line['variant_id'])
-                    ->where('item_id', $item->id)->firstOrFail()->price
-                    : $item->selling_price;
+                ? ItemVariant::where('id', $line['variant_id'])
+                ->where('item_id', $item->id)->firstOrFail()->price
+                : $item->selling_price;
 
                 $item->decrement('quantity_count', $line['quantity']);
                 $lineTotal = $unitPrice * $line['quantity'];
@@ -260,7 +256,6 @@ class InvoicesController extends Controller
                 'subtotal'      => $subtotal,
             ]);
 
-            // Create Credit Record
             if ($finalAmount > 0) {
                 CustomerCredit::create([
                     'customer_id'  => $customer->id,

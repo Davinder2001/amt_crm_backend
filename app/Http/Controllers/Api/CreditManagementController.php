@@ -13,10 +13,7 @@ class CreditManagementController extends Controller
 {
     public function show($customerId)
     {
-        $credits = CustomerCredit::with('invoice', 'customer')
-            ->where('customer_id', $customerId)
-            ->where('status', '!=', 'paid')
-            ->get();
+        $credits = CustomerCredit::with('invoice', 'customer')->where('customer_id', $customerId)->where('status', '!=', 'paid')->get();
     
         if ($credits->isEmpty()) {
             return response()->json([
@@ -35,16 +32,10 @@ class CreditManagementController extends Controller
     
     public function closeDue(Request $request, $creditId)
     {
-        $selectedCredit = CustomerCredit::with('customer')->findOrFail($creditId);
-        $customerId     = $selectedCredit->customer_id;
-    
-        // Fetch all unpaid credits
-        $credits = CustomerCredit::where('customer_id', $customerId)
-            ->where('status', '!=', 'paid')
-            ->orderBy('id') // optional: sort oldest first
-            ->get();
-    
-        $totalOutstanding = $credits->sum('outstanding');
+        $selectedCredit     = CustomerCredit::with('customer')->findOrFail($creditId);
+        $customerId         = $selectedCredit->customer_id;
+        $credits            = CustomerCredit::where('customer_id', $customerId)->where('status', '!=', 'paid')->orderBy('id')->get();
+        $totalOutstanding   = $credits->sum('outstanding');
     
         $validator = Validator::make($request->all(), [
             'amount' => 'required|numeric|min:1|max:' . $totalOutstanding,
@@ -73,10 +64,7 @@ class CreditManagementController extends Controller
             }
         });
     
-        $updatedCredits = CustomerCredit::with('invoice', 'customer')
-            ->where('customer_id', $customerId)
-            ->where('status', '!=', 'paid')
-            ->get();
+        $updatedCredits = CustomerCredit::with('invoice', 'customer')->where('customer_id', $customerId)->where('status', '!=', 'paid')->get();
     
         if ($updatedCredits->isEmpty()) {
             return response()->json([
@@ -91,7 +79,5 @@ class CreditManagementController extends Controller
             'message'  => 'Payment of ₹' . $amountToPay . ' applied successfully.',
             'customer' => new CustomerCreditResource($updatedCredits),
         ]);
-    }
-    
-    
+    }   
 }

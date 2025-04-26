@@ -26,7 +26,8 @@ use App\Http\Controllers\Api\{
     ItemTaxController,
     CreditManagementController,
     AdminManagementController,
-    PredefinedTaskController
+    PredefinedTaskController,
+    NotificationController
 };
 
 
@@ -95,7 +96,7 @@ Route::prefix('v1')->group(function () {
             Route::post('remove-permission', [RolePermissionController::class, 'removePermissionFromRole']);
         });
 
-
+        // Role Permissions
         Route::prefix('users/{id}')->group(function () {
             Route::post('assign-role', [RolePermissionController::class, 'assignRole']);
             Route::post('remove-role', [RolePermissionController::class, 'removeRole']);
@@ -134,7 +135,7 @@ Route::prefix('v1')->group(function () {
             Route::post('{id}/reject', [TaskHistoryController::class, 'reject']);
         });
 
-
+        
         Route::prefix('tasks')->group(function () {
             Route::post('/', [TaskController::class, 'store'])->middleware('permission:add task');
             Route::put('{id}', [TaskController::class, 'update'])->middleware('permission:update task');
@@ -178,17 +179,17 @@ Route::prefix('v1')->group(function () {
             Route::put('/approve/{id}', [AttendanceController::class, 'approveAttendance']);
             Route::put('/reject/{id}', [AttendanceController::class, 'rejectAttendance']);
         });
-        
+
+        // Attendance and Leave Management
         Route::get('attendances', [AttendanceController::class, 'getAllAttendance']);
-
-
-
         Route::post('/apply-for-leave', [AttendanceController::class, 'applyForLeave']);
+
 
         // Salary
         Route::get('employees/salary', [SalaryController::class, 'index']);
         Route::get('employee/{id}/salary', [SalaryController::class, 'show']);
         Route::get('employee/{id}/salary-increment', [SalaryController::class, 'increment']);
+
 
         // Shifts
         Route::prefix('shifts')->group(function () {
@@ -198,6 +199,7 @@ Route::prefix('v1')->group(function () {
             Route::get('{id}', [ShiftsController::class, 'show']);
         });
 
+        
         // Store
         Route::prefix('store')->group(function () {
             // Items
@@ -219,13 +221,14 @@ Route::prefix('v1')->group(function () {
 
         });
 
-
+        // Catalog
         Route::prefix('catalog')->middleware('auth:sanctum')->group(function () {
             Route::get('/', [CatalogController::class, 'index']);
             Route::put('/add/{id}', [CatalogController::class, 'addToCatalog']);
             Route::put('/remove/{id}', [CatalogController::class, 'removeFromCatalog']);
         });
         
+        // Invoice Management
         Route::prefix('invoices')->group(function () {
             Route::get('/', [InvoicesController::class, 'index']);
             Route::get('/{id}', [InvoicesController::class, 'show']);
@@ -235,19 +238,17 @@ Route::prefix('v1')->group(function () {
             Route::post('/mail', [InvoicesController::class, 'storeAndMail']);
 
 
-            
-        Route::prefix('credits')->group(function () {
-            Route::get('/', [CreditManagementController::class, 'index']);
-            Route::get('/{id}', [CreditManagementController::class, 'show']);
-            Route::post('/{id}/pay', [CreditManagementController::class, 'closeDue']);
-        });
-        
-
+            // Due Payments Credit Management
+            Route::prefix('credits')->group(function () {
+                Route::get('/', [CreditManagementController::class, 'index']);
+                Route::get('/{id}', [CreditManagementController::class, 'show']);
+                Route::post('/{id}/pay', [CreditManagementController::class, 'closeDue']);
+            });
 
         });
     
 
-
+        // Add as a vendor and OCR Scan
         Route::prefix('add-as-vendor')->group(function () {
             Route::post('/', [StoreVendorController::class, 'addAsVendor']);
             Route::post('/ocrscan', [ProductOcrController::class, 'scanAndSaveText']);
@@ -255,6 +256,7 @@ Route::prefix('v1')->group(function () {
         });
 
 
+        // Customer Management
         Route::prefix('customers')->group(function () {
             Route::get('/', [CustomerController::class, 'index']);
             Route::post('/', [CustomerController::class, 'store']);
@@ -264,7 +266,7 @@ Route::prefix('v1')->group(function () {
         });
 
 
-                
+        // Attribute Management
         Route::prefix('attributes')->group(function () {
             Route::get('/', [AttributeController::class, 'index']);
             Route::post('/', [AttributeController::class, 'store']);
@@ -274,8 +276,10 @@ Route::prefix('v1')->group(function () {
             Route::patch('/{id}/toggle-status', [AttributeController::class, 'toggleStatus']);
         });
 
+        // Attribute Variations
         Route::get('/variations', [AttributeController::class, 'variations']);
 
+        // hr and dashboard management
         Route::prefix('hr')->controller(HRController::class)->group(function () {
             Route::get('/dashboard-summary', 'dashboardSummary');
             Route::get('/attendance-summary', 'attendanceSummary');
@@ -283,7 +287,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/leave-summary', 'leaveSummary');
         });
 
-
+        // Categories
         Route::prefix('categories')->group(function () {
             Route::get('/', [CategoryController::class, 'index']);
             Route::post('/', [CategoryController::class, 'store']);
@@ -292,7 +296,7 @@ Route::prefix('v1')->group(function () {
             Route::delete('/{id}', [CategoryController::class, 'destroy']);
         });
 
-
+        // Task Management
         Route::prefix('taxes')->group(function () {
             Route::get('/', [ItemTaxController::class, 'index']);
             Route::post('/', [ItemTaxController::class, 'store']);
@@ -301,7 +305,7 @@ Route::prefix('v1')->group(function () {
             Route::delete('/{tax}', [ItemTaxController::class, 'destroy']);
         });
 
-
+        // Predefined Tasks
         Route::prefix('predefined-tasks')->group(function () {
             Route::get('/', [PredefinedTaskController::class, 'index']);
             Route::get('/{id}', [PredefinedTaskController::class, 'show']);
@@ -310,7 +314,13 @@ Route::prefix('v1')->group(function () {
             Route::delete('/{id}', [PredefinedTaskController::class, 'destroy']);
         });
 
-
+        // Notifications
+        Route::prefix('notifications')->group(function () {
+            Route::get('/', [NotificationController::class, 'index']);
+            Route::post('/{id}/read', [NotificationController::class, 'markAsRead']);
+            Route::post('/read-all', [NotificationController::class, 'markAllAsRead']);
+        });
+        
         
     });
 });

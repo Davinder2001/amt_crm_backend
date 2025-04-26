@@ -69,7 +69,6 @@ class PredefinedTaskController extends Controller
     public function destroy(PredefinedTask $predefinedTask)
     {
         $predefinedTask->delete();
-
         return response()->json(['message' => 'Recurring task deleted.']);
     }
 }

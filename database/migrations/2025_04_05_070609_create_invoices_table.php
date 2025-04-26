@@ -13,6 +13,7 @@ class CreateInvoicesTable extends Migration
             $table->foreignId('company_id')->constrained('companies')->onDelete('cascade');
             $table->string('invoice_number')->unique();
             $table->string('client_name');
+            $table->string('client_phone')->nullable();
             $table->string('client_email')->nullable();
             $table->date('invoice_date');
             $table->decimal('total_amount', 10, 2);

@@ -159,8 +159,8 @@ class ItemsController extends Controller
      */
     public function show($id): JsonResponse
     {
-        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $item = Item::with(['variants.attributeValues.attribute', 'taxes', 'categories'])->find($id);
+        $selectedCompany    = SelectedCompanyService::getSelectedCompanyOrFail();
+        $item               = Item::with(['variants.attributeValues.attribute', 'taxes', 'categories'])->find($id);
     
         if (!$item) {
             return response()->json(['message' => 'Item not found.'], 404);
@@ -179,8 +179,8 @@ class ItemsController extends Controller
      */
     public function update(Request $request, $id): JsonResponse
     {
-        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $item = Item::find($id);
+        $selectedCompany    = SelectedCompanyService::getSelectedCompanyOrFail();
+        $item               = Item::find($id);
 
         if (!$item) {
             return response()->json(['message' => 'Item not found.'], 404);
@@ -261,8 +261,8 @@ class ItemsController extends Controller
      */
     public function destroy($id): JsonResponse
     {
-        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $item = Item::find($id);
+        $selectedCompany    = SelectedCompanyService::getSelectedCompanyOrFail();
+        $item               = Item::find($id);
 
         if (!$item) {
             return response()->json(['message' => 'Item not found.'], 404);

@@ -13,28 +13,25 @@ class HRController extends Controller
 {
     public function dashboardSummary()
     {
-        $today = Carbon::today()->toDateString();
-        $monthStart = Carbon::now()->startOfMonth()->toDateString();
-        $monthEnd = Carbon::now()->endOfMonth()->toDateString();
+        $today          = Carbon::today()->toDateString();
+        $monthStart     = Carbon::now()->startOfMonth()->toDateString();
+        $monthEnd       = Carbon::now()->endOfMonth()->toDateString();
+        $userType       = 'employee';
 
-        $userType = 'employee';
 
-        // Total employees
+
         $totalEmployees = User::where('user_type', $userType)
-            ->with(['roles.permissions', 'companies', 'employeeDetail'])
-            ->count();
+                        ->with(['roles.permissions', 'companies', 'employeeDetail'])
+                        ->count();
 
-        // Present today
-        $presentToday = Attendance::whereDate('attendance_date', $today)
-            ->where('status', 'present')
-            ->get();
+        $presentToday   = Attendance::whereDate('attendance_date', $today)
+                        ->where('status', 'present')
+                        ->get();
 
-        // Absent today = total - present
-        $absentToday = $totalEmployees - $presentToday;
+        $absentToday    = $totalEmployees - $presentToday;
+        $shifts         = Shift::pluck('start_time');
 
-        $shifts = Shift::pluck('start_time');
 
-        // Early departures (check_out < 5:00 PM)
         $earlyDepartures = Attendance::whereDate('attendance_date', $today)
             ->whereNotNull('clock_out')
             ->whereTime('clock_out', '<', $shifts)
@@ -47,7 +44,6 @@ class HRController extends Controller
             ->with('employee:id,name')
             ->get();
             
-        // Leaves this month (status = 'leave')
         $monthlyLeaves = Attendance::whereBetween('attendance_date', [$monthStart, $monthEnd])
             ->where('status', 'leave')
             ->with('employee:id,name')

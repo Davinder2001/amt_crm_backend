@@ -58,7 +58,7 @@ class RoleController extends Controller
 
         $company = SelectedCompanyService::getCompanyIdOrFail();
     
-        $data = $validator->validated();
+        $data               = $validator->validated();
         $data['guard_name'] = $data['guard_name'] ?? 'web';
         $data['company_id'] = $company;
 
@@ -80,11 +80,7 @@ class RoleController extends Controller
      */
     public function show(Role $id)
     {
-        $role = Role::where('id', $id->id)
-        ->with('permissions')
-        ->withCount('permissions')
-        ->get();
-
+        $role = Role::where('id', $id->id)->with('permissions')->withCount('permissions')->get();
 
         return response()->json([
             'message' => 'Roles retrieved successfully.',
@@ -113,7 +109,7 @@ class RoleController extends Controller
             ], 422);
         }
 
-        $data = $validator->validated();
+        $data               = $validator->validated();
         $data['guard_name'] = $data['guard_name'] ?? 'web';
         $role->update($data);
 
@@ -150,11 +146,11 @@ class RoleController extends Controller
      */
     private function getCompanyIdOrFail()
     {
-        $user = Auth::user();
-        $company = CompanyUser::where('user_id', $user->id)
-            ->where('status', 1)
-            ->with('company')
-            ->first();
+        $user       = Auth::user();
+        $company    = CompanyUser::where('user_id', $user->id)
+                    ->where('status', 1)
+                    ->with('company')
+                    ->first();
 
         if (!$company) {
             abort(response()->json([
