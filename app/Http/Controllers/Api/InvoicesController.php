@@ -19,18 +19,22 @@ use App\Services\SelectedCompanyService;
 
 class InvoicesController extends Controller
 {
+    /**
+     * Show a list of all attributes with their values.
+     */
     public function index()
     {
-        $invoices = Invoice::with(['items', 'credit'])
-            ->where('company_id', SelectedCompanyService::getSelectedCompanyOrFail()->company->id)
-            ->latest()->get();
+        $invoices   = Invoice::with(['items', 'credit'])
+                    ->where('company_id', SelectedCompanyService::getSelectedCompanyOrFail()->company->id)
+                    ->latest()->get();
 
         return response()->json([
             'status'   => true,
             'invoices' => $invoices,
         ]);
     }
-
+    
+    
     public function store(Request $request)
     {
         [$invoice] = $this->createInvoiceAndPdf($request);

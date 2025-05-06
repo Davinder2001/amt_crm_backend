@@ -68,8 +68,12 @@ class ItemsController extends Controller
     
         $data               = $validator->validated();
         $data['company_id'] = $selectedCompany->company_id;
-        $lastItemCode       = Item::where('company_id', $data['company_id'])->max('item_code');
-        $data['item_code']  = $lastItemCode ? $lastItemCode + 1 : 1;
+
+        $lastItemCode = Item::where('company_id', $data['company_id'])
+        ->select(DB::raw('MAX(CAST(item_code AS UNSIGNED)) as max_code'))
+        ->value('max_code');
+    
+        $data['item_code'] = $lastItemCode ? $lastItemCode + 1 : 1;
     
         if (!empty($data['vendor_name'])) {
             StoreVendor::firstOrCreate([

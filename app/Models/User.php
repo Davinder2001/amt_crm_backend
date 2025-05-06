@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use App\Services\UserUidService;
+use Cmgmyr\Messenger\Traits\Messagable;
 use App\Models\UserMeta;
 use App\Models\Scopes\CompanyScope;
 use Illuminate\Notifications\Notifiable;
@@ -13,7 +14,7 @@ use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, HasRoles, Notifiable;
+    use HasApiTokens, HasFactory, HasRoles, Notifiable, Messagable;
 
     protected $fillable = [
         'name',

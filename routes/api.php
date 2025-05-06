@@ -27,7 +27,8 @@ use App\Http\Controllers\Api\{
     CreditManagementController,
     AdminManagementController,
     PredefinedTaskController,
-    NotificationController
+    NotificationController,
+    MessageController
 };
 
 
@@ -320,6 +321,17 @@ Route::prefix('v1')->group(function () {
             Route::post('/{id}/read', [NotificationController::class, 'markAsRead']);
             Route::post('/read-all', [NotificationController::class, 'markAllAsRead']);
         });
+
+
+
+        Route::prefix('conversations')->group(function () {
+            Route::get('/', [MessageController::class, 'getConversations']);
+            Route::get('{id}', [MessageController::class, 'getMessages']);
+            Route::post('/', [MessageController::class, 'createConversation']);
+            Route::post('{id}/message', [MessageController::class, 'sendMessage']);
+        });
+
+        Route::get('/chats', [MessageController::class, 'getChatList']);
         
         
     });
