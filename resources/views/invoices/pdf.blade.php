@@ -141,10 +141,12 @@
                     <td><strong>Sub Total:</strong></td>
                     <td>₹{{ number_format($invoice->total_amount, 2) }}</td>
                 </tr>
-                <tr>
-                    <td><strong>Discount:</strong></td>
-                    <td>- ₹{{ number_format($invoice->discount_amount, 2) }} / {{ $invoice->discount_percentage }}%</td>
-                </tr>
+                @if($invoice->discount_amount > 0)
+                    <tr>
+                        <td><strong>Discount:</strong></td>
+                        <td>- ₹{{ number_format($invoice->discount_amount, 2) }} / {{ $invoice->discount_percentage }}%</td>
+                    </tr>
+                @endif
                 @if (!empty($invoice->tax_amount) && $invoice->tax_amount > 0)
                     <tr>
                         <td><strong>Tax:</strong></td>

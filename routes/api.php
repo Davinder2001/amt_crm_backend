@@ -323,15 +323,23 @@ Route::prefix('v1')->group(function () {
         });
 
 
+        //Get users with last messgae
+        Route::get('/chats', [MessageController::class, 'getChatList']);
 
         Route::prefix('conversations')->group(function () {
-            Route::get('/', [MessageController::class, 'getConversations']);
+
+            // Get single messages of particular user ....
             Route::get('{id}', [MessageController::class, 'getMessages']);
-            Route::post('/', [MessageController::class, 'createConversation']);
+            // Send text message to the particular user ....
             Route::post('{id}/message', [MessageController::class, 'sendMessage']);
+            // Api for mark as read messages ....
+            Route::post('{id}/read', [MessageController::class, 'markAsRead']);
+            
+
+            Route::post('/', [MessageController::class, 'createConversation']);
+            Route::get('/', [MessageController::class, 'getConversations']);
         });
 
-        Route::get('/chats', [MessageController::class, 'getChatList']);
         
         
     });
