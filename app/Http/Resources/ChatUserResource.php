@@ -8,8 +8,10 @@ class ChatUserResource extends JsonResource
 {
     public function toArray($request)
     {
+
+        dd($request->user_id ?? 'sdsdsds');
         return [
-            'user_id'           => $this->user?->id ?? null,
+            'user_id'           => $this->user_id,
             'name'              => $this->user?->name ?? 'Unknown',
             'last_message'      => $this->last_message,
             'last_message_time' => $this->last_message_time,

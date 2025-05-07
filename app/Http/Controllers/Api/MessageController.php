@@ -107,11 +107,12 @@ class MessageController extends Controller
             }, 'thread.participants.user'])
             ->where('user_id', $userId)
             ->get();
-    
-        $chatData = [];
-    
-        foreach ($participants as $participant) {
 
+            
+            $chatData = [];
+            
+            foreach ($participants as $participant) {
+                
             $conversation   = $participant->thread;
             $lastMessage    = $conversation->messages->first();
             $lastRead       = $participant->last_read;
@@ -121,12 +122,15 @@ class MessageController extends Controller
                 ->when($lastRead, fn($msgs) => $msgs->filter(fn($m) => $m->created_at > $lastRead))
                 ->count();
     
-            $chatData[] = new ChatUserResource((object)[
-                'last_message'       => $lastMessage?->body ?? null,
-                'last_message_time'  => $lastMessage?->created_at ?? null,
-                'is_read'            => $lastRead && $lastMessage && $lastMessage->created_at <= $lastRead,
-                'unread_count'       => $unreadCount,
-            ]);
+            $chatData[] = [
+                'user_id'           => $lastMessage->user_id,
+                'user_name'         => $lastMessage->user->name,
+                'last_message'      => $lastMessage->body,
+                'last_message_time' => $lastMessage->created_at,
+                'is_read'           => $lastRead && $lastMessage && $lastMessage->created_at <= $lastRead,
+                'unread_count'      => $unreadCount,
+            ];
+            
         }
     
         return response()->json([
