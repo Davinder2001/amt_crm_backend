@@ -78,31 +78,47 @@ class MessageController extends Controller
         $validator = Validator::make($request->all(), [
             'message' => 'required|string',
         ]);
-
+    
         if ($validator->fails()) {
             return response()->json([
                 'status' => 'validation_error',
                 'errors' => $validator->errors(),
             ], 422);
         }
-
-        $thread = Thread::findOrFail($id);
-
+    
+        // Try to find the thread
+        $thread = Thread::find($id);
+    
+        // If not found, create a new one
+        if (!$thread) {
+            $thread = Thread::create([
+                'subject' => 'New conversation', // or any subject based on context
+            ]);
+    
+            // Add participants if needed (assuming you have a method for this)
+            $thread->participants()->create([
+                'user_id' => $request->user()->id,
+            ]);
+        }
+    
+        // Create the message
         $message = Message::create([
             'thread_id' => $thread->id,
             'user_id'   => $request->user()->id,
             'body'      => $request->message,
         ]);
-
+    
+        // Mark message as read by sender
         $thread->participants()
             ->where('user_id', $request->user()->id)
             ->update(['last_read' => now()]);
-
+    
         return response()->json([
             'status' => 'success',
             'data'   => $message,
         ], 201);
     }
+    
 
     public function getChatList(Request $request)
     {
