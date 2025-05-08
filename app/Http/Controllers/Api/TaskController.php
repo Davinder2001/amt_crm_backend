@@ -51,8 +51,8 @@ class TaskController extends Controller
         $data = $request->except('attachment');
 
         if ($request->hasFile('attachment')) {
-            $path                       = $request->file('attachment')->store('task_attachments', 'public');
-            $data['attachment_path']    = $path;
+            $path                     = $request->file('attachment')->store('task_attachments', 'public');
+            $data['attachment_path']  = $path;
         }
 
         $data['assigned_by']    = $authUser->id;
@@ -171,16 +171,19 @@ class TaskController extends Controller
      */
     public function workingTask()
     {
-        $user   = Auth::user();
-        $tasks  = Task::where('assigned_to', $user->id)->where('status', 'working')->get();
-
+        $user = Auth::user();
+    
+        $tasks = Task::where('assigned_to', $user->id)
+            ->whereIn('status', ['working', 'submitted'])
+            ->get();
+    
         if ($tasks->isEmpty()) {
-            return response()->json(['error' => 'No working tasks found'], 404);
+            return response()->json(['error' => 'No working or submitted tasks found'], 404);
         }
-
+    
         return TaskResource::collection($tasks);
     }
-
+    
     /**
      * Change task status from pending to working.
      */
@@ -217,11 +220,34 @@ class TaskController extends Controller
 
         foreach ($admins as $admin) {
             $admin->notify(new SystemNotification(
-                title: $title,
-                message: $message,
-                type: 'info',
-                url: $url
+                title:      $title,
+                message:    $message,
+                type:       'info',
+                url:        $url
             ));
         }
     }
+
+    public function endTask($id)
+    {
+        $task = Task::find($id);
+    
+        if (!$task) {
+            return response()->json(['error' => 'Task not found'], 404);
+        }
+    
+        // Optional: Restrict ending to only certain statuses
+        if (!in_array($task->status, ['working', 'submitted'])) {
+            return response()->json(['error' => 'Only working or submitted tasks can be ended'], 400);
+        }
+    
+        $task->status = 'ended';
+        $task->save();
+    
+        return response()->json([
+            'message' => 'Task has been marked as ended.',
+            'task'    => $task
+        ], 200);
+    }
+    
 }

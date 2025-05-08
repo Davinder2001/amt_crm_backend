@@ -114,17 +114,33 @@ Route::prefix('v1')->group(function () {
         Route::delete('users/{user}', [UserController::class, 'destroy'])->middleware('permission:delete users');
 
 
+
+
+
+                
+        Route::prefix('tasks')->group(function () {
+            Route::post('/', [TaskController::class, 'store'])->middleware('permission:add task');
+            Route::put('{id}', [TaskController::class, 'update'])->middleware('permission:update task');
+            Route::delete('{id}', [TaskController::class, 'destroy'])->middleware('permission:delete task');
+            Route::post('{id}/mark-working', [TaskController::class, 'markAsWorking']);
+            Route::post('/history/{id}', [TaskHistoryController::class, 'store']);
+            Route::get('/history/{id}', [TaskHistoryController::class, 'historyByTask']);
+            Route::post('/{id}/end', [TaskController::class, 'endTask']);
+        });
+
+
+
+
+
         // Tasks
         Route::prefix('tasks')->group(function () {
             Route::get('/pending', [TaskController::class, 'assignedPendingTasks']);
             Route::get('/working', [TaskController::class, 'workingTask']);
             Route::get('/all-history', [TaskHistoryController::class, 'allHistory']);
-            Route::get('/history/{id}', [TaskHistoryController::class, 'historyByTask']);
-            Route::post('/history/{id}', [TaskHistoryController::class, 'store']);
+           
             Route::post('{id}/approve', [TaskHistoryController::class, 'approve']);
             Route::post('{id}/reject', [TaskHistoryController::class, 'reject']);
             Route::post('{id}/accept', [TaskHistoryController::class, 'acceptTask']);
-            Route::post('{id}/mark-working', [TaskController::class, 'markAsWorking']);
             Route::get('/', [TaskController::class, 'index']);
             Route::get('{id}', [TaskController::class, 'show']);
         });
@@ -136,12 +152,11 @@ Route::prefix('v1')->group(function () {
             Route::post('{id}/reject', [TaskHistoryController::class, 'reject']);
         });
 
-        
-        Route::prefix('tasks')->group(function () {
-            Route::post('/', [TaskController::class, 'store'])->middleware('permission:add task');
-            Route::put('{id}', [TaskController::class, 'update'])->middleware('permission:update task');
-            Route::delete('{id}', [TaskController::class, 'destroy'])->middleware('permission:delete task');
-        });
+
+
+
+
+
 
 
         // Employee Management

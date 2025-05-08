@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
-use Cmgmyr\Messenger\Models\Thread;
-use Cmgmyr\Messenger\Models\Participant;
-use Cmgmyr\Messenger\Models\Message;
 use App\Models\User;
+use Illuminate\Http\Request;
+use Cmgmyr\Messenger\Models\Thread;
+use Cmgmyr\Messenger\Models\Message;
+use App\Http\Controllers\Controller;
+use Cmgmyr\Messenger\Models\Participant;
+use Illuminate\Support\Facades\Validator;
 
 class MessageController extends Controller
 {
@@ -30,12 +30,11 @@ class MessageController extends Controller
 
         if (!$recipient) {
             return response()->json([
-                'status' => 'error',
+                'status'  => 'error',
                 'message' => 'Recipient not found.',
             ], 404);
         }
 
-        // Check for existing thread between the two users
         $thread = Thread::whereHas('participants', function ($q) use ($sender) {
             $q->where('user_id', $sender->id);
         })->whereHas('participants', function ($q) use ($id) {
@@ -43,56 +42,49 @@ class MessageController extends Controller
         })->first();
 
         if (!$thread) {
-            // Create new thread
             $thread = Thread::create([
                 'subject' => $request->subject ?? 'New Conversation',
             ]);
 
-            // Add both participants
             $thread->participants()->createMany([
                 ['user_id' => $sender->id],
                 ['user_id' => $id],
             ]);
         }
 
-        // Add the message
         $message = Message::create([
             'thread_id' => $thread->id,
             'user_id'   => $sender->id,
             'body'      => $request->message,
         ]);
 
-        // Update sender's last read
         $thread->participants()
             ->where('user_id', $sender->id)
             ->update(['last_read' => now()]);
 
         return response()->json([
-            'status' => 'success',
-            'data' => [
+            'status'=> 'success',
+            'data'  => [
                 'thread_id' => $thread->id,
-                'message' => $message,
+                'message'   => $message,
             ],
         ], 201);
     }
 
 
-    
-    public function chats(Request $request) 
+
+    public function chats(Request $request)
     {
-        $user = $request->user();
-    
-        $participants = Participant::where('user_id', $user->id)->get();
-    
+        $user           = $request->user();
+        $participants   = Participant::where('user_id', $user->id)->get();
+
         $latestMessages = $participants->map(function ($participant) use ($user) {
-            $threadId = $participant->thread_id;
-    
-            // Get the latest message in this thread
+            $threadId   = $participant->thread_id;
+
             $latestMessage = Message::where('thread_id', $threadId)
                 ->orderByDesc('updated_at')
                 ->first();
-    
-            // Get the other participant (excluding current user)
+
             $otherParticipant = Participant::where('thread_id', $threadId)
                 ->where('user_id', '!=', $user->id)
                 ->with('user')
@@ -100,11 +92,11 @@ class MessageController extends Controller
 
             $user_is = 'sender';
 
-            if($user->id === $otherParticipant->user_id) {
+            if ($user->id === $otherParticipant->user_id) {
                 $user_is = 'reciver';
             }
 
-    
+
             return [
                 'thread_id'         => $threadId,
                 'current_user_id'   => $user->id,
@@ -113,7 +105,7 @@ class MessageController extends Controller
                 'other_participant' => $otherParticipant,
             ];
         });
-    
+
         return response()->json([
             'latest_messages' => $latestMessages,
         ]);
@@ -121,62 +113,56 @@ class MessageController extends Controller
 
 
     public function getChatWithUser(Request $request, $id)
-{
-    $authUser = $request->user();
-    $otherUser = User::find($id);
+    {
+        $authUser   = $request->user();
+        $otherUser  = User::find($id);
 
-    if (!$otherUser) {
+        if (!$otherUser) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'User not found.',
+            ], 404);
+        }
+
+        $thread = Thread::whereHas('participants', function ($q) use ($authUser) {
+            $q->where('user_id', $authUser->id);
+        })->whereHas('participants', function ($q) use ($id) {
+            $q->where('user_id', $id);
+        })->first();
+
+        if (!$thread) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No conversation found.',
+            ], 404);
+        }
+
+        $authParticipant = Participant::where('thread_id', $thread->id)
+            ->where('user_id', $authUser->id)
+            ->first();
+
+        $messages = Message::where('thread_id', $thread->id)
+            ->orderBy('created_at', 'asc')
+            ->with('user:id,name,email')
+            ->get()
+            ->map(function ($message) use ($authUser, $authParticipant) {
+                return [
+                    'id'         => $message->id,
+                    'body'       => $message->body,
+                    'sender_id'  => $message->user_id,
+                    'sender'     => $message->user,
+                    'sent_by_me' => $message->user_id === $authUser->id,
+                    'read'       => $authParticipant && $authParticipant->last_read
+                                    ? $message->created_at <= $authParticipant->last_read
+                                    : false,
+                    'created_at' => $message->created_at->toDateTimeString(),
+                ];
+            });
+
         return response()->json([
-            'status' => 'error',
-            'message' => 'User not found.',
-        ], 404);
+            'status'    => 'success',
+            'thread_id' => $thread->id,
+            'messages'  => $messages,
+        ]);
     }
-
-    // Get the thread between both users
-    $thread = Thread::whereHas('participants', function ($q) use ($authUser) {
-        $q->where('user_id', $authUser->id);
-    })->whereHas('participants', function ($q) use ($id) {
-        $q->where('user_id', $id);
-    })->first();
-
-    if (!$thread) {
-        return response()->json([
-            'status' => 'error',
-            'message' => 'No conversation found.',
-        ], 404);
-    }
-
-    // Get authenticated user's participant data (for last_read tracking)
-    $authParticipant = Participant::where('thread_id', $thread->id)
-        ->where('user_id', $authUser->id)
-        ->first();
-
-    // Get all messages
-    $messages = Message::where('thread_id', $thread->id)
-        ->orderBy('created_at', 'asc')
-        ->with('user:id,name,email') // Include sender info
-        ->get()
-        ->map(function ($message) use ($authUser, $authParticipant) {
-            return [
-                'id'         => $message->id,
-                'body'       => $message->body,
-                'sender_id'  => $message->user_id,
-                'sender'     => $message->user,
-                'sent_by_me' => $message->user_id === $authUser->id,
-                'read'       => $authParticipant && $authParticipant->last_read
-                    ? $message->created_at <= $authParticipant->last_read
-                    : false,
-                'created_at' => $message->created_at->toDateTimeString(),
-            ];
-        });
-
-    return response()->json([
-        'status'   => 'success',
-        'thread_id' => $thread->id,
-        'messages' => $messages,
-    ]);
-}
-
-    
-    
 }

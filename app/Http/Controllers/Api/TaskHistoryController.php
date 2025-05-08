@@ -31,27 +31,29 @@ class TaskHistoryController extends Controller
             'description'      => 'required|string',
             'attachments.*'    => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
         ]);
-
+    
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
-
+    
         $task = Task::findOrFail($taskId);
-
+    
         if ($task->assigned_to != Auth::id()) {
             return response()->json([
                 'message' => 'You are not authorized to update this task.'
             ], 403);
         }
-
-        if (in_array($task->status, ['completed', 'approved', 'submitted'], true)) {
+    
+        // Allow submissions until task is 'approved' or 'completed'
+        if (in_array($task->status, ['completed', 'approved'], true)) {
             return response()->json([
                 'message' => "Task is already {$task->status}."
             ], 422);
         }
-
+    
+        // Update task status to 'submitted' on every submission
         $task->update(['status' => 'submitted']);
-
+    
         $images = [];
         if ($request->hasFile('attachments')) {
             foreach ($request->file('attachments') as $file) {
@@ -60,7 +62,7 @@ class TaskHistoryController extends Controller
                 $images[] = asset('uploads/tasks/' . $filename);
             }
         }
-
+    
         $history = TaskHistory::create([
             'task_id'      => $task->id,
             'submitted_by' => Auth::id(),
@@ -68,13 +70,13 @@ class TaskHistoryController extends Controller
             'attachments'  => $images,
             'status'       => 'submitted',
         ]);
-
+    
         return response()->json([
             'message' => 'Task update has been successfully submitted.',
             'history' => $history
         ], 201);
     }
-
+    
 
     /**
      * Approve a submitted task history (admin only).
@@ -116,20 +118,24 @@ class TaskHistoryController extends Controller
     /**
      * List history entries for a single task.
      */
-    public function historyByTask($taskId)
+    public function historyByTask($id)
     {
-        $task = Task::findOrFail($taskId);
-        $user = Auth::user();
-
-        if ($user->role !== 'admin' && $task->assigned_to !== $user->id && $task->assigned_by !== $user->id) {
-            return response()->json(['message' => 'Forbidden.'], 403);
-        }
-
-        $histories = TaskHistory::where('task_id', $taskId)->with('submitter')->latest()->get();
-
-        return response()->json($histories);
+        $userId = Auth::id();
+    
+        $histories = TaskHistory::where('task_id', $id)
+            ->where('submitted_by', $userId)
+            ->orderBy('created_at', 'desc')
+            ->get();
+    
+        return response()->json([
+            'status'    => 'success',
+            'task_id'   => $id,
+            'user_id'   => $userId,
+            'histories' => $histories,
+        ]);
     }
-
+    
+    
     /**
      * List all history entries (admins see all; others see only theirs).
      */
