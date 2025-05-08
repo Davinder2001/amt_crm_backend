@@ -329,11 +329,11 @@ Route::prefix('v1')->group(function () {
         Route::prefix('conversations')->group(function () {
 
             // Get single messages of particular user ....
-            Route::get('{id}', [MessageController::class, 'getMessages']);
+            Route::get('/{id}', [MessageController::class, 'getMessages']);
             // Send text message to the particular user ....
-            Route::post('{id}/message', [MessageController::class, 'sendMessage']);
+            Route::post('/{id}/message', [MessageController::class, 'sendMessage']);
             // Api for mark as read messages ....
-            Route::post('{id}/read', [MessageController::class, 'markAsRead']);
+            Route::post('/{id}/read', [MessageController::class, 'markAsRead']);
             
 
             Route::post('/', [MessageController::class, 'createConversation']);

@@ -107,7 +107,6 @@ class MessageController extends Controller
     public function getChatList(Request $request)
     {
         $userId     = $request->user()->id;
-
         $threadIds  = Participant::where('user_id', $userId)->pluck('thread_id');
 
         if ($threadIds->isEmpty()) {
@@ -127,23 +126,16 @@ class MessageController extends Controller
             $lastMessage = $thread->messages()->latest('created_at')->first();
             if (!$lastMessage) continue;
 
-            $senderId = $lastMessage->user_id;
-            $sender   = User::find($senderId);
-
-            $senderParticipant = Participant::where('thread_id', $threadId)
-                ->where('user_id', $senderId)
-                ->first();
-
-            $receiverParticipant = $thread->participants()
-                ->where('user_id', '!=', $userId)
-                ->first();
+            $senderId               = $lastMessage->user_id;
+            $sender                 = User::find($senderId);
+            $senderParticipant      = Participant::where('thread_id', $threadId)->where('user_id', $senderId)->first();
+            $receiverParticipant    = $thread->participants()->where('user_id', '!=', $userId)->first();
 
             if (!$receiverParticipant) continue;
 
             $receiverId = $receiverParticipant->user_id;
             $receiver   = User::find($receiverId);
-
-            $existing = $chatMap[$receiverId] ?? null;
+            $existing   = $chatMap[$receiverId] ?? null;
 
             if (
                 !$existing ||

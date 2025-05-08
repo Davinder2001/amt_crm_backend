@@ -38,7 +38,7 @@ class ShiftsController extends Controller
         $validator = Validator::make($request->all(), [
             'shift_name'    => 'required|string',
             'start_time'    => 'required|date_format:H:i',
-            'end_time'      => 'required|date_format:H:i|after:start_time',
+            'end_time'      => 'required|date_format:H:i',
         ]);
 
         if ($validator->fails()) {

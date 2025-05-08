@@ -118,8 +118,8 @@ class TaskController extends Controller
                 Storage::disk('public')->delete($task->attachment_path);
             }
 
-            $path                       = $request->file('attachment')->store('task_attachments', 'public');
-            $data['attachment_path']    = $path;
+            $path                    = $request->file('attachment')->store('task_attachments', 'public');
+            $data['attachment_path'] = $path;
         }
 
         $task->update($data);
