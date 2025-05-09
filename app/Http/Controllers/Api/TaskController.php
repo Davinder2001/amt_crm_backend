@@ -206,7 +206,11 @@ class TaskController extends Controller
         $task->save();
         $this->notifyAdmins('Task Started', "Task '{$task->name}' is now working.", "/tasks/{$task->id}");
 
-        return response()->json(['message' => 'Task status updated to working', 'task' => new TaskResource($task)], 200);
+        return response()->json([
+            'message' => 'Task status updated to working',
+            'task' => new TaskResource($task)],
+            200
+        );
     }
 
     /**
@@ -239,7 +243,6 @@ class TaskController extends Controller
             return response()->json(['error' => 'Task not found'], 404);
         }
     
-        // Optional: Restrict ending to only certain statuses
         if (!in_array($task->status, ['working', 'submitted'])) {
             return response()->json(['error' => 'Only working or submitted tasks can be ended'], 400);
         }
