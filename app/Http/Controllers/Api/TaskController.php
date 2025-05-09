@@ -160,7 +160,10 @@ class TaskController extends Controller
         $tasks  = Task::where('assigned_to', $user->id)->where('status', 'pending')->get();
 
         if ($tasks->isEmpty()) {
-            return response()->json(['error' => 'No pending tasks found'], 404);
+            return response()->json([
+                'message' => 'No pending tasks found'],
+                 200
+                );
         }
 
         return TaskResource::collection($tasks);
