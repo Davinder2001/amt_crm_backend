@@ -181,7 +181,9 @@ class TaskController extends Controller
             ->get();
     
         if ($tasks->isEmpty()) {
-            return response()->json(['error' => 'No working or submitted tasks found'], 404);
+            return response()->json([
+                'message' => 'No working or submitted tasks found'
+            ], 200);
         }
     
         return TaskResource::collection($tasks);
@@ -234,7 +236,11 @@ class TaskController extends Controller
             ));
         }
     }
+    
 
+    /**
+    * End the task
+    */
     public function endTask($id)
     {
         $task = Task::find($id);
@@ -244,7 +250,9 @@ class TaskController extends Controller
         }
     
         if (!in_array($task->status, ['working', 'submitted'])) {
-            return response()->json(['error' => 'Only working or submitted tasks can be ended'], 400);
+            return response()->json([
+                'error' => 'Only working or submitted tasks can be ended'
+            ], 400);
         }
     
         $task->status = 'ended';
@@ -255,5 +263,4 @@ class TaskController extends Controller
             'task'    => $task
         ], 200);
     }
-    
 }

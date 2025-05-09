@@ -28,15 +28,16 @@ use App\Http\Controllers\Api\{
     AdminManagementController,
     PredefinedTaskController,
     NotificationController,
-    MessageController
+    MessageController,
+    QuotationController
 };
 
 
 
-
+// Version 1 API's
 Route::prefix('v1')->group(function () {
 
-    // Guest Routes
+    // Guest API's
     Route::middleware(['api'])->group(function () {
         Route::post('login', [AuthController::class, 'login']);
         Route::post('c-login', [AuthController::class, 'companyLogin']);
@@ -50,42 +51,30 @@ Route::prefix('v1')->group(function () {
 
     });
 
+
     // Protected Routes
     Route::middleware(['auth:sanctum', 'setActiveCompany'])->group(function () {
 
 
-        //Super Admin Routes
+        //Super Admin Routes API's
         Route::middleware(['check.superadmin'])->group(function () {
-            
             Route::get('/companies/pending', [CompanyController::class, 'getPendingCompanies']);
             Route::post('/companies/{id}/payment-verify', [CompanyController::class, 'verifyPayment']);
             Route::post('/companies/{id}/status-verify', [CompanyController::class, 'verifyStatus']);
-
             Route::get('/admins-management', [AdminManagementController::class, 'index']);
             Route::post('/admin-management/{id}/status', [AdminManagementController::class, 'updateStatus']);
             Route::get('/admins/{id}', [AdminManagementController::class, 'show']);
-
-
-
         });
         
 
-
-
-
-
-
-
-
-
-        // Auth
+        // Auth API's
         Route::post('logout', [AuthController::class, 'logout']);
         Route::post('password/change', [AuthController::class, 'resetPassword']);
 
-        // Permissions
+        // Permissions API's
         Route::apiResource('permissions', PermissionController::class);
 
-        // Roles & Role Permissions
+        // Roles & Role Permissions API's
         Route::get('roles', [RoleController::class, 'index'])->middleware('permission:view roles');
         Route::post('roles', [RoleController::class, 'store'])->middleware('permission:add roles');
         Route::get('roles/{id}', [RoleController::class, 'show'])->middleware('permission:view roles');
@@ -97,7 +86,7 @@ Route::prefix('v1')->group(function () {
             Route::post('remove-permission', [RolePermissionController::class, 'removePermissionFromRole']);
         });
 
-        // Role Permissions
+        // Role Permissions API's
         Route::prefix('users/{id}')->group(function () {
             Route::post('assign-role', [RolePermissionController::class, 'assignRole']);
             Route::post('remove-role', [RolePermissionController::class, 'removeRole']);
@@ -105,7 +94,7 @@ Route::prefix('v1')->group(function () {
         });
 
 
-        // Users
+        // Users API's
         Route::get('user', [UserController::class, 'authUser']);
         Route::get('users', [UserController::class, 'index'])->middleware('permission:view users');
         Route::post('users', [UserController::class, 'store'])->middleware('permission:add users');
@@ -117,7 +106,7 @@ Route::prefix('v1')->group(function () {
 
 
 
-                
+        // Tasks original API's
         Route::prefix('tasks')->group(function () {
             Route::post('/', [TaskController::class, 'store'])->middleware('permission:add task');
             Route::put('{id}', [TaskController::class, 'update'])->middleware('permission:update task');
@@ -126,18 +115,17 @@ Route::prefix('v1')->group(function () {
             Route::post('/history/{id}', [TaskHistoryController::class, 'store']);
             Route::get('/history/{id}', [TaskHistoryController::class, 'historyByTask']);
             Route::post('/{id}/end', [TaskController::class, 'endTask']);
+            Route::get('/working', [TaskController::class, 'workingTask']);
         });
 
 
 
 
 
-        // Tasks
+        // Tasks API's
         Route::prefix('tasks')->group(function () {
             Route::get('/pending', [TaskController::class, 'assignedPendingTasks']);
-            Route::get('/working', [TaskController::class, 'workingTask']);
             Route::get('/all-history', [TaskHistoryController::class, 'allHistory']);
-           
             Route::post('{id}/approve', [TaskHistoryController::class, 'approve']);
             Route::post('{id}/reject', [TaskHistoryController::class, 'reject']);
             Route::post('{id}/accept', [TaskHistoryController::class, 'acceptTask']);
@@ -146,7 +134,7 @@ Route::prefix('v1')->group(function () {
         });
             
         
-        
+        // Task History API's
         Route::prefix('task-history')->group(function () {
             Route::post('{id}/approve', [TaskHistoryController::class, 'approve']);
             Route::post('{id}/reject', [TaskHistoryController::class, 'reject']);
@@ -159,7 +147,7 @@ Route::prefix('v1')->group(function () {
 
 
 
-        // Employee Management
+        // Employee Management API's
         Route::middleware(['injectUserType:employee'])->group(function () {
             Route::prefix('employee')->group(function () {
                 Route::get('/', [EmployeeController::class, 'index'])->middleware('permission:view employee');
@@ -173,7 +161,7 @@ Route::prefix('v1')->group(function () {
         });
 
 
-        // Companies
+        // Companies API's
         Route::prefix('companies')->group(function () {
             Route::get('/', [CompanyController::class, 'index'])->middleware('permission:view company');
             Route::post('/', [CompanyController::class, 'store'])->middleware('permission:add company');
@@ -182,12 +170,12 @@ Route::prefix('v1')->group(function () {
             Route::delete('{id}', [CompanyController::class, 'destroy'])->middleware('permission:delete company');
         });
 
-        
+        // Selected Companies API's
         Route::get('selectedCompanies', [CompanyController::class, 'getSelectedCompanies']);
         Route::post('selectedCompanies/{id}', [CompanyController::class, 'selectedCompanies']);
 
 
-        // Attendance
+        // Attendance API's
         Route::prefix('attendance')->group(function () {
             Route::post('/', [AttendanceController::class, 'recordAttendance']);
             Route::get('/{id}', [AttendanceController::class, 'getAttendance']);
@@ -196,18 +184,18 @@ Route::prefix('v1')->group(function () {
             Route::put('/reject/{id}', [AttendanceController::class, 'rejectAttendance']);
         });
 
-        // Attendance and Leave Management
+        // Attendance and Leave Management API's
         Route::get('attendances', [AttendanceController::class, 'getAllAttendance']);
         Route::post('/apply-for-leave', [AttendanceController::class, 'applyForLeave']);
 
 
-        // Salary
+        // Salary API's
         Route::get('employees/salary', [SalaryController::class, 'index']);
         Route::get('employee/{id}/salary', [SalaryController::class, 'show']);
         Route::get('employee/{id}/salary-increment', [SalaryController::class, 'increment']);
 
 
-        // Shifts
+        // Shifts API's
         Route::prefix('shifts')->group(function () {
             Route::get('/', [ShiftsController::class, 'index']);
             Route::post('/', [ShiftsController::class, 'store']);
@@ -216,9 +204,9 @@ Route::prefix('v1')->group(function () {
         });
 
         
-        // Store
+        // Store API's
         Route::prefix('store')->group(function () {
-            // Items
+            // Items API's
             Route::post('add-items', [ItemsController::class, 'store']);
             Route::get('items', [ItemsController::class, 'index']);
             Route::get('items/{id}', [ItemsController::class, 'show']);
@@ -227,7 +215,7 @@ Route::prefix('v1')->group(function () {
             Route::post('bulk-items', [ItemsController::class, 'storeBulkItems']);
             Route::get('cat-items', [ItemsController::class, 'getItemCatTree']);
 
-            // Vendors
+            // Vendors API's
             Route::get('vendors', [StoreVendorController::class, 'index']);
             Route::post('vendors', [StoreVendorController::class, 'store']);
             Route::get('vendors/{id}', [StoreVendorController::class, 'show']);
@@ -237,14 +225,14 @@ Route::prefix('v1')->group(function () {
 
         });
 
-        // Catalog
+        // Catalog API's
         Route::prefix('catalog')->middleware('auth:sanctum')->group(function () {
             Route::get('/', [CatalogController::class, 'index']);
             Route::put('/add/{id}', [CatalogController::class, 'addToCatalog']);
             Route::put('/remove/{id}', [CatalogController::class, 'removeFromCatalog']);
         });
         
-        // Invoice Management
+        // Invoice Management API's
         Route::prefix('invoices')->group(function () {
             Route::get('/', [InvoicesController::class, 'index']);
             Route::get('/{id}', [InvoicesController::class, 'show']);
@@ -254,7 +242,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/mail', [InvoicesController::class, 'storeAndMail']);
 
 
-            // Due Payments Credit Management
+            // Due Payments Credit Management API's
             Route::prefix('credits')->group(function () {
                 Route::get('/', [CreditManagementController::class, 'index']);
                 Route::get('/{id}', [CreditManagementController::class, 'show']);
@@ -264,7 +252,7 @@ Route::prefix('v1')->group(function () {
         });
     
 
-        // Add as a vendor and OCR Scan
+        // Add as a vendor and OCR Scan API's
         Route::prefix('add-as-vendor')->group(function () {
             Route::post('/', [StoreVendorController::class, 'addAsVendor']);
             Route::post('/ocrscan', [ProductOcrController::class, 'scanAndSaveText']);
@@ -272,7 +260,7 @@ Route::prefix('v1')->group(function () {
         });
 
 
-        // Customer Management
+        // Customer Management API's
         Route::prefix('customers')->group(function () {
             Route::get('/', [CustomerController::class, 'index']);
             Route::post('/', [CustomerController::class, 'store']);
@@ -282,7 +270,7 @@ Route::prefix('v1')->group(function () {
         });
 
 
-        // Attribute Management
+        // Attribute Management API's
         Route::prefix('attributes')->group(function () {
             Route::get('/', [AttributeController::class, 'index']);
             Route::post('/', [AttributeController::class, 'store']);
@@ -292,10 +280,10 @@ Route::prefix('v1')->group(function () {
             Route::patch('/{id}/toggle-status', [AttributeController::class, 'toggleStatus']);
         });
 
-        // Attribute Variations
+        // Attribute Variations API's
         Route::get('/variations', [AttributeController::class, 'variations']);
 
-        // hr and dashboard management
+        // hr and dashboard management API's
         Route::prefix('hr')->controller(HRController::class)->group(function () {
             Route::get('/dashboard-summary', 'dashboardSummary');
             Route::get('/attendance-summary', 'attendanceSummary');
@@ -303,7 +291,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/leave-summary', 'leaveSummary');
         });
 
-        // Categories
+        // Categories API's
         Route::prefix('categories')->group(function () {
             Route::get('/', [CategoryController::class, 'index']);
             Route::post('/', [CategoryController::class, 'store']);
@@ -312,7 +300,7 @@ Route::prefix('v1')->group(function () {
             Route::delete('/{id}', [CategoryController::class, 'destroy']);
         });
 
-        // Task Management
+        // Task Management API's
         Route::prefix('taxes')->group(function () {
             Route::get('/', [ItemTaxController::class, 'index']);
             Route::post('/', [ItemTaxController::class, 'store']);
@@ -321,7 +309,7 @@ Route::prefix('v1')->group(function () {
             Route::delete('/{tax}', [ItemTaxController::class, 'destroy']);
         });
 
-        // Predefined Tasks
+        // Predefined Tasks API's
         Route::prefix('predefined-tasks')->group(function () {
             Route::get('/', [PredefinedTaskController::class, 'index']);
             Route::get('/{id}', [PredefinedTaskController::class, 'show']);
@@ -330,21 +318,26 @@ Route::prefix('v1')->group(function () {
             Route::delete('/{id}', [PredefinedTaskController::class, 'destroy']);
         });
 
-        // Notifications
+        // Notifications API's
         Route::prefix('notifications')->group(function () {
             Route::get('/', [NotificationController::class, 'index']);
             Route::post('/{id}/read', [NotificationController::class, 'markAsRead']);
             Route::post('/read-all', [NotificationController::class, 'markAllAsRead']);
         });
 
-
+        // Chats API's
         Route::prefix('chats')->group(function () {
-
             Route::get('/', [MessageController::class, 'chats']);
             Route::post('/{id}/message', [MessageController::class, 'sendMessageToUser']);
             Route::get('/with-user/{id}', [MessageController::class, 'getChatWithUser']);
-            Route::get('/users', [MessageController::class, 'chatUsers']);
-        
+            Route::get('/users', [MessageController::class, 'chatUsers']);       
+        });
+
+        // Qutation API's
+        Route::prefix('quotations')->group(function () {
+            Route::get('/', [QuotationController::class, 'index']);
+            Route::post('/', [QuotationController::class, 'store']);
+            Route::get('/{id}/pdf', [QuotationController::class, 'generatePdf']);
         });
         
         
