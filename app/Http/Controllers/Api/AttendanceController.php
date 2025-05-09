@@ -227,6 +227,29 @@ class AttendanceController extends Controller
     }
 
 
+    public function myAttendance(Request $request)
+    {
+        $date = $request->query('date');
+        $authUserId = $request->user()->id;
+    
+        if ($date) {
+            $attendances = Attendance::with('user')
+                ->where('user_id', $authUserId)
+                ->where('attendance_date', $date)
+                ->orderBy('attendance_date', 'desc')
+                ->get();
+        } else {
+            $attendances = Attendance::with('user')
+                ->where('user_id', $authUserId)
+                ->orderBy('attendance_date', 'desc')
+                ->get();
+        }
+    
+        return response()->json([
+            'attendance' => AttendanceResource::collection($attendances),
+        ], 200);
+    }
+    
     /**
      * Get the attendance.
      */
@@ -245,7 +268,6 @@ class AttendanceController extends Controller
     
         return response()->json([
             'attendance' => AttendanceResource::collection($attendances),
-            'app_url'    => config('app.url'),
         ], 200);
     }
     

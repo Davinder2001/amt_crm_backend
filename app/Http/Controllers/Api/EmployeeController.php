@@ -70,7 +70,7 @@ class EmployeeController extends Controller
             'dob'                       => 'required|date',
             'religion'                  => 'required|string|min:3|max:30',
             'maritalStatus'             => 'required|string|max:20',
-            'passportNo'                => 'required|string|size:8',
+            'passportNo'                => 'nullable|string|size:8',
             'emergencyContact'          => 'required|string|size:10',
             'emergencyContactRelation'  => 'required|string|min:3|max:30',
             'currentSalary'             => 'required|numeric|min:0',

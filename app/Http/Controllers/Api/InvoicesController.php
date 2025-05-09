@@ -11,6 +11,7 @@ use App\Models\CustomerHistory;
 use App\Models\CustomerCredit;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
@@ -126,6 +127,7 @@ class InvoicesController extends Controller
             'invoice_date'       => 'required|date',
             'payment_method'     => 'required|string',
             'discount_price'     => 'nullable|numeric|min:0',
+            'discount_percentage'=> 'nullable|numeric|min:0',
             'items'              => 'required|array|min:1',
             'items.*.item_id'    => 'required|exists:store_items,id',
             'items.*.variant_id' => 'nullable|exists:item_variants,id',
@@ -179,8 +181,8 @@ class InvoicesController extends Controller
             $finalAmount        = max(0, $subtotal - $discountAmount);
 
             $customer = Customer::firstOrCreate(
-                ['number' => $data['number'], 'company_id' => $selectedCompany->id],
-                ['name' => $data['client_name'], 'email' => $data['email'] ?? null]
+                ['number'   => $data['number'], 'company_id' => $selectedCompany->id],
+                ['name'     => $data['client_name'], 'email' => $data['email'] ?? null]
             );
 
             $companyCode =  $selectedCompany->company->company_id;
@@ -229,9 +231,8 @@ class InvoicesController extends Controller
                 ->where('item_tax.store_item_id', $item->id)
                 ->value('taxes.rate') ?? 0;
 
-                $taxAmount = $unitPrice * $taxPercentage / 100;
-
-                $totalAmount = $lineTotal + $taxAmount;
+                $taxAmount      = $unitPrice * $taxPercentage / 100;
+                $totalAmount    = $lineTotal + $taxAmount;
 
                 $inv->items()->create([
                     'item_id'        => $item->id,
@@ -290,6 +291,58 @@ class InvoicesController extends Controller
 
         return [$invoice, $pdf->output()];
     }
+
+    public function sendToWhatsapp($id)
+    {
+        $invoice         = Invoice::with('items')->findOrFail($id);
+        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+        $company         = $selectedCompany->company;
+        $issuedBy        = Auth::user()->name;
+    
+        // Generate PDF from invoice view
+        $pdf = Pdf::loadView('invoices.pdf', [
+            'invoice'         => $invoice,
+            'company_name'    => $company->company_name,
+            'company_address' => $company->address ?? 'N/A',
+            'company_phone'   => $company->phone ?? 'N/A',
+            'company_gstin'   => $company->gstin ?? 'N/A',
+            'issued_by'       => $issuedBy,
+            'footer_note'     => 'Thank you for your business',
+            'show_signature'  => true,
+        ]);
+    
+        // Convert PDF to base64
+        $pdfBinary = $pdf->output();
+        $pdfBase64 = base64_encode($pdfBinary);
+        $fileName  = 'invoice_' . $invoice->invoice_number . '.pdf';
+    
+        // Prepare WhatsApp number (digits only)
+        $whatsappNumber = preg_replace('/\D/', '', $invoice->client_phone);
+        if (!$whatsappNumber) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Client phone number not valid.',
+            ], 400);
+        }
+    
+        // Create WhatsApp message
+        $message = rawurlencode("Hello *{$invoice->client_name}*,\n\nPlease find your invoice attached.");
+        $whatsappUrl = "https://wa.me/{$whatsappNumber}?text={$message}";
+    
+        // Return everything needed for client-side manual sharing
+        return response()->json([
+            'status'        => true,
+            'message'       => 'Invoice generated and ready to share.',
+            'filename'      => $fileName,
+            'pdf_base64'    => $pdfBase64,
+            'whatsapp_url'  => $whatsappUrl,
+        ]);
+    }
+    
+    
+    
+
+
 
     public function show($id)
     {

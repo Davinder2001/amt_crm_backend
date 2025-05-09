@@ -177,9 +177,10 @@ Route::prefix('v1')->group(function () {
 
         // Attendance API's
         Route::prefix('attendance')->group(function () {
+            Route::get('/all', [AttendanceController::class, 'getAllAttendance']);
+            Route::get('/my', [AttendanceController::class, 'myAttendance']);
             Route::post('/', [AttendanceController::class, 'recordAttendance']);
             Route::get('/{id}', [AttendanceController::class, 'getAttendance']);
-            Route::get('/all', [AttendanceController::class, 'getAllAttendance']);
             Route::put('/approve/{id}', [AttendanceController::class, 'approveAttendance']);
             Route::put('/reject/{id}', [AttendanceController::class, 'rejectAttendance']);
         });
@@ -240,7 +241,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/', [InvoicesController::class, 'store']);
             Route::post('/print', [InvoicesController::class, 'storeAndPrint']);
             Route::post('/mail', [InvoicesController::class, 'storeAndMail']);
-
+            Route::post('/{id}/whatsapp', [InvoicesController::class, 'sendToWhatsapp']);
 
             // Due Payments Credit Management API's
             Route::prefix('credits')->group(function () {
