@@ -343,6 +343,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/', [MessageController::class, 'chats']);
             Route::post('/{id}/message', [MessageController::class, 'sendMessageToUser']);
             Route::get('/with-user/{id}', [MessageController::class, 'getChatWithUser']);
+            Route::get('/users', [MessageController::class, 'chatUsers']);
         
         });
         
