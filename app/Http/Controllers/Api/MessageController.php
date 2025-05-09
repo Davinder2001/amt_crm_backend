@@ -165,25 +165,22 @@ class MessageController extends Controller
             'messages'  => $messages,
         ]);
     }
-    
+
     public function chatUsers(Request $request) 
     {
         $authUserId = $request->user()->id;
-    
-        $users = User::with('roles')->get()->map(function ($user) use ($authUserId) {
-            $name = $user->name;
-            if ($user->id === $authUserId) {
-                $name .= ' (You)';
-            }
-    
-            return [
-                'id'   => $user->id,
-                'name' => $name,
-                'role' => $user->getRoleNames()->first(),
-            ];
-        });
-    
+
+        $users = User::with('roles')
+            ->where('id', '!=', $authUserId) 
+            ->get()
+            ->map(function ($user) {
+                return [
+                    'id'   => $user->id,
+                    'name' => $user->name,
+                    'role' => $user->getRoleNames()->first(),
+                ];
+            });
+
         return response()->json($users);
     }
-    
 }

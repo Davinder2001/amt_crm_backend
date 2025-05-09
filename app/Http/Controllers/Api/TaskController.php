@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Task;
 use App\Models\User;
+use App\Models\TaskReminder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Notifications\SystemNotification;
@@ -55,10 +56,10 @@ class TaskController extends Controller
             $data['attachment_path']  = $path;
         }
 
-        $data['assigned_by']    = $authUser->id;
-        $data['company_id']     = $activeCompanyId->company_id;
-        $data['notify']         = (bool) $request->notify;
-        $data['status']         = $request->input('status', 'pending');
+        $data['assigned_by'] = $authUser->id;
+        $data['company_id']  = $activeCompanyId->company_id;
+        $data['notify']      = (bool) $request->notify;
+        $data['status']      = $request->input('status', 'pending');
 
         $task = Task::create($data);
 
@@ -77,7 +78,9 @@ class TaskController extends Controller
         $task = Task::find($id);
 
         if (!$task) {
-            return response()->json(['error' => 'Task not found'], 404);
+            return response()->json([
+                'error' => 'Task not found'
+            ], 404);
         }
 
         return response()->json(new TaskResource($task), 200);
@@ -148,7 +151,9 @@ class TaskController extends Controller
 
         $this->notifyAdmins('Task Deleted', "Task '{$taskName}' has been deleted.", "/tasks");
 
-        return response()->json(['message' => 'Task deleted successfully'], 200);
+        return response()->json([
+            'message' => 'Task deleted successfully'
+        ], 200);
     }
 
     /**
@@ -174,11 +179,8 @@ class TaskController extends Controller
      */
     public function workingTask()
     {
-        $user = Auth::user();
-    
-        $tasks = Task::where('assigned_to', $user->id)
-            ->whereIn('status', ['working', 'submitted'])
-            ->get();
+        $user   = Auth::user();
+        $tasks  = Task::where('assigned_to', $user->id)->whereIn('status', ['working', 'submitted'])->get();
     
         if ($tasks->isEmpty()) {
             return response()->json([
@@ -236,7 +238,7 @@ class TaskController extends Controller
             ));
         }
     }
-    
+
 
     /**
     * End the task
@@ -263,4 +265,69 @@ class TaskController extends Controller
             'task'    => $task
         ], 200);
     }
+
+    
+
+    public function setReminder(Request $request, $taskId)
+    {
+        $request->validate([
+            'reminder_at' => 'required|date|before_or_equal:end_date',
+            'end_date'    => 'required|date|after_or_equal:reminder_at',
+        ]);
+
+        $reminder = TaskReminder::updateOrCreate(
+            [
+                'user_id' => Auth::id(),
+                'task_id' => $taskId,
+            ],
+            [
+                'reminder_at'   => $request->reminder_at,
+                'task_end_date' => $request->end_date,
+            ]
+        );
+
+        return response()->json([
+            'message'   => 'Reminder set successfully.',
+            'reminder'  => $reminder,
+        ]);
+    }
+
+
+    public function viewReminder($taskId)
+    {
+        $reminder = TaskReminder::where('task_id', $taskId)->where('user_id', Auth::id())->first();
+
+        if (!$reminder) {
+            return response()->json(['message' => 'No reminder found.'], 404);
+        }
+
+        return response()->json([
+            'message'   => 'Reminder retrieved.',
+            'reminder'  => $reminder,
+        ]);
+    }
+
+    public function updateReminder(Request $request, $taskId)
+    {
+        $request->validate([
+            'reminder_at' => 'required|date|before_or_equal:end_date',
+            'end_date'    => 'required|date|after_or_equal:reminder_at',
+        ]);
+    
+        $reminder = TaskReminder::where('task_id', $taskId)->where('user_id', Auth::id())->first();
+    
+        if (!$reminder) {
+            return response()->json(['message' => 'Reminder not found.'], 404);
+        }
+    
+        $reminder->update([
+            'reminder_at'   => $request->reminder_at,
+            'task_end_date' => $request->end_date,
+        ]);
+    
+        return response()->json([
+            'message' => 'Reminder updated successfully.',
+            'reminder' => $reminder,
+        ]);
+    }    
 }

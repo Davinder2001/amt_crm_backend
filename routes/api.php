@@ -118,6 +118,10 @@ Route::prefix('v1')->group(function () {
             Route::get('/working', [TaskController::class, 'workingTask']);
         });
 
+        Route::post('/tasks/{taskId}/set-reminder', [TaskController::class, 'setReminder']);
+        Route::get('/tasks/{taskId}/reminder', [TaskController::class, 'viewReminder']);
+        Route::put('/tasks/{taskId}/update-reminder', [TaskController::class, 'updateReminder']);
+
 
 
 
