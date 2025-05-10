@@ -14,6 +14,7 @@ return new class extends Migration
             $table->string('shift_name');
             $table->time('start_time');
             $table->time('end_time');
+            $table->string('weekly_off_day')->nullable();
             $table->timestamps();
         });
     }

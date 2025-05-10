@@ -21,119 +21,119 @@ class AttendanceController extends Controller
     {
         $user       = $request->user();
         $company    = $user->companies()->first();
-    
+
         if (!$company) {
             return response()->json([
                 'message' => 'User is not associated with any company.'
             ], 422);
         }
-    
+
         $today      = Carbon::today()->toDateString();
-    
+
         $attendance = Attendance::firstOrNew([
             'user_id'         => $user->id,
             'attendance_date' => $today,
         ]);
-    
+
         if ($attendance->exists && $attendance->status === 'leave' && $attendance->approval_status === 'rejected') {
             $validator  = Validator::make($request->all(), [
                 'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             ]);
-    
+
             if ($validator->fails()) {
                 return response()->json([
                     'message' => 'Validation errors.',
                     'errors'  => $validator->errors(),
                 ], 422);
             }
-    
-            $image      = $request->file('image');
-            $imageName  = uniqid('attendance_', true) . '.' . $image->getClientOriginalExtension();
-            $image->move(public_path('images/attendance_images'), $imageName);
-    
-            $clockInImagePath   = 'images/attendance_images/' . $imageName;
-            $time               = Carbon::now('Asia/Kolkata')->format('h:i A');
-    
-            $attendance->company_id       = $company->id;
-            $attendance->clock_in         = $time;
-            $attendance->clock_in_image   = $clockInImagePath;
-            $attendance->status           = 'present';
-            $attendance->approval_status  = 'pending'; 
-            $attendance->save();
-    
-            return response()->json([
-                'message'    => 'Leave overridden. Clocked in successfully.',
-                'attendance' => $attendance,
-            ]);
-        }
-    
-        if (!$attendance->exists) {
-            $validator = Validator::make($request->all(), [
-                'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-            ]);
-    
-            if ($validator->fails()) {
-                return response()->json([
-                    'message' => 'Validation errors.',
-                    'errors'  => $validator->errors(),
-                ], 422);
-            }
-    
+
             $image      = $request->file('image');
             $imageName  = uniqid('attendance_', true) . '.' . $image->getClientOriginalExtension();
             $image->move(public_path('images/attendance_images'), $imageName);
 
-            $clockInImagePath = 'images/attendance_images/' . $imageName;
-            $time = Carbon::now('Asia/Kolkata')->format('h:i A');
-    
+            $clockInImagePath   = 'images/attendance_images/' . $imageName;
+            $time               = Carbon::now('Asia/Kolkata')->format('h:i A');
+
             $attendance->company_id       = $company->id;
             $attendance->clock_in         = $time;
             $attendance->clock_in_image   = $clockInImagePath;
             $attendance->status           = 'present';
             $attendance->approval_status  = 'pending';
             $attendance->save();
-    
+
             return response()->json([
-                'message'    => 'Clocked in successfully.',
+                'message'    => 'Leave overridden. Clocked in successfully.',
                 'attendance' => $attendance,
             ]);
         }
-    
-        if ($attendance->clock_in && !$attendance->clock_out) {
-            $validator  = Validator::make($request->all(), [
+
+        if (!$attendance->exists) {
+            $validator = Validator::make($request->all(), [
                 'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             ]);
-    
+
             if ($validator->fails()) {
                 return response()->json([
                     'message' => 'Validation errors.',
                     'errors'  => $validator->errors(),
                 ], 422);
             }
-    
+
             $image      = $request->file('image');
             $imageName  = uniqid('attendance_', true) . '.' . $image->getClientOriginalExtension();
-       
             $image->move(public_path('images/attendance_images'), $imageName);
-       
+
+            $clockInImagePath = 'images/attendance_images/' . $imageName;
+            $time = Carbon::now('Asia/Kolkata')->format('h:i A');
+
+            $attendance->company_id       = $company->id;
+            $attendance->clock_in         = $time;
+            $attendance->clock_in_image   = $clockInImagePath;
+            $attendance->status           = 'present';
+            $attendance->approval_status  = 'pending';
+            $attendance->save();
+
+            return response()->json([
+                'message'    => 'Clocked in successfully.',
+                'attendance' => $attendance,
+            ]);
+        }
+
+        if ($attendance->clock_in && !$attendance->clock_out) {
+            $validator  = Validator::make($request->all(), [
+                'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'message' => 'Validation errors.',
+                    'errors'  => $validator->errors(),
+                ], 422);
+            }
+
+            $image      = $request->file('image');
+            $imageName  = uniqid('attendance_', true) . '.' . $image->getClientOriginalExtension();
+
+            $image->move(public_path('images/attendance_images'), $imageName);
+
             $clockOutImagePath              = 'images/attendance_images/' . $imageName;
             $time                           = Carbon::now('Asia/Kolkata')->format('h:i A');
             $attendance->clock_out          = $time;
             $attendance->clock_out_image    = $clockOutImagePath;
             $attendance->save();
-    
+
             return response()->json([
                 'message'    => 'Clocked out successfully.',
                 'attendance' => $attendance,
             ]);
         }
-    
+
         return response()->json([
             'message' => 'Attendance already recorded for today.',
             'date'    => $today,
         ], 422);
     }
-    
+
 
     /**
      * Applay for leave current day.
@@ -142,41 +142,41 @@ class AttendanceController extends Controller
     {
         $user       = $request->user();
         $company    = $user->companies()->first();
-    
+
         if (!$company) {
             return response()->json([
                 'message' => 'User is not associated with any company.',
             ], 422);
         }
-    
+
         $validator = Validator::make($request->all(), [
             'dates'   => 'required|array|min:1',
             'dates.*' => 'required|date|date_format:Y-m-d',
         ]);
-    
+
         if ($validator->fails()) {
             return response()->json([
                 'message' => 'Validation failed.',
                 'errors'  => $validator->errors(),
             ], 422);
         }
-    
+
         $validated      = $validator->validated();
         $appliedLeaves  = [];
         $skippedDates   = [];
-    
+
         foreach ($validated['dates'] as $date) {
-    
+
             $attendance = Attendance::firstOrNew([
                 'user_id'         => $user->id,
                 'attendance_date' => $date,
             ]);
-    
+
             if ($attendance->exists) {
                 $skippedDates[] = $date;
                 continue;
             }
-    
+
             $attendance->company_id       = $company->id;
             $attendance->status           = 'leave';
             $attendance->approval_status  = 'pending';
@@ -185,18 +185,18 @@ class AttendanceController extends Controller
             $attendance->clock_in         = '-';
             $attendance->clock_in_image   = null;
             $attendance->save();
-    
+
             $appliedLeaves[] = $attendance;
         }
-    
+
         return response()->json([
             'message'       => 'Leave application processed.',
             'applied'       => $appliedLeaves,
             'already_exist' => $skippedDates,
         ]);
     }
-    
-    
+
+
     /**
      * Retrieve attendance records for the logged-in user.
      */
@@ -209,7 +209,7 @@ class AttendanceController extends Controller
             $attendance = Attendance::where('user_id', $user->id)->where('attendance_date', $date)->first();
 
             if (!$attendance) {
-                return response()->json([ 
+                return response()->json([
                     'message' => 'No attendance found for the specified date.'
                 ], 404);
             }
@@ -231,7 +231,7 @@ class AttendanceController extends Controller
     {
         $date = $request->query('date');
         $authUserId = $request->user()->id;
-    
+
         if ($date) {
             $attendances = Attendance::with('user')
                 ->where('user_id', $authUserId)
@@ -244,34 +244,33 @@ class AttendanceController extends Controller
                 ->orderBy('attendance_date', 'desc')
                 ->get();
         }
-    
+
         return response()->json([
             'attendance' => AttendanceResource::collection($attendances),
         ], 200);
     }
-    
+
     /**
      * Get the attendance.
      */
     public function getAllAttendance(Request $request): JsonResponse
     {
         $date = $request->query('date');
-    
+
         if ($date) {
 
             $attendances = Attendance::with('user')->where('attendance_date', $date)->orderBy('user_id')->get();
-        
         } else {
-        
+
             $attendances = Attendance::with('user')->orderBy('attendance_date', 'desc')->get();
         }
-    
+
         return response()->json([
             'attendance' => AttendanceResource::collection($attendances),
         ], 200);
     }
-    
-    
+
+
     /**
      * Approve the attendance.
      */
@@ -324,5 +323,42 @@ class AttendanceController extends Controller
                 'clock_out_image'   => $attendance->clock_out_image,
             ]
         ], 200);
+    }
+
+
+    /**
+     * Get attendance summary by custom date range from request body.
+     */
+    public function getAttendanceSummary(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'start_date' => 'required|date|date_format:Y-m-d',
+            'end_date'   => 'required|date|date_format:Y-m-d|after_or_equal:start_date',
+            'mode'       => 'nullable|string|in:range',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed.',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        $validated  = $validator->validated();
+        $start      = Carbon::parse($validated['start_date'])->startOfDay();
+        $end        = Carbon::parse($validated['end_date'])->endOfDay();
+
+        $query = Attendance::with('user')
+            ->whereBetween('attendance_date', [$start->toDateString(), $end->toDateString()])
+            ->orderBy('attendance_date', 'desc');
+
+        $attendances = $query->get();
+
+        return response()->json([
+            'mode'        => $validated['mode'] ?? 'range',
+            'start_date'  => $start->toDateString(),
+            'end_date'    => $end->toDateString(),
+            'attendance'  => AttendanceResource::collection($attendances),
+        ]);
     }
 }

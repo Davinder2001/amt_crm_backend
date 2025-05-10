@@ -25,8 +25,8 @@ class MessageController extends Controller
             ], 422);
         }
 
-        $sender = $request->user();
-        $recipient = User::find($id);
+        $sender     = $request->user();
+        $recipient  = User::find($id);
 
         if (!$recipient) {
             return response()->json([
@@ -63,7 +63,7 @@ class MessageController extends Controller
             ->update(['last_read' => now()]);
 
         return response()->json([
-            'status'=> 'success',
+            'status' => 'success',
             'data'  => [
                 'thread_id' => $thread->id,
                 'message'   => $message,
@@ -75,20 +75,12 @@ class MessageController extends Controller
 
     public function chats(Request $request)
     {
-        $user           = $request->user();
-        $participants   = Participant::where('user_id', $user->id)->get();
-
-        $latestMessages = $participants->map(function ($participant) use ($user) {
-            $threadId   = $participant->thread_id;
-
-            $latestMessage = Message::where('thread_id', $threadId)
-                ->orderByDesc('updated_at')
-                ->first();
-
-            $otherParticipant = Participant::where('thread_id', $threadId)
-                ->where('user_id', '!=', $user->id)
-                ->with('user')
-                ->first();
+        $user               = $request->user();
+        $participants       = Participant::where('user_id', $user->id)->get();
+        $latestMessages     = $participants->map(function ($participant) use ($user) {
+            $threadId           = $participant->thread_id;
+            $latestMessage      = Message::where('thread_id', $threadId)->orderByDesc('updated_at')->first();
+            $otherParticipant   = Participant::where('thread_id', $threadId)->where('user_id', '!=', $user->id)->with('user')->first();
 
             $user_is = 'sender';
 
@@ -153,8 +145,8 @@ class MessageController extends Controller
                     'sender'     => $message->user,
                     'sent_by_me' => $message->user_id === $authUser->id,
                     'read'       => $authParticipant && $authParticipant->last_read
-                                    ? $message->created_at <= $authParticipant->last_read
-                                    : false,
+                        ? $message->created_at <= $authParticipant->last_read
+                        : false,
                     'created_at' => $message->created_at->toDateTimeString(),
                 ];
             });
@@ -166,12 +158,12 @@ class MessageController extends Controller
         ]);
     }
 
-    public function chatUsers(Request $request) 
+    public function chatUsers(Request $request)
     {
         $authUserId = $request->user()->id;
 
         $users = User::with('roles')
-            ->where('id', '!=', $authUserId) 
+            ->where('id', '!=', $authUserId)
             ->get()
             ->map(function ($user) {
                 return [
@@ -182,5 +174,69 @@ class MessageController extends Controller
             });
 
         return response()->json($users);
+    }
+
+
+    public function deleteMessage(Request $request, $messageId)
+    {
+        $authUser = $request->user();
+
+        $message = Message::find($messageId);
+
+        if (!$message) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Message not found.',
+            ], 404);
+        }
+
+        if ($message->user_id !== $authUser->id) {
+            return response()->json([
+                'status'  => 'forbidden',
+                'message' => 'You are not allowed to delete this message.',
+            ], 403);
+        }
+
+        $message->delete();
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Message deleted successfully.',
+        ]);
+    }
+
+    public function deleteAllChatsWithUser(Request $request, $id)
+    {
+        $authUser = $request->user();
+        $otherUser = User::find($id);
+
+        if (!$otherUser) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'User not found.',
+            ], 404);
+        }
+
+        $thread = Thread::whereHas('participants', function ($q) use ($authUser) {
+            $q->where('user_id', $authUser->id);
+        })->whereHas('participants', function ($q) use ($id) {
+            $q->where('user_id', $id);
+        })->first();
+
+        if (!$thread) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No conversation found.',
+            ], 404);
+        }
+
+        Message::where('thread_id', $thread->id)->delete();
+        Participant::where('thread_id', $thread->id)->delete();
+        $thread->delete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'All chats with the user have been deleted.',
+        ]);
     }
 }

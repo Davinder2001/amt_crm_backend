@@ -29,7 +29,8 @@ use App\Http\Controllers\Api\{
     PredefinedTaskController,
     NotificationController,
     MessageController,
-    QuotationController
+    QuotationController,
+    PhonePeController
 };
 
 
@@ -181,6 +182,7 @@ Route::prefix('v1')->group(function () {
 
         // Attendance API's
         Route::prefix('attendance')->group(function () {
+            Route::get('/summary', [AttendanceController::class, 'getAttendanceSummary']);
             Route::get('/all', [AttendanceController::class, 'getAllAttendance']);
             Route::get('/my', [AttendanceController::class, 'myAttendance']);
             Route::post('/', [AttendanceController::class, 'recordAttendance']);
@@ -335,7 +337,9 @@ Route::prefix('v1')->group(function () {
             Route::get('/', [MessageController::class, 'chats']);
             Route::post('/{id}/message', [MessageController::class, 'sendMessageToUser']);
             Route::get('/with-user/{id}', [MessageController::class, 'getChatWithUser']);
-            Route::get('/users', [MessageController::class, 'chatUsers']);       
+            Route::get('/users', [MessageController::class, 'chatUsers']);      
+            Route::delete('/message/{messageId}', [MessageController::class, 'deleteMessage']);
+            Route::delete('/with-user/{id}', [MessageController::class, 'deleteAllChatsWithUser']);  
         });
 
         // Qutation API's
@@ -349,3 +353,8 @@ Route::prefix('v1')->group(function () {
         
     });
 });
+
+Route::post('/phonepe/pay', [PhonePeController::class, 'initiate']);
+Route::post('/payment/callback', [PhonePeController::class, 'callback']);
+
+

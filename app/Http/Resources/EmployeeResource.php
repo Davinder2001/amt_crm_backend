@@ -18,6 +18,7 @@ class EmployeeResource extends JsonResource
         $company = $this->companies->first(); 
 
 
+
         return [
             'id'            => $this->id,
             'name'          => $this->name,
@@ -32,12 +33,20 @@ class EmployeeResource extends JsonResource
             'roles'         => RoleResource::collection($this->whenLoaded('roles')),
 
            'employee_details' => $this->whenLoaded('employeeDetail', function () {
+              
+            $shift = $this->employeeDetail->shift;
+            
             return [
                 'user_id'                   => $this->employeeDetail->user_id ?? null,
                 'salary'                   => $this->employeeDetail->salary ?? null,
                 'dateOfHire'               => $this->employeeDetail->dateOfHire ?? null,
                 'joiningDate'              => $this->employeeDetail->joiningDate ?? null,
-                'shiftTimings'             => $this->employeeDetail->shiftTimings ?? null,
+                   'shift' => $shift ? [
+                        'id'          => $shift->id,
+                        'name'        => $shift->shift_name,
+                        'start_time'  => $shift->start_time,
+                        'end_time'    => $shift->end_time,
+                ] : null,
                 'address'                  => $this->employeeDetail->address ?? null,
                 'nationality'              => $this->employeeDetail->nationality ?? null,
                 'dob'                      => $this->employeeDetail->dob ?? null,

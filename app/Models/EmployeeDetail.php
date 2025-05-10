@@ -37,7 +37,7 @@ class EmployeeDetail extends Model
         'addressProof',
         'profilePicture',
     ];
-    
+
 
     /**
      * Relationship: EmployeeDetail belongs to an Employee.
@@ -48,11 +48,18 @@ class EmployeeDetail extends Model
     }
 
     /**
+     * Relationship: EmployeeDetail belongs to shift.
+     */
+    public function shift()
+    {
+        return $this->belongsTo(Shift::class, 'shift_id');
+    }
+
+    /**
      * Relationship: EmployeeDetail belongs to a Company.
      */
     protected static function booted(): void
     {
         static::addGlobalScope(new CompanyScope);
     }
-
 }

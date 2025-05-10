@@ -25,8 +25,8 @@ class ShiftsController extends Controller
         $shifts = Shift::all();
 
         return response()->json([
-            'message'   => 'Shifts retrieved successfully.',
-            'data'      => $shifts
+            'message' => 'Shifts retrieved successfully.',
+            'data'    => $shifts
         ], 200);
     }
 
@@ -36,25 +36,27 @@ class ShiftsController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'shift_name'    => 'required|string',
-            'start_time'    => 'required|date_format:H:i',
-            'end_time'      => 'required|date_format:H:i',
+            'shift_name'      => 'required|string',
+            'start_time'      => 'required|date_format:H:i',
+            'end_time'        => 'required|date_format:H:i|after:start_time',
+            'weekly_off_day'  => 'required|string|in:Sunday,Monday,Tuesday,Wednesday,Thursday,Friday,Saturday',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
-                'message'   => 'Validation failed.',
-                'errors'    => $validator->errors()
+                'message' => 'Validation failed.',
+                'errors'  => $validator->errors()
             ], 422);
         }
 
         $company = $this->selectcompanyService->getSelectedCompanyOrFail();
 
         Shift::create([
-            'company_id'    => $company->company_id,
-            'shift_name'    => $request->shift_name,
-            'start_time'    => $request->start_time,
-            'end_time'      => $request->end_time,
+            'company_id'      => $company->company_id,
+            'shift_name'      => $request->shift_name,
+            'start_time'      => $request->start_time,
+            'end_time'        => $request->end_time,
+            'weekly_off_day'  => $request->weekly_off_day,
         ]);
 
         return response()->json([
@@ -62,7 +64,25 @@ class ShiftsController extends Controller
         ], 201);
     }
 
-    
+    /**
+     * Show the specified resource.
+     */
+    public function show($id)
+    {
+        $shift = Shift::find($id);
+
+        if (!$shift) {
+            return response()->json([
+                'message' => 'Shift not found.'
+            ], 404);
+        }
+
+        return response()->json([
+            'message' => 'Shift retrieved successfully.',
+            'data'    => $shift
+        ], 200);
+    }
+
     /**
      * Update the specified resource in storage.
      */
@@ -77,45 +97,28 @@ class ShiftsController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'shift_name'    => 'required|string',
-            'start_time'    => 'required|date_format:H:i',
-            'end_time'      => 'required|date_format:H:i|after:start_time',
+            'shift_name'      => 'required|string',
+            'start_time'      => 'required|date_format:H:i',
+            'end_time'        => 'required|date_format:H:i|after:start_time',
+            'weekly_off_day'  => 'required|string|in:Sunday,Monday,Tuesday,Wednesday,Thursday,Friday,Saturday',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
-                'message'   => 'Validation failed.',
-                'errors'    => $validator->errors()
+                'message' => 'Validation failed.',
+                'errors'  => $validator->errors()
             ], 422);
         }
 
         $shift->update([
-            'shift_name'    => $request->shift_name,
-            'start_time'    => $request->start_time,
-            'end_time'      => $request->end_time,
+            'shift_name'      => $request->shift_name,
+            'start_time'      => $request->start_time,
+            'end_time'        => $request->end_time,
+            'weekly_off_day'  => $request->weekly_off_day,
         ]);
 
         return response()->json([
             'message' => 'Shift updated successfully.'
-        ], 200);
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function show($id)
-    {
-        $shift = Shift::find($id);
-
-        if (!$shift) {
-            return response()->json([
-                'message' => 'Shift not found.'
-            ], 404);
-        }
-
-        return response()->json([
-            'message'   => 'Shift retrieved successfully.',
-            'data'      => $shift
         ], 200);
     }
 }

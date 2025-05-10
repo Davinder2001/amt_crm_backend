@@ -39,6 +39,15 @@ return [
     |
     */
 
+    'phonepe' => [
+        'merchant_id' => env('PHONEPE_MERCHANT_ID'),
+        'salt_key' => env('PHONEPE_SALT_KEY'),
+        'salt_index' => env('PHONEPE_SALT_INDEX'),
+        'redirect_url' => env('PHONEPE_REDIRECT_URL'),
+        'callback_url' => env('PHONEPE_CALLBACK_URL'),
+    ],
+
+
     'debug' => (bool) env('APP_DEBUG', false),
 
     /*
