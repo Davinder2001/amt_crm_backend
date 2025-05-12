@@ -18,32 +18,39 @@ class HRController extends Controller
         $monthEnd       = Carbon::now()->endOfMonth()->toDateString();
         $userType       = 'employee';
 
-
-
         $totalEmployees = User::where('user_type', $userType)
-                        ->with(['roles.permissions', 'companies', 'employeeDetail'])
-                        ->count();
+            ->with(['roles.permissions', 'companies', 'employeeDetail'])
+            ->count();
 
         $presentToday   = Attendance::whereDate('attendance_date', $today)
-                        ->where('status', 'present')
-                        ->get();
+            ->where('status', 'present')
+            ->count(); // Fix: count instead of get
 
         $absentToday    = $totalEmployees - $presentToday;
-        $shifts         = Shift::pluck('start_time');
 
+        $shifts         = Shift::pluck('start_time')->toArray(); // Fix: convert collection to array
 
+        // Fix: compare each clock_out time to the corresponding shift
         $earlyDepartures = Attendance::whereDate('attendance_date', $today)
             ->whereNotNull('clock_out')
-            ->whereTime('clock_out', '<', $shifts)
+            ->where(function ($query) use ($shifts) {
+                foreach ($shifts as $startTime) {
+                    $query->orWhereTime('clock_out', '<', $startTime);
+                }
+            })
             ->with('employee:id,name')
             ->get();
 
         $lateArrival = Attendance::whereDate('attendance_date', $today)
             ->whereNotNull('clock_in')
-            ->whereTime('clock_in', '<', $shifts)
+            ->where(function ($query) use ($shifts) {
+                foreach ($shifts as $startTime) {
+                    $query->orWhereTime('clock_in', '>', $startTime);
+                }
+            })
             ->with('employee:id,name')
             ->get();
-            
+
         $monthlyLeaves = Attendance::whereBetween('attendance_date', [$monthStart, $monthEnd])
             ->where('status', 'leave')
             ->with('employee:id,name')
@@ -57,7 +64,7 @@ class HRController extends Controller
             ],
             'early_departures' => $earlyDepartures,
             'monthly_leaves' => $monthlyLeaves,
-            'lateArrival' => $lateArrival,
+            'late_arrival' => $lateArrival,
         ]);
     }
 }

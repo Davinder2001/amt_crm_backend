@@ -35,4 +35,15 @@ return [
         ],
     ],
 
+    'phonepe' => [
+        'client_id'      => env('PHONEPE_CLIENT_ID'),
+        'client_secret'  => env('PHONEPE_CLIENT_SECRET'),
+        'salt_key'       => env('PHONEPE_SALT_KEY'),
+        'salt_index'     => env('PHONEPE_SALT_INDEX'),
+        'redirect_url'   => env('PHONEPE_REDIRECT_URL'),
+        'callback_url'   => env('PHONEPE_CALLBACK_URL'),
+        'env'            => env('PHONEPE_ENV', 'prod'),
+
+        'base_url' => 'https://api.phonepe.com/apis/hermes/pg/v1/pay', // <<== FOR PRODUCTION ONLY
+    ],
 ];
