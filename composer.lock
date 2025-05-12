@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "2122ca9232fbd0f7b021dc9426fcf6e2",
+    "content-hash": "bdeab3654fa2b006cf0b0a0a3676689a",
     "packages": [
         {
             "name": "barryvdh/laravel-dompdf",
@@ -3032,6 +3032,20 @@
                 "source": "https://github.com/paragonie/sodium_compat/tree/v2.1.0"
             },
             "time": "2024-09-04T12:51:01+00:00"
+        },
+        {
+            "name": "phonepe/phonepe-pg-php-sdk",
+            "version": "1.0.0",
+            "dist": {
+                "type": "zip",
+                "url": "https://phonepe.mycloudrepo.io/public/repositories/phonepe-pg-php-sdk/phonepe-pg-php-sdk.zip"
+            },
+            "type": "library",
+            "autoload": {
+                "classmap": [
+                    "/"
+                ]
+            }
         },
         {
             "name": "phpoption/phpoption",

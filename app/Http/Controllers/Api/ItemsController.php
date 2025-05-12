@@ -178,13 +178,11 @@ class ItemsController extends Controller
     }
 
 
-    /**
-     * Update the specified resource in storage.
-     */
+    
     public function update(Request $request, $id): JsonResponse
     {
-        $selectedCompany    = SelectedCompanyService::getSelectedCompanyOrFail();
-        $item               = Item::find($id);
+        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+        $item = Item::with('variants', 'categories')->find($id);
 
         if (!$item) {
             return response()->json(['message' => 'Item not found.'], 404);
@@ -195,32 +193,47 @@ class ItemsController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'name'                => 'sometimes|required|string|max:255',
-            'quantity_count'      => 'sometimes|required|integer',
-            'measurement'         => 'nullable|string',
-            'purchase_date'       => 'nullable|date',
-            'date_of_manufacture' => 'sometimes|required|date',
-            'date_of_expiry'      => 'nullable|date',
-            'brand_name'          => 'sometimes|required|string|max:255',
-            'replacement'         => 'nullable|string|max:255',
-            'category'            => 'nullable|string|max:255',
-            'vendor_name'         => 'nullable|string|max:255',
-            'availability_stock'  => 'sometimes|required|integer',
-            'cost_price'          => 'sometimes|required|numeric|min:0',
-            'selling_price'       => 'sometimes|required|numeric|min:0',
-            'images.*'            => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
-            'tax_id'              => 'nullable|exists:taxes,id',
+            'name'                      => 'sometimes|required|string|max:255',
+            'quantity_count'            => 'sometimes|required|integer',
+            'measurement'               => 'nullable|string',
+            'purchase_date'             => 'nullable|date',
+            'date_of_manufacture'       => 'sometimes|required|date',
+            'date_of_expiry'            => 'nullable|date',
+            'brand_name'                => 'sometimes|required|string|max:255',
+            'replacement'               => 'nullable|string|max:255',
+            'categories'                => 'nullable|array',
+            'categories.*'              => 'integer|exists:categories,id',
+            'vendor_name'               => 'nullable|string|max:255',
+            'availability_stock'        => 'sometimes|required|integer',
+            'cost_price'                => 'sometimes|required|numeric|min:0',
+            'selling_price'             => 'sometimes|required|numeric|min:0',
+            'images.*'                  => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
+            'variants'                  => 'nullable|array',
+            'variants.*.price'          => 'required_with:variants|numeric|min:0',
+            'variants.*.ragular_price'  => 'nullable|numeric|min:0',
+            'variants.*.stock'          => 'nullable|integer|min:0',
+            'variants.*.attributes'     => 'required_with:variants|array',
+            'tax_id'                    => 'nullable|exists:taxes,id',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'message' => 'Validation errors.',
-                'errors'  => $validator->errors(),
+                'errors' => $validator->errors(),
             ], 422);
         }
 
         $data = $validator->validated();
 
+        // Vendor creation
+        if (!empty($data['vendor_name'])) {
+            StoreVendor::firstOrCreate([
+                'vendor_name' => $data['vendor_name'],
+                'company_id'  => $selectedCompany->company_id,
+            ]);
+        }
+
+        // Images
         if ($request->hasFile('images')) {
             $newImages = [];
             foreach ($request->file('images') as $image) {
@@ -233,18 +246,63 @@ class ItemsController extends Controller
             $data['images'] = array_merge($existingImages, $newImages);
         }
 
+        // Item code (if not set)
         if (empty($item->item_code)) {
-            $lastItemCode = Item::where('company_id', $item->company_id)->max('item_code');
+            $lastItemCode = Item::where('company_id', $item->company_id)
+                ->select(DB::raw('MAX(CAST(item_code AS UNSIGNED)) as max_code'))
+                ->value('max_code');
             $data['item_code'] = $lastItemCode ? $lastItemCode + 1 : 1;
         }
 
         $item->update($data);
 
-        if (array_key_exists('tax_id', $data)) {
-            $existingItemTax = ItemTax::where('store_item_id', $item->id)->first();
+        // Variants update
+        if (isset($data['variants'])) {
+            $item->variants()->delete();
 
-            if ($existingItemTax) {
-                $existingItemTax->update(['tax_id' => $data['tax_id']]);
+            foreach ($data['variants'] as $variantData) {
+                $variant = $item->variants()->create([
+                    'regular_price' => $variantData['regular_price'] ?? 0,
+                    'price'         => $variantData['price'],
+                    'stock'         => $variantData['stock'] ?? 1,
+                    'images'        => $data['images'] ?? [],
+                ]);
+
+                foreach ($variantData['attributes'] as $attribute) {
+                    $variant->attributeValues()->attach($attribute['attribute_value_id'], [
+                        'attribute_id' => $attribute['attribute_id'],
+                    ]);
+                }
+            }
+        }
+
+        // Category update
+        CategoryItem::where('store_item_id', $item->id)->delete();
+
+        if (!empty($data['categories']) && is_array($data['categories'])) {
+            foreach ($data['categories'] as $categoryId) {
+                CategoryItem::create([
+                    'store_item_id' => $item->id,
+                    'category_id'   => $categoryId,
+                ]);
+            }
+        } else {
+            $uncategorized = Category::firstOrCreate([
+                'company_id' => $selectedCompany->company_id,
+                'name'       => 'Uncategorized',
+            ]);
+
+            CategoryItem::create([
+                'store_item_id' => $item->id,
+                'category_id'   => $uncategorized->id,
+            ]);
+        }
+
+        // Tax handling
+        if (array_key_exists('tax_id', $data)) {
+            $existingTax = ItemTax::where('store_item_id', $item->id)->first();
+            if ($existingTax) {
+                $existingTax->update(['tax_id' => $data['tax_id']]);
             } else {
                 ItemTax::create([
                     'store_item_id' => $item->id,

@@ -15,6 +15,7 @@
         "laravel/framework": "^12.0",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1",
+        "phonepe/phonepe-pg-php-sdk": "^1.0",
         "pusher/pusher-php-server": "^7.2",
         "smalot/pdfparser": "^2.12",
         "spatie/laravel-permission": "^6.15",
@@ -81,6 +82,26 @@
             "php-http/discovery": true
         }
     },
+    
+    "repositories": [
+        {
+            "type": "package",
+            "package": [
+                {
+                    "dist": {
+                        "type": "zip",
+                        "url": "https://phonepe.mycloudrepo.io/public/repositories/phonepe-pg-php-sdk/phonepe-pg-php-sdk.zip"
+                    },
+                    "name": "phonepe/phonepe-pg-php-sdk",
+                    "version": "1.0.0",
+                    "autoload": {
+                        "classmap": ["/"]
+                    }
+                }
+            ]
+        }
+    ],
+
     "minimum-stability": "stable",
     "prefer-stable": true
 }

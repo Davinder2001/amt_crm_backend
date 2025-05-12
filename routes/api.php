@@ -241,6 +241,16 @@ Route::prefix('v1')->group(function () {
         
         // Invoice Management API's
         Route::prefix('invoices')->group(function () {
+
+
+            // Due Payments Credit Management API's
+            Route::prefix('credits')->group(function () {
+                Route::get('/', [CreditManagementController::class, 'index']);
+                Route::get('/{id}', [CreditManagementController::class, 'show']);
+                Route::post('/{id}/pay', [CreditManagementController::class, 'closeDue']);
+            });
+
+            
             Route::get('/', [InvoicesController::class, 'index']);
             Route::get('/{id}', [InvoicesController::class, 'show']);
             Route::get('/{id}/download', [InvoicesController::class, 'download']);
@@ -249,12 +259,6 @@ Route::prefix('v1')->group(function () {
             Route::post('/mail', [InvoicesController::class, 'storeAndMail']);
             Route::post('/{id}/whatsapp', [InvoicesController::class, 'sendToWhatsapp']);
 
-            // Due Payments Credit Management API's
-            Route::prefix('credits')->group(function () {
-                Route::get('/', [CreditManagementController::class, 'index']);
-                Route::get('/{id}', [CreditManagementController::class, 'show']);
-                Route::post('/{id}/pay', [CreditManagementController::class, 'closeDue']);
-            });
 
         });
     

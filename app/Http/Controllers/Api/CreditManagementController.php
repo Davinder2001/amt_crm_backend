@@ -11,6 +11,17 @@ use App\Http\Resources\CustomerCreditResource;
 
 class CreditManagementController extends Controller
 {
+
+    public function index()
+    {
+        $credits = CustomerCredit::with('invoice', 'customer')->where('status', '!=', 'paid')->get();
+        return response()->json([
+            'status'    => true, 
+            'message'   => 'Credit management API is active.',
+            'data'      =>$credits,
+        ]);
+    }
+
     public function show($customerId)
     {
         $credits = CustomerCredit::with('invoice', 'customer')->where('customer_id', $customerId)->where('status', '!=', 'paid')->get();
