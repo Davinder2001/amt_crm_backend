@@ -45,7 +45,10 @@ Route::prefix('v1')->group(function () {
         Route::post('register', [AuthController::class, 'register']);
         Route::post('email-verification', [AuthController::class, 'mailVerification']);
         Route::post('verify-otp', [AuthController::class, 'verifyRegisterOtp']);
-        Route::post('admin-register', [AuthController::class, 'adminRegister']);
+        
+        Route::post('admin-register', [AuthController::class, 'adminRegisterInitiate']);
+        Route::post('admin-register-confirm', [AuthController::class, 'adminRegisterConfirm']);
+        
         Route::post('password/forgot', [AuthController::class, 'sendResetOtp']);
         Route::post('password/verify-otp', [AuthController::class, 'verifyOtp']);
         Route::get('companies/names', [CompanyController::class, 'getAllCompanyNames']);

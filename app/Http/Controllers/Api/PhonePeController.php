@@ -3,47 +3,60 @@
 namespace App\Http\Controllers\Api;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
+use PhonePe\payments\v2\standardCheckout\StandardCheckoutClient;
+use PhonePe\payments\v2\models\request\builders\StandardCheckoutPayRequestBuilder;
+use PhonePe\Env;
+use PhonePe\common\exceptions\PhonePeException;
 use App\Http\Controllers\Controller;
 
 class PhonePeController extends Controller
 {
-     public function initiate(Request $request)
+    public function initiate(Request $request)
     {
-        $merchantId = "PGTESTPAYUAT"; // replace with PhonePe test merchant ID
-        $saltKey = "e0b9b94e-8c48-4a13-a1c4-41354d8b3212"; // example test salt key
-        $saltIndex = 1;
-        $apiEndpoint = "/pg/v1/pay";
-        $baseUrl = "https://api-preprod.phonepe.com/apis/pg-sandbox";
+        $clientId = "SU2505092014223491407849";
+        $clientVersion = 1;
+        $clientSecret = "82316b40-10d6-49ec-b455-7965b5aa2eae";
+        $env = Env::PRODUCTION;
 
-        $payload = [
-            "merchantId" => $merchantId,
-            "merchantTransactionId" => "MT" . time(),
-            "merchantUserId" => "MUID123",
-            "amount" => 10000,
-            "redirectUrl" => "https://example.com/redirect",
-            "redirectMode" => "REDIRECT",
-            "callbackUrl" => "https://example.com/callback",
-            "mobileNumber" => "9999999999",
-            "paymentInstrument" => [
-                "type" => "PAY_PAGE"
-            ]
-        ];
+        $client = StandardCheckoutClient::getInstance(
+            $clientId,
+            $clientVersion,
+            $clientSecret,
+            $env
+        );
 
-        $base64Payload = base64_encode(json_encode($payload));
-        $checksum = hash('sha256', $base64Payload . $apiEndpoint . $saltKey);
-        $xVerify = $checksum . "###" . $saltIndex;
+        $merchantOrderId = 'ORDER_' . uniqid();
+        $amount = $request->input('amount', 100);
+        $redirectUrl = $request->input('redirectUrl', url('/payment/redirect'));
+        $message = "Your order details";
 
-        $response = Http::withHeaders([
-            'Content-Type' => 'application/json',
-            'X-VERIFY' => $xVerify
-        ])->post($baseUrl . $apiEndpoint, [
-            'request' => $base64Payload
-        ]);
+        $payRequest = StandardCheckoutPayRequestBuilder::builder()
+            ->merchantOrderId($merchantOrderId)
+            ->amount($amount)
+            ->redirectUrl($redirectUrl)
+            ->message($message)
+            ->build();
 
-        dd($response);
+        try {
+            $payResponse = $client->pay($payRequest);
 
-        return response()->json($response->json());
+            if ($payResponse->getState() === "PENDING") {
+                return response()->json([
+                    'success' => true,
+                    'redirect_url' => $payResponse->getRedirectUrl(),
+                    'order_id' => $merchantOrderId
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Payment initiation failed: " . $payResponse->getState()
+                ], 400);
+            }
+        } catch (PhonePeException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => "Error initiating payment: " . $e->getMessage()
+            ], 500);
+        }
     }
-
 }

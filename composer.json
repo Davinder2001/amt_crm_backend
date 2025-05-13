@@ -15,11 +15,13 @@
         "laravel/framework": "^12.0",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1",
-        "phonepe/phonepe-pg-php-sdk": "^1.0",
         "pusher/pusher-php-server": "^7.2",
         "smalot/pdfparser": "^2.12",
         "spatie/laravel-permission": "^6.15",
-        "thiagoalessio/tesseract_ocr": "^2.13"
+        "thiagoalessio/tesseract_ocr": "^2.13",
+        "phonepe/pg-php-sdk-v2": "^2.0",
+        "vlucas/phpdotenv": "^5.6",
+        "netresearch/jsonmapper": "^4.4"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
@@ -83,23 +85,23 @@
         }
     },
     
-    "repositories": [
-        {
-            "type": "package",
-            "package": [
-                {
-                    "dist": {
-                        "type": "zip",
-                        "url": "https://phonepe.mycloudrepo.io/public/repositories/phonepe-pg-php-sdk/phonepe-pg-php-sdk.zip"
-                    },
-                    "name": "phonepe/phonepe-pg-php-sdk",
-                    "version": "1.0.0",
-                    "autoload": {
-                        "classmap": ["/"]
-                    }
-                }
-            ]
+
+ "repositories": [
+      {
+        "type": "package",
+        "url": "./vendor/phonepe/pg-sdk-php/",
+        "package": {
+          "name": "phonepe/pg-php-sdk-v2",
+          "version": "2.0.0",
+          "dist": {
+            "url": "https://phonepe.mycloudrepo.io/public/repositories/phonepe-pg-php-sdk/v2-sdk.zip",
+            "type": "zip"
+          },
+          "autoload": {
+            "classmap": ["/"]
+          }
         }
+      }
     ],
 
     "minimum-stability": "stable",

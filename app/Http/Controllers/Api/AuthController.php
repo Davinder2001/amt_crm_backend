@@ -10,12 +10,17 @@ use Illuminate\Validation\ValidationException;
 use App\Services\AdminRegistrationService;
 use App\Http\Requests\AdminRegisterRequest;
 use App\Models\User;
+use Illuminate\Support\Str;
 use App\Models\CompanyUser;
+use App\Models\Company;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Resources\UserResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Cache;
+use PhonePe\Env;
+use PhonePe\payments\v2\standardCheckout\StandardCheckoutClient;
+use PhonePe\payments\v2\models\request\builders\StandardCheckoutPayRequestBuilder;
 
 class AuthController extends Controller
 {
@@ -77,25 +82,89 @@ class AuthController extends Controller
     /**
      * Register a new admin.
      */
-    public function adminRegister(AdminRegisterRequest $request): JsonResponse
+    public function adminRegisterInitiate(AdminRegisterRequest $request): JsonResponse
     {
         $data = $request->validated();
 
+        $slug = Str::slug($data['company_name']);
+        if (Company::where('company_slug', $slug)->exists()) {
+            return response()->json(['errors' => ['company_name' => ['Company name already exists.']]], 422);
+        }
+
+        if (User::where('number', $data['number'])->exists()) {
+            return response()->json(['errors' => ['number' => ['User already exists. Please login.']]], 422);
+        }
+
+        $merchantOrderId = 'ORDER_' . uniqid();
+        $redirectUrl = url('/api/payment/admin-register-confirm');
+        $amount = 100;
+
+        $clientId = "SU2505092014223491407849";
+        $clientVersion = 1;
+        $clientSecret = "82316b40-10d6-49ec-b455-7965b5aa2eae";
+        $env = Env::PRODUCTION;
+
         try {
-            $result = $this->registrationService->register($data);
+            $client = StandardCheckoutClient::getInstance($clientId, $clientVersion, $clientSecret, $env);
+
+            $payRequest = StandardCheckoutPayRequestBuilder::builder()
+                ->merchantOrderId($merchantOrderId)
+                ->amount($amount)
+                ->redirectUrl($redirectUrl . '?orderId=' . $merchantOrderId)
+                ->message("Admin Registration")
+                ->build();
+
+            $payResponse = $client->pay($payRequest);
+
+            if ($payResponse->getState() === 'PENDING') {
+                Cache::put("admin_register_{$merchantOrderId}", $data, now()->addMinutes(30));
+                return response()->json([
+                    'success' => true,
+                    'redirect_url' => $payResponse->getRedirectUrl(),
+                    'order_id' => $merchantOrderId,
+                ]);
+            }
 
             return response()->json([
-                'message' => 'Admin registered successfully. Company and role assigned.',
+                'success' => false,
+                'message' => 'Payment initiation failed: ' . $payResponse->getState()
+            ], 400);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function adminRegisterConfirm(Request $request): JsonResponse
+    {
+        $orderId = $request->query('orderId');
+        $paymentStatus = $request->query('code');
+
+        if (!$orderId || !$cached = Cache::pull("admin_register_{$orderId}")) {
+            return response()->json(['error' => 'Session expired or invalid order.'], 410);
+        }
+
+        if ($paymentStatus !== 'PAYMENT_SUCCESSFUL') {
+            return response()->json(['error' => 'Payment not successful.'], 402);
+        }
+
+        try {
+            $result = $this->registrationService->register($cached);
+
+            return response()->json([
+                'message' => 'Admin registered successfully after payment.',
                 'user'    => new UserResource($result['user']->load('roles')),
                 'company' => $result['company'],
             ], 201);
         } catch (ValidationException $e) {
             return response()->json(['errors' => $e->errors()], 422);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 422);
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
-
 
     /**
      * Send OTP for email verification.

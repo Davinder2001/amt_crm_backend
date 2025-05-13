@@ -22,11 +22,11 @@ class AdminRegisterRequest extends FormRequest
             'email'                        => 'required|email|max:255|unique:users,email',
             'password'                     => 'required|string|min:8|confirmed',
             'company_name'                 => 'required|string|max:255',
-            'business_address'             => 'required|string',
-            'pin_code'                     => 'required|string|max:20',
-            'business_proof_type'          => 'required|string|max:255',
-            'business_id'                  => 'required|string|max:255',
-            'business_proof_image_front'   => 'required|mimes:jpg,jpeg,png,pdf|max:5120',
+            'business_address'             => 'nullable|string',
+            'pin_code'                     => 'nullable|string|max:20',
+            'business_proof_type'          => 'nullable|string|max:255',
+            'business_id'                  => 'nullable|string|max:255',
+            'business_proof_image_front'   => 'nullable|mimes:jpg,jpeg,png,pdf|max:5120',
             'business_proof_image_back'    => 'nullable|mimes:jpg,jpeg,png,pdf|max:5120',
         ];
     }
