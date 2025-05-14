@@ -31,7 +31,8 @@ use App\Http\Controllers\Api\{
     MessageController,
     QuotationController,
     PhonePeController,
-    PackageController
+    PackageController,
+    BusinessCategoryController
 };
 
 
@@ -367,6 +368,13 @@ Route::prefix('v1')->group(function () {
             Route::patch('/{id}', [PackageController::class, 'update']);
             Route::delete('/{id}', [PackageController::class, 'destroy']);
         });
+
+
+        Route::apiResource('business-categories', BusinessCategoryController::class);
+
+
+
+
     });
 });
 
