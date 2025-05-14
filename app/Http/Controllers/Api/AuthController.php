@@ -138,6 +138,9 @@ class AuthController extends Controller
         }
     }
 
+    /**
+     * Confirm Registration
+     */
     public function adminRegisterConfirm(Request $request): JsonResponse
     {
         $orderId = $request->query('orderId');

@@ -17,6 +17,7 @@ class Company extends Model
         'company_id',
         'admin_id',
         'company_slug',
+        'package_id',
         'payment_status',
         'verification_status',
         'business_address',

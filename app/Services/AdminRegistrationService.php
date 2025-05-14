@@ -54,6 +54,7 @@ class AdminRegistrationService
             $company = Company::create([
                 'company_id'            => $companyId,
                 'company_name'          => $data['company_name'],
+                'package_id'            => $data['package_id'],
                 'company_slug'          => $slug,
                 'payment_status'        => 'pending',
                 'verification_status'   => 'pending',

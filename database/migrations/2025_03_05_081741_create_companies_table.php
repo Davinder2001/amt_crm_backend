@@ -15,6 +15,8 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('admin_id')->nullable();
             $table->foreign('admin_id')->references('id')->on('users')->cascadeOnDelete();
+            $table->unsignedBigInteger('package_id')->nullable(); 
+            $table->foreign('package_id')->references('id')->on('packages')->nullOnDelete();
             $table->string('company_name')->unique();
             $table->string('company_id')->unique();
             $table->string('company_slug')->unique();

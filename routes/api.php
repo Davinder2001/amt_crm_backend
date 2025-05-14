@@ -30,7 +30,8 @@ use App\Http\Controllers\Api\{
     NotificationController,
     MessageController,
     QuotationController,
-    PhonePeController
+    PhonePeController,
+    PackageController
 };
 
 
@@ -45,14 +46,13 @@ Route::prefix('v1')->group(function () {
         Route::post('register', [AuthController::class, 'register']);
         Route::post('email-verification', [AuthController::class, 'mailVerification']);
         Route::post('verify-otp', [AuthController::class, 'verifyRegisterOtp']);
-        
+
         Route::post('admin-register', [AuthController::class, 'adminRegisterInitiate']);
         Route::post('admin-register-confirm', [AuthController::class, 'adminRegisterConfirm']);
-        
+
         Route::post('password/forgot', [AuthController::class, 'sendResetOtp']);
         Route::post('password/verify-otp', [AuthController::class, 'verifyOtp']);
         Route::get('companies/names', [CompanyController::class, 'getAllCompanyNames']);
-
     });
 
 
@@ -69,7 +69,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/admin-management/{id}/status', [AdminManagementController::class, 'updateStatus']);
             Route::get('/admins/{id}', [AdminManagementController::class, 'show']);
         });
-        
+
 
         // Auth API's
         Route::post('logout', [AuthController::class, 'logout']);
@@ -140,8 +140,8 @@ Route::prefix('v1')->group(function () {
             Route::get('/', [TaskController::class, 'index']);
             Route::get('{id}', [TaskController::class, 'show']);
         });
-            
-        
+
+
         // Task History API's
         Route::prefix('task-history')->group(function () {
             Route::post('{id}/approve', [TaskHistoryController::class, 'approve']);
@@ -213,7 +213,7 @@ Route::prefix('v1')->group(function () {
             Route::get('{id}', [ShiftsController::class, 'show']);
         });
 
-        
+
         // Store API's
         Route::prefix('store')->group(function () {
             // Items API's
@@ -231,8 +231,6 @@ Route::prefix('v1')->group(function () {
             Route::get('vendors/{id}', [StoreVendorController::class, 'show']);
             Route::put('vendors/{id}', [StoreVendorController::class, 'update']);
             Route::delete('vendors/{id}', [StoreVendorController::class, 'destroy']);
-           
-
         });
 
         // Catalog API's
@@ -241,7 +239,7 @@ Route::prefix('v1')->group(function () {
             Route::put('/add/{id}', [CatalogController::class, 'addToCatalog']);
             Route::put('/remove/{id}', [CatalogController::class, 'removeFromCatalog']);
         });
-        
+
         // Invoice Management API's
         Route::prefix('invoices')->group(function () {
 
@@ -253,7 +251,7 @@ Route::prefix('v1')->group(function () {
                 Route::post('/{id}/pay', [CreditManagementController::class, 'closeDue']);
             });
 
-            
+
             Route::get('/', [InvoicesController::class, 'index']);
             Route::get('/{id}', [InvoicesController::class, 'show']);
             Route::get('/{id}/download', [InvoicesController::class, 'download']);
@@ -261,10 +259,8 @@ Route::prefix('v1')->group(function () {
             Route::post('/print', [InvoicesController::class, 'storeAndPrint']);
             Route::post('/mail', [InvoicesController::class, 'storeAndMail']);
             Route::post('/{id}/whatsapp', [InvoicesController::class, 'sendToWhatsapp']);
-
-
         });
-    
+
 
         // Add as a vendor and OCR Scan API's
         Route::prefix('add-as-vendor')->group(function () {
@@ -280,7 +276,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/', [CustomerController::class, 'store']);
             Route::get('{id}', [CustomerController::class, 'show']);
             Route::put('{id}', [CustomerController::class, 'update']);
-            Route::delete('{id}', [CustomerController::class, 'destroy']); 
+            Route::delete('{id}', [CustomerController::class, 'destroy']);
         });
 
 
@@ -344,9 +340,9 @@ Route::prefix('v1')->group(function () {
             Route::get('/', [MessageController::class, 'chats']);
             Route::post('/{id}/message', [MessageController::class, 'sendMessageToUser']);
             Route::get('/with-user/{id}', [MessageController::class, 'getChatWithUser']);
-            Route::get('/users', [MessageController::class, 'chatUsers']);      
+            Route::get('/users', [MessageController::class, 'chatUsers']);
             Route::delete('/message/{messageId}', [MessageController::class, 'deleteMessage']);
-            Route::delete('/with-user/{id}', [MessageController::class, 'deleteAllChatsWithUser']);  
+            Route::delete('/with-user/{id}', [MessageController::class, 'deleteAllChatsWithUser']);
         });
 
         // Qutation API's
@@ -355,13 +351,18 @@ Route::prefix('v1')->group(function () {
             Route::post('/', [QuotationController::class, 'store']);
             Route::get('/{id}/pdf', [QuotationController::class, 'generatePdf']);
         });
-        
-        
-        
+
+
+        Route::prefix('pricing-packages')->group(function () {
+            Route::get('/', [PackageController::class, 'index']); 
+            Route::post('/', [PackageController::class, 'store']);
+            Route::get('/{id}', [PackageController::class, 'show']); 
+            Route::put('/{id}', [PackageController::class, 'update']);
+            Route::patch('/{id}', [PackageController::class, 'update']);
+            Route::delete('/{id}', [PackageController::class, 'destroy']);
+        });
     });
 });
 
 Route::post('/phonepe/pay', [PhonePeController::class, 'initiate']);
 Route::post('/payment/callback', [PhonePeController::class, 'callback']);
-
-
