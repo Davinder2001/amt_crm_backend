@@ -11,13 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-      Schema::create('packages', function (Blueprint $table) {
+        Schema::create('packages', function (Blueprint $table) {
             $table->id();
             $table->string('name');
             $table->unsignedInteger('employee_numbers');
             $table->unsignedInteger('items_number');
             $table->unsignedInteger('daily_tasks_number');
             $table->unsignedInteger('invoices_number');
+            $table->decimal('price', 10, 2); // Added price column
             $table->timestamps();
         });
     }

@@ -13,4 +13,9 @@ class BusinessCategory extends Model
         'name',           // Name of the business category
         'description',    // Description of the category (optional)
     ];
+
+    public function packages()
+    {
+        return $this->belongsToMany(Package::class, 'business_category_package');
+    }
 }
