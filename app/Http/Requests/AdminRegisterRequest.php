@@ -28,7 +28,7 @@ class AdminRegisterRequest extends FormRequest
             'business_id'                  => 'nullable|string|max:255',
             'business_proof_image_front'   => 'nullable|mimes:jpg,jpeg,png,pdf|max:5120',
             'business_proof_image_back'    => 'nullable|mimes:jpg,jpeg,png,pdf|max:5120',
-            'package_id' => 'required|exists:packages,id',
+            'package_id'                   => 'nullable|exists:packages,id',
 
         ];
     }

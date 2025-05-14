@@ -210,9 +210,9 @@ class AuthController extends Controller
         $redirectUrl = url('/api/payment/admin-register-confirm');
         $amount = 100;
 
-        $clientId = "SU2505092014223491407849";
+        $clientId = "TEST-M22CCW231A75L_25050";
         $clientVersion = 1;
-        $clientSecret = "82316b40-10d6-49ec-b455-7965b5aa2eae";
+        $clientSecret = "ZmVjZWMwNWYtNzk4Ny00MWY4LTkzNGItNTA3MWQxNzZiODI5";
         $env = Env::PRODUCTION;
 
         try {
