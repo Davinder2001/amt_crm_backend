@@ -60,6 +60,7 @@ Route::prefix('v1')->group(function () {
         Route::get('companies/names', [CompanyController::class, 'getAllCompanyNames']);
 
          Route::get('/all-packages', [PackageController::class, 'index']); 
+         Route::get('/all-business-categories', [BusinessCategoryController::class, 'index']); 
     });
 
 
