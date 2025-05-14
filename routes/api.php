@@ -46,13 +46,19 @@ Route::prefix('v1')->group(function () {
         Route::post('register', [AuthController::class, 'register']);
         Route::post('email-verification', [AuthController::class, 'mailVerification']);
         Route::post('verify-otp', [AuthController::class, 'verifyRegisterOtp']);
-
+        
+        
         Route::post('admin-register', [AuthController::class, 'adminRegisterInitiate']);
         Route::post('admin-register-confirm', [AuthController::class, 'adminRegisterConfirm']);
+        Route::post('/send-wp-otp', [AuthController::class, 'sendWpOtp']);
+        Route::post('/verify-wp-otp', [AuthController::class, 'veriWpfyOtp']);
+
 
         Route::post('password/forgot', [AuthController::class, 'sendResetOtp']);
         Route::post('password/verify-otp', [AuthController::class, 'verifyOtp']);
         Route::get('companies/names', [CompanyController::class, 'getAllCompanyNames']);
+
+         Route::get('/all-packages', [PackageController::class, 'index']); 
     });
 
 

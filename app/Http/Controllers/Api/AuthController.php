@@ -16,6 +16,7 @@ use App\Models\Company;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Resources\UserResource;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Cache;
 use PhonePe\Env;
@@ -34,7 +35,7 @@ class AuthController extends Controller
         $this->registrationService = $registrationService;
     }
 
-    
+
     /**
      * Register a new user.
      */
@@ -78,6 +79,116 @@ class AuthController extends Controller
             'user'         => new UserResource($user),
         ], 201);
     }
+
+
+
+    public function sendWpOtp(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'number' => 'required|string|regex:/^[0-9]{10,15}$/',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $otp                = rand(100000, 999999);
+        $numberGet          = $request->number;
+        $number             = 91 . $numberGet;
+        $msg91AuthKey       = "451198A9qD8Lu26821c9a6P1";
+        $integratedNumber   = '918219678757';
+        $namespace          = 'c448fd19_1766_40ad_b98d_bae2703feb98';
+
+        // ✅ Use raw number (without country code) for consistent caching
+        Cache::put("otp_{$numberGet}", $otp, now()->addMinutes(5));
+
+        $payload = [
+            "integrated_number" => $integratedNumber,
+            "content_type" => "template",
+            "payload" => [
+                "messaging_product" => "whatsapp",
+                "type" => "template",
+                "template" => [
+                    "name" => "authentication",
+                    "language" => [
+                        "code" => "en_US",
+                        "policy" => "deterministic"
+                    ],
+                    "namespace" => $namespace,
+                    "to_and_components" => [
+                        [
+                            "to" => $number,
+                            "components" => [
+                                "body_1" => [
+                                    "type" => "text",
+                                    "value" => $otp
+                                ],
+                                "button_1" => [
+                                    "subtype" => "url",
+                                    "type" => "text",
+                                    "value" => "COPY"
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ];
+
+        $response = Http::withHeaders([
+            'Content-Type' => 'application/json',
+            'authkey' => $msg91AuthKey
+        ])->post('https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/', $payload);
+
+        if ($response->successful()) {
+            $responseData = $response->json();
+
+            return response()->json([
+                'success'     => true,
+                'number'      => $number,
+                'request_id'  => $responseData['request_id'] ?? null,
+                'message'     => 'OTP sent successfully'
+            ]);
+        }
+
+        return response()->json([
+            'success'  => false,
+            'message'  => 'Failed to send OTP',
+            'response' => $response->json()
+        ], 500);
+    }
+    public function veriWpfyOtp(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'number'    => 'required|string|regex:/^[0-9]{10,15}$/',
+            'otp'       => 'required|string|size:6',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $number = $request->number;
+        $otp = $request->otp;
+
+        $cachedOtp = Cache::get("otp_{$number}");
+
+        if ($cachedOtp && $cachedOtp == $otp) {
+            Cache::put("otp_verified_{$number}", true, now()->addMinutes(30));
+            Cache::forget("otp_{$number}");
+
+            return response()->json(['success' => true, 'message' => 'OTP verified successfully']);
+        }
+
+        return response()->json(['success' => false, 'message' => 'Invalid or expired OTP'], 400);
+    }
+
 
     /**
      * Register a new admin.
@@ -129,7 +240,6 @@ class AuthController extends Controller
                 'success' => false,
                 'message' => 'Payment initiation failed: ' . $payResponse->getState()
             ], 400);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -177,33 +287,33 @@ class AuthController extends Controller
         $validator = Validator::make($request->all(), [
             'email' => 'required|email',
         ]);
-    
+
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
-    
+
         $email  = $request->input('email');
         $user   = User::where('email', $email)->first();
-    
+
         if ($user) {
             return response()->json(['message' => 'Email already registered.'], 409);
         }
-    
+
         $otp = rand(100000, 999999);
-    
+
         Cache::put("email_verification_{$email}", [
             'otp' => $otp,
             'expires_at' => now()->addMinutes(10)
         ], now()->addMinutes(10));
-    
+
         Mail::send('emails.sendOtp', ['otp' => $otp, 'email' => $email], function ($message) use ($email) {
             $message->to($email)->subject('Your Verification Code');
         });
-    
+
         return response()->json(['message' => 'Verification email sent successfully.']);
     }
 
-    
+
     /**
      * Verify the OTP for registration.
      */
@@ -230,7 +340,7 @@ class AuthController extends Controller
             return response()->json(['message' => 'Invalid OTP.'], 422);
         }
 
-        Cache::forget("email_verification_{$email}"); 
+        Cache::forget("email_verification_{$email}");
 
         return response()->json(['message' => 'OTP verified successfully.']);
     }
