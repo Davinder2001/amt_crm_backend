@@ -5,11 +5,13 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Invoice;
 use App\Models\Item;
+use Illuminate\Support\Facades\Log;
 use App\Models\Customer;
 use App\Models\ItemVariant;
 use App\Models\CustomerHistory;
 use App\Models\CustomerCredit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
@@ -26,16 +28,16 @@ class InvoicesController extends Controller
     public function index()
     {
         $invoices   = Invoice::with(['items', 'credit'])
-                    ->where('company_id', SelectedCompanyService::getSelectedCompanyOrFail()->company->id)
-                    ->latest()->get();
+            ->where('company_id', SelectedCompanyService::getSelectedCompanyOrFail()->company->id)
+            ->latest()->get();
 
         return response()->json([
             'status'   => true,
             'invoices' => $invoices,
         ]);
     }
-    
-    
+
+
     public function store(Request $request)
     {
         [$invoice] = $this->createInvoiceAndPdf($request);
@@ -113,7 +115,7 @@ class InvoicesController extends Controller
             'footer_note'      => 'Thank you for your business',
             'show_signature'   => true,
         ]);
-        
+
 
         return $pdf->download('invoice_' . $invoice->invoice_number . '.pdf');
     }
@@ -127,7 +129,7 @@ class InvoicesController extends Controller
             'invoice_date'       => 'required|date',
             'payment_method'     => 'required|string',
             'discount_price'     => 'nullable|numeric|min:0',
-            'discount_percentage'=> 'nullable|numeric|min:0',
+            'discount_percentage' => 'nullable|numeric|min:0',
             'items'              => 'required|array|min:1',
             'items.*.item_id'    => 'required|exists:store_items,id',
             'items.*.variant_id' => 'nullable|exists:item_variants,id',
@@ -157,23 +159,23 @@ class InvoicesController extends Controller
             $subtotal = collect($data['items'])->sum(function ($line) {
                 $item = Item::findOrFail($line['item_id']);
                 $price = $item->selling_price;
-            
+
                 if (!empty($line['variant_id'])) {
                     $variant = ItemVariant::where('id', $line['variant_id'])
                         ->where('item_id', $item->id)
                         ->firstOrFail();
                     $price = $variant->price;
                 }
-            
+
                 $taxRate = DB::table('item_tax')
                     ->join('taxes', 'item_tax.tax_id', '=', 'taxes.id')
                     ->where('item_tax.store_item_id', $item->id)
                     ->value('taxes.rate') ?? 0;
-            
+
                 $priceWithTax = $price + ($price * $taxRate / 100);
                 return $priceWithTax * $line['quantity'];
             });
-            
+
 
 
             $discountAmount     = $data['discount_price'] ?? 0;
@@ -188,14 +190,14 @@ class InvoicesController extends Controller
             $companyCode =  $selectedCompany->company->company_id;
             $datePrefix  =  now()->format('Ymd');
             $last        =  Invoice::where('company_id', $selectedCompany->id)
-                            ->whereDate('invoice_date', now()->toDateString())
-                            ->orderBy('invoice_number', 'desc')
-                            ->first();
+                ->whereDate('invoice_date', now()->toDateString())
+                ->orderBy('invoice_number', 'desc')
+                ->first();
 
             $nextSeq        = $last ? ((int) substr($last->invoice_number, -4)) + 1 : 1;
             $invoiceNumber  = "{$companyCode}{$datePrefix}" . str_pad($nextSeq, 4, '0', STR_PAD_LEFT);
 
-            
+
 
             $inv = Invoice::create([
                 'invoice_number'      => $invoiceNumber,
@@ -212,24 +214,24 @@ class InvoicesController extends Controller
                 'company_id'          => $selectedCompany->id,
             ]);
 
-            
+
             $historyItems = [];
 
             foreach ($data['items'] as $line) {
                 $item = Item::findOrFail($line['item_id']);
 
                 $unitPrice = !empty($line['variant_id'])
-                ? ItemVariant::where('id', $line['variant_id'])
-                ->where('item_id', $item->id)->firstOrFail()->price
-                : $item->selling_price;
+                    ? ItemVariant::where('id', $line['variant_id'])
+                    ->where('item_id', $item->id)->firstOrFail()->price
+                    : $item->selling_price;
 
                 $item->decrement('quantity_count', $line['quantity']);
                 $lineTotal = $unitPrice * $line['quantity'];
 
                 $taxPercentage = DB::table('item_tax')
-                ->join('taxes', 'item_tax.tax_id', '=', 'taxes.id')
-                ->where('item_tax.store_item_id', $item->id)
-                ->value('taxes.rate') ?? 0;
+                    ->join('taxes', 'item_tax.tax_id', '=', 'taxes.id')
+                    ->where('item_tax.store_item_id', $item->id)
+                    ->value('taxes.rate') ?? 0;
 
                 $taxAmount      = $unitPrice * $taxPercentage / 100;
                 $totalAmount    = $lineTotal + $taxAmount;
@@ -244,7 +246,7 @@ class InvoicesController extends Controller
                     'tax_amount'     => $taxAmount,
                     'total'          => $totalAmount,
                 ]);
-                
+
                 $historyItems[] = [
                     'description' => $item->name,
                     'quantity'    => $line['quantity'],
@@ -287,60 +289,104 @@ class InvoicesController extends Controller
             'footer_note'      => 'Thank you for your business',
             'show_signature'   => true,
         ]);
-        
+
 
         return [$invoice, $pdf->output()];
     }
 
-    public function sendToWhatsapp($id)
-    {
-        $invoice         = Invoice::with('items')->findOrFail($id);
-        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $company         = $selectedCompany->company;
-        $issuedBy        = Auth::user()->name;
-    
-        // Generate PDF from invoice view
-        $pdf = Pdf::loadView('invoices.pdf', [
-            'invoice'         => $invoice,
-            'company_name'    => $company->company_name,
-            'company_address' => $company->address ?? 'N/A',
-            'company_phone'   => $company->phone ?? 'N/A',
-            'company_gstin'   => $company->gstin ?? 'N/A',
-            'issued_by'       => $issuedBy,
-            'footer_note'     => 'Thank you for your business',
-            'show_signature'  => true,
-        ]);
-    
-        // Convert PDF to base64
-        $pdfBinary = $pdf->output();
-        $pdfBase64 = base64_encode($pdfBinary);
-        $fileName  = 'invoice_' . $invoice->invoice_number . '.pdf';
-    
-        // Prepare WhatsApp number (digits only)
-        $whatsappNumber = preg_replace('/\D/', '', $invoice->client_phone);
-        if (!$whatsappNumber) {
-            return response()->json([
-                'status'  => false,
-                'message' => 'Client phone number not valid.',
-            ], 400);
-        }
-    
-        // Create WhatsApp message
-        $message = rawurlencode("Hello *{$invoice->client_name}*,\n\nPlease find your invoice attached.");
-        $whatsappUrl = "https://wa.me/{$whatsappNumber}?text={$message}";
-    
-        // Return everything needed for client-side manual sharing
+
+
+public function sendToWhatsapp($id)
+{
+    $invoice = Invoice::with('items')->findOrFail($id);
+
+    if (!$invoice->client_phone) {
         return response()->json([
-            'status'        => true,
-            'message'       => 'Invoice generated and ready to share.',
-            'filename'      => $fileName,
-            'pdf_base64'    => $pdfBase64,
-            'whatsapp_url'  => $whatsappUrl,
-        ]);
+            'status' => false,
+            'message' => 'Client phone number not available.',
+        ], 400);
     }
+
+    // Make sure public/invoices folder exists
+    $folderPath = public_path('invoices');
+    if (!file_exists($folderPath)) {
+        mkdir($folderPath, 0755, true);
+    }
+
+    // Generate PDF using Blade view
+    $pdf = Pdf::loadView('invoices.pdf', compact('invoice'));
+
+    $fileName = 'invoice_' . $invoice->invoice_number . '.pdf';
+    $filePath = $folderPath . '/' . $fileName;
+
+    // Save the PDF in public/invoices
+    $pdf->save($filePath);
+
+    // Publicly accessible URL
+    $publicUrl = asset('invoices/' . $fileName);
     
-    
-    
+
+    $payload = [
+        "integrated_number" => "918219678757",
+        "content_type" => "template",
+        "payload" => [
+            "messaging_product" => "whatsapp",
+            "type" => "template",
+            "template" => [
+                "name" => "invoice",
+                "language" => [
+                    "code" => "en",
+                    "policy" => "deterministic"
+                ],
+                "namespace" => "c448fd19_1766_40ad_b98d_bae2703feb98",
+                "to_and_components" => [
+                    [
+                        "to" => [$invoice->client_phone],
+                        "components" => [
+                            "header_1" => [
+                                "filename" => $fileName,
+                                "type" => "document",
+                                "value" => $publicUrl
+                            ],
+                            "body_1" => [
+                                "type" => "text",
+                                "value" => $invoice->client_name ?? 'Customer'
+                            ],
+                            "body_2" => [
+                                "type" => "text",
+                                "value" => '₹' . number_format($invoice->amount, 2)
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ]
+    ];
+
+    $response = Http::withHeaders([
+        'authkey' => '451198A9qD8Lu26821c9a6P1',
+        'Content-Type' => 'application/json'
+    ])->post('https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/', $payload);
+
+    if ($response->successful()) {
+        return response()->json([
+            'status' => true,
+            'message' => 'WhatsApp message sent successfully.',
+            'response' => $response->json()
+        ], 200);
+    } else {
+        Log::error("MSG91 WhatsApp send failed: " . $response->body());
+        return response()->json([
+            'status' => false,
+            'message' => 'Failed to send WhatsApp message.',
+            'error' => $response->body()
+        ], $response->status());
+    }
+}
+
+
+
+
 
 
 

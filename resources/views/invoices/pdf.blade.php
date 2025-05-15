@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="utf-8">
     <title>Invoice</title>
@@ -53,7 +54,8 @@
             margin-top: 15px;
         }
 
-        th, td {
+        th,
+        td {
             border: 1px solid #aaa;
             padding: 6px;
             text-align: left;
@@ -81,9 +83,9 @@
             margin-top: 10px;
             font-weight: bold;
         }
-
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
@@ -91,10 +93,10 @@
                 <img src="{{ public_path('logo.png') }}" alt="Logo">
             </div>
             <div class="store-info">
-                <strong>{{ $company_name }}</strong><br>
-                {{ $company_address }}<br>
-                Phone: {{ $company_phone }}<br>
-                GSTIN: {{ $company_gstin }}
+                <strong>{{ $company_name ?? 'Ukn' }}</strong><br>
+                {{ $company_address ?? 'Ukn' }}<br>
+                Phone: {{ $company_phone ?? 'Ukn' }}<br>
+                GSTIN: {{ $company_gstin ?? 'Ukn' }}
             </div>
         </div>
 
@@ -123,15 +125,15 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($invoice->items as $index => $item)
-                    <tr>
-                        <td>{{ $index + 1 }}</td>
-                        <td>{{ $item->description }}</td>
-                        <td>{{ number_format($item->unit_price, 2) }}</td>
-                        <td>{{ $item->tax_percentage }}%</td>
-                        <td>{{ $item->quantity }}</td>
-                        <td>{{ number_format($item->total, 2) }}</td>
-                    </tr>
+                    @foreach ($invoice->items as $index => $item)
+                        <tr>
+                            <td>{{ $index + 1 }}</td>
+                            <td>{{ $item->description }}</td>
+                            <td>{{ number_format($item->unit_price, 2) }}</td>
+                            <td>{{ $item->tax_percentage }}%</td>
+                            <td>{{ $item->quantity }}</td>
+                            <td>{{ number_format($item->total, 2) }}</td>
+                        </tr>
                     @endforeach
                 </tbody>
             </table>
@@ -141,10 +143,11 @@
                     <td><strong>Sub Total:</strong></td>
                     <td>₹{{ number_format($invoice->total_amount, 2) }}</td>
                 </tr>
-                @if($invoice->discount_amount > 0)
+                @if ($invoice->discount_amount > 0)
                     <tr>
                         <td><strong>Discount:</strong></td>
-                        <td>- ₹{{ number_format($invoice->discount_amount, 2) }} / {{ $invoice->discount_percentage }}%</td>
+                        <td>- ₹{{ number_format($invoice->discount_amount, 2) }} /
+                            {{ $invoice->discount_percentage }}%</td>
                     </tr>
                 @endif
                 @if (!empty($invoice->tax_amount) && $invoice->tax_amount > 0)
@@ -161,13 +164,14 @@
 
             <p class="amount-words">Amount in Words: {{ ucwords($invoice->amount_in_words) }}</p>
 
-            @if(!empty($show_signature))
-            <div class="signature">
-                <p>Authorized Signatory</p>
-                <img src="{{ public_path('signature.png') }}" alt="Signature">
-            </div>
+            @if (!empty($show_signature))
+                <div class="signature">
+                    <p>Authorized Signatory</p>
+                    <img src="{{ public_path('signature.png') }}" alt="Signature">
+                </div>
             @endif
         </div>
     </div>
 </body>
+
 </html>
