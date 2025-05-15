@@ -150,6 +150,13 @@
                             {{ $invoice->discount_percentage }}%</td>
                     </tr>
                 @endif
+                @if ($invoice->service_charge_amount > 0)
+                    <tr>
+                        <td><strong>Service Charge:</strong></td>
+                        <td>- ₹{{ number_format($invoice->service_charge_amount, 2) }} /
+                            {{ $invoice->service_charge_percent }}%</td>
+                    </tr>
+                @endif
                 @if (!empty($invoice->tax_amount) && $invoice->tax_amount > 0)
                     <tr>
                         <td><strong>Tax:</strong></td>
