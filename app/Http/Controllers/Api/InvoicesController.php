@@ -354,7 +354,7 @@ public function sendToWhatsapp($id)
                             ],
                             "body_2" => [
                                 "type" => "text",
-                                "value" => '₹' . number_format($invoice->amount, 2)
+                                "value" => '₹' . number_format($invoice->total_amount, 2)
                             ]
                         ]
                     ]
