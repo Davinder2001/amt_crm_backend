@@ -19,6 +19,7 @@ return new class extends Migration
             $table->foreign('package_id')->references('id')->on('packages')->nullOnDelete();
             $table->string('company_name')->unique();
             $table->string('company_id')->unique();
+            $table->string('company_logo')->nullable();
             $table->string('company_slug')->unique();
             $table->string('business_address')->nullable();
             $table->string('pin_code', 20)->nullable();

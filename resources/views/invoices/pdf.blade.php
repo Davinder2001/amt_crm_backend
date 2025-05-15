@@ -139,22 +139,21 @@
             </table>
 
             <table class="summary">
+                @if ($invoice->service_charge_amount > 0)
+                    <tr>
+                        <td><strong>Service Charge:</strong></td>
+                        <td>- ₹{{ number_format($invoice->service_charge_amount, 2) }} + 18% GST <strong>₹({{ $invoice->service_charge_final}})</strong></td>
+                    </tr>
+                @endif
                 <tr>
                     <td><strong>Sub Total:</strong></td>
-                    <td>₹{{ number_format($invoice->total_amount, 2) }}</td>
+                    <td>- ₹{{ number_format($invoice->total_amount, 2) }}</td>
                 </tr>
                 @if ($invoice->discount_amount > 0)
                     <tr>
                         <td><strong>Discount:</strong></td>
                         <td>- ₹{{ number_format($invoice->discount_amount, 2) }} /
                             {{ $invoice->discount_percentage }}%</td>
-                    </tr>
-                @endif
-                @if ($invoice->service_charge_amount > 0)
-                    <tr>
-                        <td><strong>Service Charge:</strong></td>
-                        <td>- ₹{{ number_format($invoice->service_charge_amount, 2) }} /
-                            {{ $invoice->service_charge_percent }}%</td>
                     </tr>
                 @endif
                 @if (!empty($invoice->tax_amount) && $invoice->tax_amount > 0)
@@ -165,11 +164,10 @@
                 @endif
                 <tr>
                     <td><strong>Total:</strong></td>
-                    <td><strong>₹{{ number_format($invoice->final_amount, 2) }}</strong></td>
+                    <td><strong>- ₹{{ number_format($invoice->final_amount, 2) }}</strong></td>
                 </tr>
             </table>
 
-            <p class="amount-words">Amount in Words: {{ ucwords($invoice->amount_in_words) }}</p>
 
             @if (!empty($show_signature))
                 <div class="signature">

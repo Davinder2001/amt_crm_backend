@@ -51,9 +51,18 @@ class AdminRegistrationService
                 $backPath = 'uploads/business_proofs/' . $name;
             }
 
+            $logoPath = null;
+            if (!empty($data['company_logo'])) {
+                $file     = $data['company_logo'];
+                $name     = uniqid('company_logo_') . '.' . $file->getClientOriginalExtension();
+                $file->move(public_path('uploads/business_proofs'), $name);
+                $logoPath = 'uploads/business_proofs/' . $name;
+            }
+
             $company = Company::create([
                 'company_id'            => $companyId,
                 'company_name'          => $data['company_name'],
+                'company_logo'          => $logoPath,
                 'package_id'            => $data['package_id'],
                 'company_slug'          => $slug,
                 'payment_status'        => 'pending',

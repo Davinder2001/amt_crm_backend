@@ -74,12 +74,17 @@ class InvoicesController extends Controller
             Mail::send(
                 'invoices.pdf',
                 [
-                    'invoice'        => $invoice,
-                    'company_name'   => $companyName,
-                    'issued_by'      => $issuedByName,
-                    'footer_note'    => 'Thank you for your business',
-                    'show_signature' => true,
+                    'invoice'          => $invoice,
+                    'company_name'     => $selectedCompany->company->company_name,
+                    'company_address'  => $selectedCompany->company->address ?? 'N/A',
+                    'company_phone'    => $selectedCompany->company->phone ?? 'N/A',
+                    'company_gstin'    => $selectedCompany->company->gstin ?? 'N/A',
+                    'issued_by'        => Auth::user()->name,
+                    'footer_note'      => 'Thank you for your business',
+                    'show_signature'   => true,
                 ],
+
+
                 function ($message) use ($invoice, $pdfContent) {
                     $message->to($invoice->client_email)
                         ->subject('Your Invoice #' . $invoice->invoice_number)
@@ -197,7 +202,7 @@ class InvoicesController extends Controller
             $serviceChargeAmount    = 0;
             $serviceChargePercent   = 0;
             $serviceChargeGstAmount = 0;
-            $finalServiceCharge     = 0; 
+            $finalServiceCharge     = 0;
 
             if (!empty($data['serviceChargeType'])) {
                 if ($data['serviceChargeType'] === 'amount' && !empty($data['serviceChargeAmount'])) {
@@ -257,7 +262,7 @@ class InvoicesController extends Controller
                 'service_charge_gst'        => $serviceChargeGstAmount,
                 'service_charge_final'      => $finalServiceCharge,
                 'discount_amount'           => $discountAmount ?? 0,
-                'discount_percentage'       => $discountPercentage?? 0,
+                'discount_percentage'       => $discountPercentage ?? 0,
                 'final_amount'              => $finalAmount,
                 'payment_method'            => $data['payment_method'],
                 'issued_by'                 => $issuedById,
@@ -359,104 +364,105 @@ class InvoicesController extends Controller
     }
 
 
-public function sendToWhatsapp($id)
-{
-    $invoice = Invoice::with('items')->findOrFail($id);
-    $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+    public function sendToWhatsapp($id)
+    {
+        $invoice = Invoice::with('items')->findOrFail($id);
+        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
 
-    if ($invoice->sent_on_whatsapp) {
-        return response()->json([
-            'status' => false,
-            'message' => 'Invoice already sent on WhatsApp.',
-        ], 400);
-    }
+        if ($invoice->sent_on_whatsapp) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Invoice already sent on WhatsApp.',
+            ], 400);
+        }
 
-    if (!$invoice->client_phone) {
-        return response()->json([
-            'status' => false,
-            'message' => 'Client phone number not available.',
-        ], 400);
-    }
+        if (!$invoice->client_phone) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Client phone number not available.',
+            ], 400);
+        }
 
-    // Generate PDF logic...
-    $folderPath = public_path('invoices');
-    if (!file_exists($folderPath)) {
-        mkdir($folderPath, 0755, true);
-    }
+        // Generate PDF logic...
+        $folderPath = public_path('invoices');
+        if (!file_exists($folderPath)) {
+            mkdir($folderPath, 0755, true);
+        }
 
-    $pdf = Pdf::loadView('invoices.pdf', [
-        'invoice'          => $invoice,
-        'company_name'     => $selectedCompany->company->company_name,
-        'company_address'  => $selectedCompany->company->address ?? 'N/A',
-        'company_phone'    => $selectedCompany->company->phone ?? 'N/A',
-        'company_gstin'    => $selectedCompany->company->gstin ?? 'N/A',
-        'issued_by'        => Auth::user()->name,
-        'footer_note'      => 'Thank you for your business',
-        'show_signature'   => true,
-    ]);
-    $fileName = 'invoice_' . $invoice->invoice_number . '.pdf';
-    $filePath = $folderPath . '/' . $fileName;
-    $pdf->save($filePath);
-    $publicUrl = asset('invoices/' . $fileName);
+        $pdf = Pdf::loadView('invoices.pdf', [
+            'invoice'          => $invoice,
+            'company_name'     => $selectedCompany->company->company_name,
+            'company_address'  => $selectedCompany->company->address ?? 'N/A',
+            'company_phone'    => $selectedCompany->company->phone ?? 'N/A',
+            'company_gstin'    => $selectedCompany->company->gstin ?? 'N/A',
+            'issued_by'        => Auth::user()->name,
+            'footer_note'      => 'Thank you for your business',
+            'show_signature'   => true,
+        ]);
 
-    $payload = [
-        "integrated_number" => "918219678757",
-        "content_type" => "template",
-        "payload" => [
-            "messaging_product" => "whatsapp",
-            "type" => "template",
-            "template" => [
-                "name" => "invoice",
-                "language" => [
-                    "code" => "en",
-                    "policy" => "deterministic"
-                ],
-                "namespace" => "c448fd19_1766_40ad_b98d_bae2703feb98",
-                "to_and_components" => [
-                    [
-                        "to" => [$invoice->client_phone],
-                        "components" => [
-                            "header_1" => [
-                                "filename" => $fileName,
-                                "type" => "document",
-                                "value" => $publicUrl
-                            ],
-                            "body_1" => [
-                                "type" => "text",
-                                "value" => $invoice->client_name ?? 'Customer'
-                            ],
-                            "body_2" => [
-                                "type" => "text",
-                                "value" => '₹' . number_format($invoice->total_amount, 2)
+        $fileName = 'invoice_' . $invoice->invoice_number . '.pdf';
+        $filePath = $folderPath . '/' . $fileName;
+        $pdf->save($filePath);
+        $publicUrl = asset('invoices/' . $fileName);
+
+        $payload = [
+            "integrated_number" => "918219678757",
+            "content_type" => "template",
+            "payload" => [
+                "messaging_product" => "whatsapp",
+                "type" => "template",
+                "template" => [
+                    "name" => "invoice",
+                    "language" => [
+                        "code" => "en",
+                        "policy" => "deterministic"
+                    ],
+                    "namespace" => "c448fd19_1766_40ad_b98d_bae2703feb98",
+                    "to_and_components" => [
+                        [
+                            "to" => [$invoice->client_phone],
+                            "components" => [
+                                "header_1" => [
+                                    "filename" => $fileName,
+                                    "type" => "document",
+                                    "value" => $publicUrl
+                                ],
+                                "body_1" => [
+                                    "type" => "text",
+                                    "value" => $invoice->client_name ?? 'Customer'
+                                ],
+                                "body_2" => [
+                                    "type" => "text",
+                                    "value" => '₹' . number_format($invoice->total_amount, 2)
+                                ]
                             ]
                         ]
                     ]
                 ]
             ]
-        ]
-    ];
+        ];
 
-    $response = Http::withHeaders([
-        'authkey' => '451198A9qD8Lu26821c9a6P1',
-        'Content-Type' => 'application/json'
-    ])->post('https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/', $payload);
+        $response = Http::withHeaders([
+            'authkey' => '451198A9qD8Lu26821c9a6P1',
+            'Content-Type' => 'application/json'
+        ])->post('https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/', $payload);
 
-    if ($response->successful()) {
-        $invoice->update(['sent_on_whatsapp' => true]);
-        return response()->json([
-            'status' => true,
-            'message' => 'WhatsApp message sent successfully.',
-            'response' => $response->json()
-        ], 200);
-    } else {
-        Log::error("MSG91 WhatsApp send failed: " . $response->body());
-        return response()->json([
-            'status' => false,
-            'message' => 'Failed to send WhatsApp message.',
-            'error' => $response->body()
-        ], $response->status());
+        if ($response->successful()) {
+            $invoice->update(['sent_on_whatsapp' => true]);
+            return response()->json([
+                'status' => true,
+                'message' => 'WhatsApp message sent successfully.',
+                'response' => $response->json()
+            ], 200);
+        } else {
+            Log::error("MSG91 WhatsApp send failed: " . $response->body());
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed to send WhatsApp message.',
+                'error' => $response->body()
+            ], $response->status());
+        }
     }
-}
 
 
 
