@@ -31,6 +31,8 @@ class CreateInvoicesTable extends Migration
             $table->enum('payment_method', ['cash', 'online', 'card', 'credit'])->nullable();
             $table->foreignId('issued_by')->constrained('users')->onDelete('cascade');
             $table->longText('pdf_base64')->nullable();
+            $table->boolean('sent_on_whatsapp')->default(false);
+
             $table->timestamps();
         });
     }

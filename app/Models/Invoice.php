@@ -27,6 +27,7 @@ class Invoice extends Model
         'issued_by',
         'pdf_path',
         'company_id',
+        'sent_on_whatsapp',
     ];
 
     protected static function booted(): void
