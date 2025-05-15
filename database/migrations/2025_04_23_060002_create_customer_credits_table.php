@@ -19,6 +19,8 @@ return new class extends Migration
             $table->decimal('amount_paid', 10, 2)->default(0);
             $table->decimal('outstanding', 10, 2);
             $table->enum('status', ['due', 'partial', 'paid'])->default('due');
+            $table->unsignedBigInteger('company_id');
+            $table->foreign('company_id')->references('id')->on('companies')->onDelete('cascade');
             $table->timestamps();
         });
     

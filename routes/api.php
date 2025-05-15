@@ -255,6 +255,7 @@ Route::prefix('v1')->group(function () {
             // Due Payments Credit Management API's
             Route::prefix('credits')->group(function () {
                 Route::get('/', [CreditManagementController::class, 'index']);
+                Route::get('/users', [CreditManagementController::class, 'users']);
                 Route::get('/{id}', [CreditManagementController::class, 'show']);
                 Route::post('/{id}/pay', [CreditManagementController::class, 'closeDue']);
             });

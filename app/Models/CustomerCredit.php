@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Scopes\CompanyScope;
 
 class CustomerCredit extends Model
 {
@@ -12,8 +13,14 @@ class CustomerCredit extends Model
         'total_due',
         'amount_paid',
         'outstanding',
+        'company_id',
         'status',
     ];
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new CompanyScope);
+    }
 
     public function invoice()
     {
@@ -24,5 +31,4 @@ class CustomerCredit extends Model
     {
         return $this->belongsTo(Customer::class);
     }
-
 }

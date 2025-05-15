@@ -93,10 +93,10 @@
                 <img src="{{ public_path('logo.png') }}" alt="Logo">
             </div>
             <div class="store-info">
-                <strong>{{ $company_name ?? 'Ukn' }}</strong><br>
-                {{ $company_address ?? 'Ukn' }}<br>
-                Phone: {{ $company_phone ?? 'Ukn' }}<br>
-                GSTIN: {{ $company_gstin ?? 'Ukn' }}
+                <strong>{{ $company_name }}</strong><br>
+                {{ $company_address }}<br>
+                Phone: {{ $company_phone }}<br>
+                GSTIN: {{ $company_gstin }}
             </div>
         </div>
 

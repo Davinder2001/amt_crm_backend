@@ -49,6 +49,7 @@ class InvoicesController extends Controller
         ], 201);
     }
 
+
     public function storeAndPrint(Request $request)
     {
         [$invoice, $pdfContent] = $this->createInvoiceAndPdf($request);
@@ -123,18 +124,36 @@ class InvoicesController extends Controller
     private function createInvoiceAndPdf(Request $request): array
     {
         $validator = Validator::make($request->all(), [
-            'client_name'        => 'required|string',
-            'number'             => 'required|string',
-            'email'              => 'nullable|email',
-            'invoice_date'       => 'required|date',
-            'payment_method'     => 'required|string',
-            'discount_price'     => 'nullable|numeric|min:0',
-            'discount_percentage' => 'nullable|numeric|min:0',
-            'items'              => 'required|array|min:1',
-            'items.*.item_id'    => 'required|exists:store_items,id',
-            'items.*.variant_id' => 'nullable|exists:item_variants,id',
-            'items.*.quantity'   => 'required|integer|min:1',
+            'client_name'            => 'required|string',
+            'number'                 => 'required|string',
+            'email'                  => 'nullable|email',
+            'invoice_date'           => 'required|date',
+
+            'discount_price'         => 'nullable|numeric|min:0',
+            'discount_percentage'    => 'nullable|numeric|min:0',
+            'discount_type'          => 'nullable|in:percentage,amount',
+
+            'payment_method'         => 'required|string',
+            'creditPaymentType'      => 'nullable|in:partial,full',
+            'partialAmount'          => 'nullable|numeric|min:0',
+
+            'item_type'              => 'nullable|string',
+            'delivery_charge'        => 'nullable|numeric|min:0',
+
+            'serviceChargeType'      => 'nullable|in:amount,percentage',
+            'serviceChargeAmount'    => 'nullable|numeric|min:0',
+            'serviceChargePercent'   => 'nullable|numeric|min:0',
+
+            'address'                => 'nullable|string',
+            'pincode'                => 'nullable|string|max:10',
+
+            'items'                  => 'required|array|min:1',
+            'items.*.item_id'        => 'required|exists:store_items,id',
+            'items.*.variant_id'     => 'nullable|exists:item_variants,id',
+            'items.*.quantity'       => 'required|integer|min:1',
+            'items.*.unit_price'     => 'nullable|numeric|min:0',
         ]);
+
 
         if ($validator->fails()) {
             abort(response()->json([
@@ -156,9 +175,9 @@ class InvoicesController extends Controller
                 }
             }
 
-            $subtotal = collect($data['items'])->sum(function ($line) {
-                $item = Item::findOrFail($line['item_id']);
-                $price = $item->selling_price;
+            $total = collect($data['items'])->sum(function ($line) {
+                $item   = Item::findOrFail($line['item_id']);
+                $price  = $item->selling_price;
 
                 if (!empty($line['variant_id'])) {
                     $variant = ItemVariant::where('id', $line['variant_id'])
@@ -175,12 +194,39 @@ class InvoicesController extends Controller
                 $priceWithTax = $price + ($price * $taxRate / 100);
                 return $priceWithTax * $line['quantity'];
             });
+            $serviceChargeAmount    = 0;
+            $serviceChargePercent   = 0;
+            $serviceChargeGstAmount = 0;
+            $finalServiceCharge     = 0; 
+
+            if (!empty($data['serviceChargeType'])) {
+                if ($data['serviceChargeType'] === 'amount' && !empty($data['serviceChargeAmount'])) {
+                    $serviceChargeAmount    = $data['serviceChargeAmount'];
+                    $serviceChargePercent   = $total > 0 ? round(($serviceChargeAmount / $total) * 100, 2) : 0;
+                } elseif ($data['serviceChargeType'] === 'percentage' && !empty($data['serviceChargePercent'])) {
+                    $serviceChargePercent   = $data['serviceChargePercent'];
+                    $serviceChargeAmount    = round(($serviceChargePercent / 100) * $total, 2);
+                }
+
+                $serviceChargeGstAmount = round($serviceChargeAmount * 0.18, 2);
+                $finalServiceCharge     = $serviceChargeAmount + $serviceChargeGstAmount;
+            }
 
 
+            $subtotal = $total + $finalServiceCharge;
 
-            $discountAmount     = $data['discount_price'] ?? 0;
-            $discountPercentage = $subtotal ? round(($discountAmount / $subtotal) * 100, 2) : 0;
-            $finalAmount        = max(0, $subtotal - $discountAmount);
+            if ($data['discount_type'] === 'amount' && $data['discount_price'] > 0) {
+
+                $discountAmount     = $data['discount_price'];
+                $discountPercentage = $subtotal ? round(($discountAmount / $subtotal) * 100, 2) : 0;
+                $finalAmount        = max(0, $subtotal - $discountAmount);
+            } elseif ($data['discount_type'] === 'percentage' && $data['discount_percentage'] > 0) {
+
+                $discountPercentage = $data['discount_percentage'];
+                $discountAmount     = round(($discountPercentage / 100) * $subtotal, 2);
+                $finalAmount        = max(0, $subtotal - $discountAmount);
+            }
+
 
             $customer = Customer::firstOrCreate(
                 ['number'   => $data['number'], 'company_id' => $selectedCompany->id],
@@ -200,18 +246,22 @@ class InvoicesController extends Controller
 
 
             $inv = Invoice::create([
-                'invoice_number'      => $invoiceNumber,
-                'client_name'         => $data['client_name'] ?? 'Guest',
-                'client_phone'        => $data['number'] ?? null,
-                'client_email'        => $data['email'] ?? null,
-                'invoice_date'        => $data['invoice_date'],
-                'total_amount'        => $subtotal,
-                'discount_amount'     => $discountAmount,
-                'discount_percentage' => $discountPercentage,
-                'final_amount'        => $finalAmount,
-                'payment_method'      => $data['payment_method'],
-                'issued_by'           => $issuedById,
-                'company_id'          => $selectedCompany->id,
+                'invoice_number'            => $invoiceNumber,
+                'client_name'               => $data['client_name'] ?? 'Guest',
+                'client_phone'              => $data['number'] ?? null,
+                'client_email'              => $data['email'] ?? null,
+                'invoice_date'              => $data['invoice_date'],
+                'total_amount'              => $subtotal,
+                'service_charge_amount'     => $serviceChargeAmount,
+                'service_charge_percent'    => $serviceChargePercent,
+                'service_charge_gst'        => $serviceChargeGstAmount,
+                'service_charge_final'      => $finalServiceCharge,
+                'discount_amount'           => $discountAmount,
+                'discount_percentage'       => $discountPercentage,
+                'final_amount'              => $finalAmount,
+                'payment_method'            => $data['payment_method'],
+                'issued_by'                 => $issuedById,
+                'company_id'                => $selectedCompany->id,
             ]);
 
 
@@ -263,13 +313,27 @@ class InvoicesController extends Controller
                 'subtotal'      => $subtotal,
             ]);
 
+            $amountPaid = null;
+            $totalDue = null;
+            if ($data['payment_method'] === 'credit') {
+
+                if ($data['creditPaymentType'] === 'partial') {
+                    $amountPaid = $data['partialAmount'];
+                    $totalDue = $finalAmount - $amountPaid;
+                } elseif ($data['creditPaymentType'] === 'full') {
+                    $amountPaid = 0;
+                    $totalDue = $finalAmount;
+                }
+            }
+
             if ($finalAmount > 0) {
                 CustomerCredit::create([
                     'customer_id'  => $customer->id,
                     'invoice_id'   => $inv->id,
                     'total_due'    => $finalAmount,
-                    'amount_paid'  => 0,
-                    'outstanding'  => $finalAmount,
+                    'amount_paid'  => $amountPaid,
+                    'outstanding'  => $totalDue,
+                    'company_id'   => $selectedCompany->id,
                     'status'       => 'due',
                 ]);
             }
@@ -296,93 +360,96 @@ class InvoicesController extends Controller
 
 
 
-public function sendToWhatsapp($id)
-{
-    $invoice = Invoice::with('items')->findOrFail($id);
+    public function sendToWhatsapp($id)
+    {
+        $invoice            = Invoice::with('items')->findOrFail($id);
+        $selectedCompany    = SelectedCompanyService::getSelectedCompanyOrFail();
+        if (!$invoice->client_phone) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Client phone number not available.',
+            ], 400);
+        }
 
-    if (!$invoice->client_phone) {
-        return response()->json([
-            'status' => false,
-            'message' => 'Client phone number not available.',
-        ], 400);
-    }
+        $folderPath = public_path('invoices');
+        if (!file_exists($folderPath)) {
+            mkdir($folderPath, 0755, true);
+        }
 
-    // Make sure public/invoices folder exists
-    $folderPath = public_path('invoices');
-    if (!file_exists($folderPath)) {
-        mkdir($folderPath, 0755, true);
-    }
+        $pdf = Pdf::loadView('invoices.pdf', [
+            'invoice'          => $invoice,
+            'company_name'     => $selectedCompany->company->company_name,
+            'company_address'  => $selectedCompany->company->address ?? 'N/A',
+            'company_phone'    => $selectedCompany->company->phone ?? 'N/A',
+            'company_gstin'    => $selectedCompany->company->gstin ?? 'N/A',
+            'issued_by'        => Auth::user()->name,
+            'footer_note'      => 'Thank you for your business',
+            'show_signature'   => true,
+        ]);
+        $fileName   = 'invoice_' . $invoice->invoice_number . '.pdf';
+        $filePath   = $folderPath . '/' . $fileName;
 
-    // Generate PDF using Blade view
-    $pdf = Pdf::loadView('invoices.pdf', compact('invoice'));
+        $pdf->save($filePath);
 
-    $fileName = 'invoice_' . $invoice->invoice_number . '.pdf';
-    $filePath = $folderPath . '/' . $fileName;
+        $publicUrl = asset('invoices/' . $fileName);
 
-    // Save the PDF in public/invoices
-    $pdf->save($filePath);
-
-    // Publicly accessible URL
-    $publicUrl = asset('invoices/' . $fileName);
-    
-
-    $payload = [
-        "integrated_number" => "918219678757",
-        "content_type" => "template",
-        "payload" => [
-            "messaging_product" => "whatsapp",
-            "type" => "template",
-            "template" => [
-                "name" => "invoice",
-                "language" => [
-                    "code" => "en",
-                    "policy" => "deterministic"
-                ],
-                "namespace" => "c448fd19_1766_40ad_b98d_bae2703feb98",
-                "to_and_components" => [
-                    [
-                        "to" => [$invoice->client_phone],
-                        "components" => [
-                            "header_1" => [
-                                "filename" => $fileName,
-                                "type" => "document",
-                                "value" => $publicUrl
-                            ],
-                            "body_1" => [
-                                "type" => "text",
-                                "value" => $invoice->client_name ?? 'Customer'
-                            ],
-                            "body_2" => [
-                                "type" => "text",
-                                "value" => '₹' . number_format($invoice->total_amount, 2)
+        $payload = [
+            "integrated_number" => "918219678757",
+            "content_type" => "template",
+            "payload" => [
+                "messaging_product" => "whatsapp",
+                "type" => "template",
+                "template" => [
+                    "name" => "invoice",
+                    "language" => [
+                        "code" => "en",
+                        "policy" => "deterministic"
+                    ],
+                    "namespace" => "c448fd19_1766_40ad_b98d_bae2703feb98",
+                    "to_and_components" => [
+                        [
+                            "to" => [$invoice->client_phone],
+                            "components" => [
+                                "header_1" => [
+                                    "filename" => $fileName,
+                                    "type" => "document",
+                                    "value" => $publicUrl
+                                ],
+                                "body_1" => [
+                                    "type" => "text",
+                                    "value" => $invoice->client_name ?? 'Customer'
+                                ],
+                                "body_2" => [
+                                    "type" => "text",
+                                    "value" => '₹' . number_format($invoice->total_amount, 2)
+                                ]
                             ]
                         ]
                     ]
                 ]
             ]
-        ]
-    ];
+        ];
 
-    $response = Http::withHeaders([
-        'authkey' => '451198A9qD8Lu26821c9a6P1',
-        'Content-Type' => 'application/json'
-    ])->post('https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/', $payload);
+        $response = Http::withHeaders([
+            'authkey' => '451198A9qD8Lu26821c9a6P1',
+            'Content-Type' => 'application/json'
+        ])->post('https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/', $payload);
 
-    if ($response->successful()) {
-        return response()->json([
-            'status' => true,
-            'message' => 'WhatsApp message sent successfully.',
-            'response' => $response->json()
-        ], 200);
-    } else {
-        Log::error("MSG91 WhatsApp send failed: " . $response->body());
-        return response()->json([
-            'status' => false,
-            'message' => 'Failed to send WhatsApp message.',
-            'error' => $response->body()
-        ], $response->status());
+        if ($response->successful()) {
+            return response()->json([
+                'status' => true,
+                'message' => 'WhatsApp message sent successfully.',
+                'response' => $response->json()
+            ], 200);
+        } else {
+            Log::error("MSG91 WhatsApp send failed: " . $response->body());
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed to send WhatsApp message.',
+                'error' => $response->body()
+            ], $response->status());
+        }
     }
-}
 
 
 
