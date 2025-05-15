@@ -258,7 +258,7 @@ class InvoicesController extends Controller
                 'service_charge_final'      => $finalServiceCharge,
                 'discount_amount'           => $discountAmount ?? 0,
                 'discount_percentage'       => $discountPercentage?? 0,
-                'final_amount'              => $finalAmount,
+                'final_amount'              => $finalAmount ?? $subtotal,
                 'payment_method'            => $data['payment_method'],
                 'issued_by'                 => $issuedById,
                 'company_id'                => $selectedCompany->id,
