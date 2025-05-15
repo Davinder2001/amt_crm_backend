@@ -296,93 +296,98 @@ class InvoicesController extends Controller
 
 
 
-public function sendToWhatsapp($id)
-{
-    $invoice = Invoice::with('items')->findOrFail($id);
+    public function sendToWhatsapp($id)
+    {
+        $invoice = Invoice::with('items')->findOrFail($id);
 
-    if (!$invoice->client_phone) {
-        return response()->json([
-            'status' => false,
-            'message' => 'Client phone number not available.',
-        ], 400);
-    }
+        if (!$invoice->client_phone) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Client phone number not available.',
+            ], 400);
+        }
 
-    // Make sure public/invoices folder exists
-    $folderPath = public_path('invoices');
-    if (!file_exists($folderPath)) {
-        mkdir($folderPath, 0755, true);
-    }
+        // Make sure public/invoices folder exists
+        $folderPath = public_path('invoices');
+        if (!file_exists($folderPath)) {
+            mkdir($folderPath, 0755, true);
+        }
 
-    // Generate PDF using Blade view
-    $pdf = Pdf::loadView('invoices.pdf', compact('invoice'));
+        // Generate PDF using Blade view
+        $pdf = Pdf::loadView('invoices.pdf', compact('invoice'));
 
-    $fileName = 'invoice_' . $invoice->invoice_number . '.pdf';
-    $filePath = $folderPath . '/' . $fileName;
+        $fileName = 'invoice_' . $invoice->invoice_number . '.pdf';
+        $filePath = $folderPath . '/' . $fileName;
 
-    // Save the PDF in public/invoices
-    $pdf->save($filePath);
+        // Save the PDF in public/invoices
+        $pdf->save($filePath);
 
-    // Publicly accessible URL
-    $publicUrl = asset('invoices/' . $fileName);
-    
+        // Publicly accessible URL
+        $publicUrl = asset('invoices/' . $fileName);
 
-    $payload = [
-        "integrated_number" => "918219678757",
-        "content_type" => "template",
-        "payload" => [
-            "messaging_product" => "whatsapp",
-            "type" => "template",
-            "template" => [
-                "name" => "invoice",
-                "language" => [
-                    "code" => "en",
-                    "policy" => "deterministic"
-                ],
-                "namespace" => "c448fd19_1766_40ad_b98d_bae2703feb98",
-                "to_and_components" => [
-                    [
-                        "to" => [$invoice->client_phone],
-                        "components" => [
-                            "header_1" => [
-                                "filename" => $fileName,
-                                "type" => "document",
-                                "value" => $publicUrl
-                            ],
-                            "body_1" => [
-                                "type" => "text",
-                                "value" => $invoice->client_name ?? 'Customer'
-                            ],
-                            "body_2" => [
-                                "type" => "text",
-                                "value" => '₹' . number_format($invoice->total_amount, 2)
+
+        $payload = [
+            "integrated_number" => "918219678757",
+            "content_type" => "template",
+            "payload" => [
+                "messaging_product" => "whatsapp",
+                "type" => "template",
+                "template" => [
+                    "name" => "invoice",
+                    "language" => [
+                        "code" => "en",
+                        "policy" => "deterministic"
+                    ],
+                    "namespace" => "c448fd19_1766_40ad_b98d_bae2703feb98",
+                    "to_and_components" => [
+                        [
+                            "to" => [$invoice->client_phone],
+                            "components" => [
+                                "header_1" => [
+                                    "filename" => $fileName,
+                                    "type" => "document",
+                                    "value" => $publicUrl
+                                ],
+                                "body_1" => [
+                                    "type" => "text",
+                                    "value" => $invoice->client_name ?? 'Customer'
+                                ],
+                                "body_2" => [
+                                    "type" => "text",
+                                    "value" => '₹' . number_format($invoice->total_amount, 2)
+                                ]
                             ]
                         ]
                     ]
                 ]
             ]
-        ]
-    ];
+        ];
 
-    $response = Http::withHeaders([
-        'authkey' => '451198A9qD8Lu26821c9a6P1',
-        'Content-Type' => 'application/json'
-    ])->post('https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/', $payload);
+        $response = Http::withHeaders([
+            'authkey' => '451198A9qD8Lu26821c9a6P1',
+            'Content-Type' => 'application/json'
+        ])->post('https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/', $payload);
 
-    if ($response->successful()) {
-        return response()->json([
-            'status' => true,
-            'message' => 'WhatsApp message sent successfully.',
-            'response' => $response->json()
-        ], 200);
-    } else {
-        Log::error("MSG91 WhatsApp send failed: " . $response->body());
-        return response()->json([
-            'status' => false,
-            'message' => 'Failed to send WhatsApp message.',
-            'error' => $response->body()
-        ], $response->status());
+        if ($response->successful()) {
+
+            if (file_exists($filePath)) {
+                unlink($filePath);
+            }
+
+            return response()->json([
+                'status' => true,
+                'message' => 'WhatsApp message sent successfully.',
+                'response' => $response->json()
+            ], 200);
+        } else {
+            Log::error("MSG91 WhatsApp send failed: " . $response->body());
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed to send WhatsApp message.',
+                'error' => $response->body()
+            ], $response->status());
+        }
     }
-}
 
 
 
