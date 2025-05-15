@@ -258,7 +258,7 @@ class InvoicesController extends Controller
                 'service_charge_final'      => $finalServiceCharge,
                 'discount_amount'           => $discountAmount ?? 0,
                 'discount_percentage'       => $discountPercentage?? 0,
-                'final_amount'              => $finalAmount ?? $subtotal,
+                'final_amount'              => $finalAmount,
                 'payment_method'            => $data['payment_method'],
                 'issued_by'                 => $issuedById,
                 'company_id'                => $selectedCompany->id,
@@ -326,7 +326,7 @@ class InvoicesController extends Controller
                 }
             }
 
-            if ($finalAmount > 0) {
+            if ($data['payment_method'] === 'credit') {
                 CustomerCredit::create([
                     'customer_id'  => $customer->id,
                     'invoice_id'   => $inv->id,
