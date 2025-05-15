@@ -257,7 +257,7 @@ class InvoicesController extends Controller
                 'service_charge_gst'        => $serviceChargeGstAmount,
                 'service_charge_final'      => $finalServiceCharge,
                 'discount_amount'           => $discountAmount ?? 0,
-                'discount_percentage'       => $discountPercentage,
+                'discount_percentage'       => $discountPercentage?? 0,
                 'final_amount'              => $finalAmount,
                 'payment_method'            => $data['payment_method'],
                 'issued_by'                 => $issuedById,
