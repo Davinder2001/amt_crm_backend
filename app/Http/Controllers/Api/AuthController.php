@@ -10,6 +10,7 @@ use Illuminate\Validation\ValidationException;
 use App\Services\AdminRegistrationService;
 use App\Http\Requests\AdminRegisterRequest;
 use App\Models\User;
+use App\Models\Package;
 use Illuminate\Support\Str;
 use App\Models\CompanyUser;
 use App\Models\Company;
@@ -81,7 +82,9 @@ class AuthController extends Controller
     }
 
 
-
+   /**
+     * Send Otp for Register.
+     */
     public function sendWpOtp(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -102,7 +105,6 @@ class AuthController extends Controller
         $integratedNumber   = '918219678757';
         $namespace          = 'c448fd19_1766_40ad_b98d_bae2703feb98';
 
-        // ✅ Use raw number (without country code) for consistent caching
         Cache::put("otp_{$numberGet}", $otp, now()->addMinutes(5));
 
         $payload = [
@@ -161,7 +163,9 @@ class AuthController extends Controller
         ], 500);
     }
 
-
+   /**
+     * Verify Otp
+     */
     public function veriWpfyOtp(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -176,10 +180,9 @@ class AuthController extends Controller
             ], 422);
         }
 
-        $number = $request->number;
-        $otp = $request->otp;
-
-        $cachedOtp = Cache::get("otp_{$number}");
+        $number     = $request->number;
+        $otp        = $request->otp;
+        $cachedOtp  = Cache::get("otp_{$number}");
 
         if ($cachedOtp && $cachedOtp == $otp) {
             Cache::put("otp_verified_{$number}", true, now()->addMinutes(30));
@@ -198,8 +201,9 @@ class AuthController extends Controller
     public function adminRegisterInitiate(AdminRegisterRequest $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'email'  => 'required|email',
-            'number' => 'required|string|max:15',
+            'email'     => 'required|email',
+            'number'    => 'required|string|max:15',
+            'packageId' => 'required|string|max:15',
         ]);
 
         if ($validator->fails()) {
@@ -209,11 +213,12 @@ class AuthController extends Controller
                 'errors'  => $validator->errors()
             ], 422);
         }
+        
+        $packageId       = $validator->validated()['packageId'];
+        $package         = Package::where('id', $packageId)->first();
+        $merchantOrderId = 'ORDER_' . uniqid();
+        $amount          = 100 * $package->price;
 
-        $merchantOrderId    = 'ORDER_' . uniqid();
-        $amount             = 100 * 100; // fixed registration fee in paise
-
-        // Get PhonePe access token
         $oauthResponse = Http::asForm()->post('https://api-preprod.phonepe.com/apis/pg-sandbox/v1/oauth/token', [
             'client_id'      => 'TEST-M22CCW231A75L_25050',
             'client_version' => '1',
@@ -230,8 +235,6 @@ class AuthController extends Controller
         }
 
         $accessToken = $oauthResponse->json('access_token');
-
-        // Set callback and redirect URLs
         $callbackUrl = "http://localhost:3000/payment-confirm?orderId={$merchantOrderId}";
         $redirectUrl = "http://localhost:3000/payment-confirm?orderId={$merchantOrderId}";
 
@@ -284,7 +287,6 @@ class AuthController extends Controller
             ], 400);
         }
 
-
         $oauthResponse = Http::asForm()->post('https://api-preprod.phonepe.com/apis/pg-sandbox/v1/oauth/token', [
             'client_id'      => 'TEST-M22CCW231A75L_25050',
             'client_version' => '1',
@@ -326,8 +328,8 @@ class AuthController extends Controller
         }
 
         try {
-            $formData = $request->all();
-            $result = $this->registrationService->register($formData);
+            $formData   = $request->all();
+            $result     = $this->registrationService->register($formData);
 
             return response()->json([
                 'success' => true,
