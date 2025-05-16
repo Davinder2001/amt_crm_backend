@@ -354,6 +354,7 @@ class InvoicesController extends Controller
             'company_address'  => $selectedCompany->company->address ?? 'N/A',
             'company_phone'    => $selectedCompany->company->phone ?? 'N/A',
             'company_gstin'    => $selectedCompany->company->gstin ?? 'N/A',
+            'company_logo'    => $selectedCompany->company->company_logo ?? 'N/A',
             'issued_by'        => Auth::user()->name,
             'footer_note'      => 'Thank you for your business',
             'show_signature'   => true,

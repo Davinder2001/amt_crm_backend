@@ -34,7 +34,7 @@ class ItemsController extends Controller
     public function store(Request $request): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-    
+
         $validator = Validator::make($request->all(), [
             'name'                      => 'required|string|max:255',
             'quantity_count'            => 'required|integer',
@@ -58,30 +58,30 @@ class ItemsController extends Controller
             'variants.*.attributes'     => 'required_with:variants|array',
             'tax_id'                    => 'nullable',
         ]);
-    
+
         if ($validator->fails()) {
             return response()->json([
                 'message' => 'Validation errors.',
                 'errors'  => $validator->errors(),
             ], 422);
         }
-    
+
         $data               = $validator->validated();
         $data['company_id'] = $selectedCompany->company_id;
 
         $lastItemCode = Item::where('company_id', $data['company_id'])
-        ->select(DB::raw('MAX(CAST(item_code AS UNSIGNED)) as max_code'))
-        ->value('max_code');
-    
+            ->select(DB::raw('MAX(CAST(item_code AS UNSIGNED)) as max_code'))
+            ->value('max_code');
+
         $data['item_code'] = $lastItemCode ? $lastItemCode + 1 : 1;
-    
+
         if (!empty($data['vendor_name'])) {
             StoreVendor::firstOrCreate([
                 'vendor_name' => $data['vendor_name'],
                 'company_id'  => $data['company_id'],
             ]);
         }
-    
+
         $imageLinks = [];
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $image) {
@@ -93,7 +93,7 @@ class ItemsController extends Controller
 
         $data['images'] = $imageLinks;
         $item           = Item::create($data);
-    
+
         if (isset($data['variants'])) {
             foreach ($data['variants'] as $variantData) {
                 $variant = $item->variants()->create([
@@ -102,7 +102,7 @@ class ItemsController extends Controller
                     'stock'         => $variantData['stock'] ?? 1,
                     'images'        => $imageLinks,
                 ]);
-    
+
                 foreach ($variantData['attributes'] as $attribute) {
                     $variant->attributeValues()->attach($attribute['attribute_value_id'], [
                         'attribute_id' => $attribute['attribute_id']
@@ -136,27 +136,27 @@ class ItemsController extends Controller
 
         if ($taxId) {
             $taxExists = Tax::where('id', $taxId)->exists();
-        
+
             if (!$taxExists) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Invalid tax ID. No such tax exists.'
                 ], 404);
             }
-        
+
             ItemTax::create([
                 'store_item_id' => $item->id,
                 'tax_id' => $data['tax_id'],
             ]);
         }
-        
-    
+
+
         return response()->json([
             'message' => 'Item added successfully.',
             'item'    => new ItemResource($item->load('variants.attributeValues', 'categories')),
         ], 201);
     }
-    
+
 
     /**
      * Display the specified resource.
@@ -165,22 +165,60 @@ class ItemsController extends Controller
     {
         $selectedCompany    = SelectedCompanyService::getSelectedCompanyOrFail();
         $item               = Item::with(['variants.attributeValues.attribute', 'taxes', 'categories'])->find($id);
-    
+
         if (!$item) {
             return response()->json(['message' => 'Item not found.'], 404);
         }
-    
+
         if (!$selectedCompany->super_admin && $item->company_id !== $selectedCompany->company_id) {
             return response()->json(['message' => 'Unauthorized.'], 403);
         }
-    
+
         return response()->json(new ItemResource($item));
     }
 
 
-    
-    public function update(Request $request, $id): JsonResponse
+
+    public function update(Request $request, $id)
     {
+
+        
+        dd($request->all());
+        $validator = Validator::make($request->all(), [
+            'name'                      => 'nullable|string|max:255',
+            'quantity_count'            => 'nullable|integer',
+            'measurement'               => 'nullable|string',
+            'purchase_date'             => 'nullable|date',
+            'date_of_manufacture'       => 'nullable|date',
+            'date_of_expiry'            => 'nullable|date',
+            'brand_name'                => 'nullable|string|max:255',
+            'replacement'               => 'nullable|string|max:255',
+            'categories'                => 'nullable|array',
+            'categories.*'              => 'integer|exists:categories,id',
+            'vendor_name'               => 'nullable|string|max:255',
+            'cost_price'                => 'nullable|numeric|min:0',
+            'selling_price'             => 'nullable|numeric|min:0',
+            'availability_stock'        => 'nullable|integer',
+            'images.*'                  => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
+            'variants'                  => 'nullable|array',
+            'variants.*.price'          => 'required_with:variants|numeric|min:0',
+            'variants.*.regular_price'  => 'nullable|numeric|min:0',
+            'variants.*.stock'          => 'nullable|integer|min:0',
+            'variants.*.attributes'     => 'required_with:variants|array',
+            'tax_id'                    => 'nullable',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation errors.',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        $data = $validator->validated();
+
+
+
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
         $item = Item::with('variants', 'categories')->find($id);
 
@@ -192,39 +230,6 @@ class ItemsController extends Controller
             return response()->json(['message' => 'Unauthorized.'], 403);
         }
 
-        $validator = Validator::make($request->all(), [
-            'name'                      => 'sometimes|required|string|max:255',
-            'quantity_count'            => 'sometimes|required|integer',
-            'measurement'               => 'nullable|string',
-            'purchase_date'             => 'nullable|date',
-            'date_of_manufacture'       => 'sometimes|required|date',
-            'date_of_expiry'            => 'nullable|date',
-            'brand_name'                => 'sometimes|required|string|max:255',
-            'replacement'               => 'nullable|string|max:255',
-            'categories'                => 'nullable|array',
-            'categories.*'              => 'integer|exists:categories,id',
-            'vendor_name'               => 'nullable|string|max:255',
-            'availability_stock'        => 'sometimes|required|integer',
-            'cost_price'                => 'sometimes|required|numeric|min:0',
-            'selling_price'             => 'sometimes|required|numeric|min:0',
-            'images.*'                  => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
-            'variants'                  => 'nullable|array',
-            'variants.*.price'          => 'required_with:variants|numeric|min:0',
-            'variants.*.ragular_price'  => 'nullable|numeric|min:0',
-            'variants.*.stock'          => 'nullable|integer|min:0',
-            'variants.*.attributes'     => 'required_with:variants|array',
-            'tax_id'                    => 'nullable|exists:taxes,id',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation errors.',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $data = $validator->validated();
-
         // Vendor creation
         if (!empty($data['vendor_name'])) {
             StoreVendor::firstOrCreate([
@@ -233,20 +238,20 @@ class ItemsController extends Controller
             ]);
         }
 
-        // Images
+        // Image handling
+        $imageLinks = $item->images ?? [];
+
         if ($request->hasFile('images')) {
-            $newImages = [];
             foreach ($request->file('images') as $image) {
                 $filename = uniqid('item_') . '.' . $image->getClientOriginalExtension();
                 $image->move(public_path('uploads/items'), $filename);
-                $newImages[] = asset('uploads/items/' . $filename);
+                $imageLinks[] = asset('uploads/items/' . $filename);
             }
-
-            $existingImages = $item->images ?? [];
-            $data['images'] = array_merge($existingImages, $newImages);
         }
 
-        // Item code (if not set)
+        $data['images'] = $imageLinks;
+
+        // Assign item_code if not present
         if (empty($item->item_code)) {
             $lastItemCode = Item::where('company_id', $item->company_id)
                 ->select(DB::raw('MAX(CAST(item_code AS UNSIGNED)) as max_code'))
@@ -256,16 +261,16 @@ class ItemsController extends Controller
 
         $item->update($data);
 
-        // Variants update
-        if (isset($data['variants'])) {
-            $item->variants()->delete();
+        // Update Variants
+        $item->variants()->delete();
 
+        if (!empty($data['variants'])) {
             foreach ($data['variants'] as $variantData) {
                 $variant = $item->variants()->create([
                     'regular_price' => $variantData['regular_price'] ?? 0,
                     'price'         => $variantData['price'],
                     'stock'         => $variantData['stock'] ?? 1,
-                    'images'        => $data['images'] ?? [],
+                    'images'        => $imageLinks,
                 ]);
 
                 foreach ($variantData['attributes'] as $attribute) {
@@ -276,7 +281,7 @@ class ItemsController extends Controller
             }
         }
 
-        // Category update
+        // Update Categories
         CategoryItem::where('store_item_id', $item->id)->delete();
 
         if (!empty($data['categories']) && is_array($data['categories'])) {
@@ -298,17 +303,21 @@ class ItemsController extends Controller
             ]);
         }
 
-        // Tax handling
-        if (array_key_exists('tax_id', $data)) {
-            $existingTax = ItemTax::where('store_item_id', $item->id)->first();
-            if ($existingTax) {
-                $existingTax->update(['tax_id' => $data['tax_id']]);
-            } else {
-                ItemTax::create([
-                    'store_item_id' => $item->id,
-                    'tax_id'        => $data['tax_id'],
-                ]);
+        // Update Tax
+        if (!empty($data['tax_id'])) {
+            $taxExists = Tax::where('id', $data['tax_id'])->exists();
+
+            if (!$taxExists) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid tax ID. No such tax exists.'
+                ], 404);
             }
+
+            ItemTax::updateOrCreate(
+                ['store_item_id' => $item->id],
+                ['tax_id' => $data['tax_id']]
+            );
         }
 
         return response()->json([
@@ -316,6 +325,7 @@ class ItemsController extends Controller
             'item'    => new ItemResource($item->load('variants.attributeValues', 'categories')),
         ]);
     }
+
 
 
     /**
@@ -365,14 +375,15 @@ class ItemsController extends Controller
         $data   = $validator->validated();
 
         $vendor = StoreVendor::firstOrCreate(
-        [
-            'vendor_name' => $data['vendor_name'],
-            'company_id'  => $selectedCompany->company_id,
-        ], 
-        
-        [
-            'vendor_no'   => $data['vendor_no'],
-        ]);
+            [
+                'vendor_name' => $data['vendor_name'],
+                'company_id'  => $selectedCompany->company_id,
+            ],
+
+            [
+                'vendor_no'   => $data['vendor_no'],
+            ]
+        );
 
         $imagePath = null;
         if ($request->hasFile('bill_photo')) {
@@ -393,20 +404,20 @@ class ItemsController extends Controller
             }
         }
 
-        
+
         $itemCostsWithTax = array_map(function ($item) use ($taxPercentage) {
             $price = (float) $item['price'];
             $costWithTax = $price + ($price * $taxPercentage / 100);
             return round($costWithTax, 2);
         }, $items);
-        
+
 
         $uncategorizedCategory = Category::firstOrCreate([
             'company_id' => $selectedCompany->company_id,
             'name'       => 'Uncategorized',
         ]);
 
-        
+
 
         foreach ($items as $index => $itemData) {
 
@@ -418,7 +429,7 @@ class ItemsController extends Controller
                 'cost_price'         => $itemCostsWithTax[$index],
                 'measurement'        => null,
                 'purchase_date'      => now(),
-                'date_of_manufacture'=> now(),
+                'date_of_manufacture' => now(),
                 'brand_name'         => $data['vendor_name'],
                 'replacement'        => null,
                 'category'           => null,
@@ -433,7 +444,7 @@ class ItemsController extends Controller
                 'store_item_id' => $item->id,
                 'category_id'   => $uncategorizedCategory->id,
             ]);
-            
+
 
             if (!empty($data['tax_id'])) {
                 DB::table('item_tax')->insert([
@@ -445,7 +456,7 @@ class ItemsController extends Controller
             }
         }
 
-        
+
 
         return response()->json([
             'message' => 'Bulk items stored successfully.',
@@ -459,7 +470,7 @@ class ItemsController extends Controller
      */
     public function getItemCatTree(): JsonResponse
     {
-        $categories = Category::with([ 'childrenRecursive', 'items.variants.attributeValues.attribute', 'items.taxes', 'items.categories', ])->get();
+        $categories = Category::with(['childrenRecursive', 'items.variants.attributeValues.attribute', 'items.taxes', 'items.categories',])->get();
         return response()->json(CategoryTreeResource::collection($categories), 200);
     }
 }

@@ -195,57 +195,81 @@ class AuthController extends Controller
      */
     public function adminRegisterInitiate(AdminRegisterRequest $request): JsonResponse
     {
-        $data = $request->validated();
+        $validator = Validator::make($request->all(), [
+            // 'name'   => 'required|string|max:255',
+            'email'  => 'required|email',
+            // 'amount' => 'required|numeric|min:1',
+            'number'  => 'required|string|max:15',
+        ]);
 
-        $slug = Str::slug($data['company_name']);
-        if (Company::where('company_slug', $slug)->exists()) {
-            return response()->json(['errors' => ['company_name' => ['Company name already exists.']]], 422);
-        }
-
-        if (User::where('number', $data['number'])->exists()) {
-            return response()->json(['errors' => ['number' => ['User already exists. Please login.']]], 422);
-        }
-
-        $merchantOrderId = 'ORDER_' . uniqid();
-        $redirectUrl = url('/api/payment/admin-register-confirm');
-        $amount = 100;
-
-        $clientId = "TEST-M22CCW231A75L_25050";
-        $clientVersion = 1;
-        $clientSecret = "ZmVjZWMwNWYtNzk4Ny00MWY4LTkzNGItNTA3MWQxNzZiODI5";
-        $env = Env::PRODUCTION;
-
-        try {
-            $client = StandardCheckoutClient::getInstance($clientId, $clientVersion, $clientSecret, $env);
-
-            $payRequest = StandardCheckoutPayRequestBuilder::builder()
-                ->merchantOrderId($merchantOrderId)
-                ->amount($amount)
-                ->redirectUrl($redirectUrl . '?orderId=' . $merchantOrderId)
-                ->message("Admin Registration")
-                ->build();
-
-            $payResponse = $client->pay($payRequest);
-
-            if ($payResponse->getState() === 'PENDING') {
-                Cache::put("admin_register_{$merchantOrderId}", $data, now()->addMinutes(30));
-                return response()->json([
-                    'success' => true,
-                    'redirect_url' => $payResponse->getRedirectUrl(),
-                    'order_id' => $merchantOrderId,
-                ]);
-            }
-
+        if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Payment initiation failed: ' . $payResponse->getState()
-            ], 400);
-        } catch (\Exception $e) {
+                'message' => 'Validation errors',
+                'errors'  => $validator->errors()
+            ], 422);
+        }
+
+        $data               = $validator->validated();
+        $merchantOrderId    = 'ORDER_' . uniqid();
+        $clientId           = 'TEST-M22CCW231A75L_25050';
+        $clientSecret       = 'ZmVjZWMwNWYtNzk4Ny00MWY4LTkzNGItNTA3MWQxNzZiODI5';
+        // $amount             = $data['amount'] * 100;// in paise
+        $amount             = 100 * 100; // in paise
+
+        $oauthResponse = Http::asForm()->post('https://api-preprod.phonepe.com/apis/pg-sandbox/v1/oauth/token', [
+            'client_id'      => $clientId,
+            'client_version' => '1',
+            'client_secret'  => $clientSecret,
+            'grant_type'     => 'client_credentials',
+        ]);
+
+        if (!$oauthResponse->ok() || !$oauthResponse->json('access_token')) {
             return response()->json([
                 'success' => false,
-                'message' => 'Payment error: ' . $e->getMessage()
+                'message' => 'Failed to get PhonePe access token',
+                'details' => $oauthResponse->json()
             ], 500);
         }
+
+        $accessToken = $oauthResponse->json('access_token');
+        // $callbackUrl = config('app.url') . '/api/phonepe/callback';
+        $redirectUrl1 = "http://localhost:3000/login";
+        $callbackUrl = "http://localhost:3000/register-your-company";
+
+        $checkoutPayload = [
+            "merchantOrderId" => $merchantOrderId,
+            "amount"          => $amount,
+            "paymentFlow"     => [
+                "type" => "PG_CHECKOUT",
+                "merchantUrls" => [
+                    "redirectUrl" => $redirectUrl1,
+                    "callbackUrl" => $callbackUrl
+                ]
+            ]
+        ];
+
+        $checkoutResponse = Http::withHeaders([
+            'Authorization' => 'O-Bearer ' . $accessToken,
+            'Content-Type'  => 'application/json',
+        ])->post('https://api-preprod.phonepe.com/apis/pg-sandbox/checkout/v2/pay', $checkoutPayload);
+
+        $responseData = $checkoutResponse->json();
+        $redirectUrl = $responseData['redirectUrl'] ?? $responseData['data']['redirectUrl'] ?? null;
+
+        if (!$checkoutResponse->ok() || !$redirectUrl) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to initialize payment',
+                'response' => $responseData
+            ], 500);
+        }
+
+        return response()->json([
+            'success'          => true,
+            'merchantOrderId'  => $merchantOrderId,
+            'redirect_url'     => $redirectUrl
+        ]);
     }
 
     /**
@@ -254,30 +278,55 @@ class AuthController extends Controller
     public function adminRegisterConfirm(Request $request): JsonResponse
     {
         $orderId = $request->query('orderId');
-        $paymentStatus = $request->query('code');
+        $paymentStatus = $request->query('code'); // Usually: PAYMENT_SUCCESSFUL or FAILED
 
-        if (!$orderId || !$cached = Cache::pull("admin_register_{$orderId}")) {
-            return response()->json(['error' => 'Session expired or invalid order.'], 410);
+        if (!$orderId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Missing order ID.'
+            ], 400);
+        }
+
+        $cached = Cache::pull("admin_register_{$orderId}");
+
+        if (!$cached) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Session expired or invalid order.'
+            ], 410);
         }
 
         if ($paymentStatus !== 'PAYMENT_SUCCESSFUL') {
-            return response()->json(['error' => 'Payment not successful.'], 402);
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment was not successful.'
+            ], 402);
         }
 
         try {
             $result = $this->registrationService->register($cached);
 
             return response()->json([
+                'success' => true,
                 'message' => 'Admin registered successfully after payment.',
                 'user'    => new UserResource($result['user']->load('roles')),
                 'company' => $result['company'],
             ], 201);
         } catch (ValidationException $e) {
-            return response()->json(['errors' => $e->errors()], 422);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors'  => $e->errors()
+            ], 422);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An unexpected error occurred.',
+                'error'   => $e->getMessage()
+            ], 500);
         }
     }
+
 
     /**
      * Send OTP for email verification.
