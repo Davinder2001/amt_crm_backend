@@ -190,16 +190,14 @@ class AuthController extends Controller
     }
 
 
-    /**
-     * Register a new admin.
+     /**
+     * Initiate admin registration and generate PhonePe payment link
      */
     public function adminRegisterInitiate(AdminRegisterRequest $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            // 'name'   => 'required|string|max:255',
             'email'  => 'required|email',
-            // 'amount' => 'required|numeric|min:1',
-            'number'  => 'required|string|max:15',
+            'number' => 'required|string|max:15',
         ]);
 
         if ($validator->fails()) {
@@ -210,17 +208,18 @@ class AuthController extends Controller
             ], 422);
         }
 
-        $data               = $validator->validated();
-        $merchantOrderId    = 'ORDER_' . uniqid();
-        $clientId           = 'TEST-M22CCW231A75L_25050';
-        $clientSecret       = 'ZmVjZWMwNWYtNzk4Ny00MWY4LTkzNGItNTA3MWQxNzZiODI5';
-        // $amount             = $data['amount'] * 100;// in paise
-        $amount             = 100 * 100; // in paise
+        $data = $validator->validated();
+        $merchantOrderId = 'ORDER_' . uniqid();
+        $amount = 100 * 100; // fixed registration fee in paise
 
+        // Cache form data until payment confirmation
+        Cache::put("admin_register_{$merchantOrderId}", $data, now()->addMinutes(30));
+
+        // Get PhonePe access token
         $oauthResponse = Http::asForm()->post('https://api-preprod.phonepe.com/apis/pg-sandbox/v1/oauth/token', [
-            'client_id'      => $clientId,
+            'client_id'      => 'TEST-M22CCW231A75L_25050',
             'client_version' => '1',
-            'client_secret'  => $clientSecret,
+            'client_secret'  => 'ZmVjZWMwNWYtNzk4Ny00MWY4LTkzNGItNTA3MWQxNzZiODI5',
             'grant_type'     => 'client_credentials',
         ]);
 
@@ -233,9 +232,10 @@ class AuthController extends Controller
         }
 
         $accessToken = $oauthResponse->json('access_token');
-        // $callbackUrl = config('app.url') . '/api/phonepe/callback';
-        $redirectUrl1 = "http://localhost:3000/login";
-        $callbackUrl = "http://localhost:3000/register-your-company";
+
+        // Set callback and redirect URLs
+        $callbackUrl = config('app.url') . "/api/v1/admin-register-confirm";
+        $redirectUrl = "http://localhost:3000/payment-confirm?orderId={$merchantOrderId}";
 
         $checkoutPayload = [
             "merchantOrderId" => $merchantOrderId,
@@ -243,7 +243,7 @@ class AuthController extends Controller
             "paymentFlow"     => [
                 "type" => "PG_CHECKOUT",
                 "merchantUrls" => [
-                    "redirectUrl" => $redirectUrl1,
+                    "redirectUrl" => $redirectUrl,
                     "callbackUrl" => $callbackUrl
                 ]
             ]
@@ -255,9 +255,9 @@ class AuthController extends Controller
         ])->post('https://api-preprod.phonepe.com/apis/pg-sandbox/checkout/v2/pay', $checkoutPayload);
 
         $responseData = $checkoutResponse->json();
-        $redirectUrl = $responseData['redirectUrl'] ?? $responseData['data']['redirectUrl'] ?? null;
+        $paymentUrl = $responseData['redirectUrl'] ?? $responseData['data']['redirectUrl'] ?? null;
 
-        if (!$checkoutResponse->ok() || !$redirectUrl) {
+        if (!$checkoutResponse->ok() || !$paymentUrl) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to initialize payment',
@@ -268,17 +268,17 @@ class AuthController extends Controller
         return response()->json([
             'success'          => true,
             'merchantOrderId'  => $merchantOrderId,
-            'redirect_url'     => $redirectUrl
+            'redirect_url'     => $paymentUrl
         ]);
     }
 
     /**
-     * Confirm Registration
+     * Confirm registration after PhonePe payment
      */
     public function adminRegisterConfirm(Request $request): JsonResponse
     {
-        $orderId = $request->query('orderId');
-        $paymentStatus = $request->query('code'); // Usually: PAYMENT_SUCCESSFUL or FAILED
+        $orderId       = $request->query('orderId');
+        $paymentStatus = $request->query('code'); // PAYMENT_SUCCESSFUL or FAILED
 
         if (!$orderId) {
             return response()->json([
