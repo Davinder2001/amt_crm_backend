@@ -15,19 +15,16 @@ class UserUidService
     public static function generateNewUid(): string
     {
         return DB::transaction(function () {
+            // Extract numeric part of UID and order by it numerically
+            $lastUser = DB::table('users')
+                ->selectRaw("CAST(SUBSTRING(uid, 4) AS UNSIGNED) AS uid_number")
+                ->orderByDesc('uid_number')
+                ->lockForUpdate()
+                ->first();
 
-            $lastUser = DB::table('users')->select('uid')
-                ->orderByDesc('uid')->lockForUpdate()->first();
-    
-            if ($lastUser && preg_match('/\d+/', $lastUser->uid, $matches)) {
-                $numericPart = (int) $matches[0];
-                $newNumber = $numericPart + 1;
-            } else {
-                $newNumber = 1;
-            }
-    
+            $newNumber = $lastUser ? ((int) $lastUser->uid_number + 1) : 1;
+
             return 'AMT' . str_pad($newNumber, 10, '0', STR_PAD_LEFT);
         });
     }
-    
 }

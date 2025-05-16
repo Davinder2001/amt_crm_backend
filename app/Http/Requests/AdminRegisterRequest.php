@@ -29,7 +29,7 @@ class AdminRegisterRequest extends FormRequest
             'business_proof_image_front'   => 'nullable|mimes:jpg,jpeg,png,pdf|max:5120',
             'company_logo'                 => 'nullable|mimes:jpg,jpeg,png,pdf|max:5120',
             'business_proof_image_back'    => 'nullable|mimes:jpg,jpeg,png,pdf|max:5120',
-            'package_id'                   => 'nullable|exists:packages,id',
+            'packageId'                    => 'nullable|exists:packages,id',
 
         ];
     }

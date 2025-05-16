@@ -232,8 +232,8 @@ class AuthController extends Controller
         $accessToken = $oauthResponse->json('access_token');
 
         // Set callback and redirect URLs
-        $callbackUrl = "/payment-confirm?orderId={$merchantOrderId}";
-        $redirectUrl = "/payment-confirm?orderId={$merchantOrderId}";
+        $callbackUrl = "http://localhost:3000/payment-confirm?orderId={$merchantOrderId}";
+        $redirectUrl = "http://localhost:3000/payment-confirm?orderId={$merchantOrderId}";
 
         $checkoutPayload = [
             "merchantOrderId" => $merchantOrderId,

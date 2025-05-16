@@ -63,7 +63,7 @@ class AdminRegistrationService
                 'company_id'            => $companyId,
                 'company_name'          => $data['company_name'],
                 'company_logo'          => $logoPath,
-                'package_id'            => $data['package_id'],
+                'package_id'            => $data['packageId'],
                 'company_slug'          => $slug,
                 'payment_status'        => 'pending',
                 'verification_status'   => 'pending',
