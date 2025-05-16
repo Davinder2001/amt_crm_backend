@@ -160,6 +160,8 @@ class AuthController extends Controller
             'response' => $response->json()
         ], 500);
     }
+
+
     public function veriWpfyOtp(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -190,7 +192,7 @@ class AuthController extends Controller
     }
 
 
-     /**
+    /**
      * Initiate admin registration and generate PhonePe payment link
      */
     public function adminRegisterInitiate(AdminRegisterRequest $request): JsonResponse
@@ -275,10 +277,9 @@ class AuthController extends Controller
     /**
      * Confirm registration after PhonePe payment
      */
-    public function adminRegisterConfirm(Request $request): JsonResponse
+    public function adminRegisterConfirm(AdminRegisterRequest $request, $id): JsonResponse
     {
-        $orderId       = $request->query('orderId');
-        $paymentStatus = $request->query('code'); // PAYMENT_SUCCESSFUL or FAILED
+        $orderId = $id;
 
         if (!$orderId) {
             return response()->json([
@@ -287,24 +288,50 @@ class AuthController extends Controller
             ], 400);
         }
 
-        $cached = Cache::pull("admin_register_{$orderId}");
 
-        if (!$cached) {
+        $oauthResponse = Http::asForm()->post('https://api-preprod.phonepe.com/apis/pg-sandbox/v1/oauth/token', [
+            'client_id'      => 'TEST-M22CCW231A75L_25050',
+            'client_version' => '1',
+            'client_secret'  => 'ZmVjZWMwNWYtNzk4Ny00MWY4LTkzNGItNTA3MWQxNzZiODI5',
+            'grant_type'     => 'client_credentials',
+        ]);
+
+        $accessToken = $oauthResponse->json('access_token');
+
+        if (!$accessToken) {
             return response()->json([
                 'success' => false,
-                'message' => 'Session expired or invalid order.'
-            ], 410);
+                'message' => 'Missing authorization token.'
+            ], 401);
         }
 
-        if ($paymentStatus !== 'PAYMENT_SUCCESSFUL') {
+        $statusResponse = Http::withHeaders([
+            'Authorization' => 'O-Bearer ' . $accessToken,
+            'Content-Type'  => 'application/json',
+        ])->get("https://api-preprod.phonepe.com/apis/pg-sandbox/checkout/v2/order/{$orderId}/status");
+
+
+        if (!$statusResponse->ok()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Payment was not successful.'
+                'message' => 'Failed to check payment status.',
+                'details' => $statusResponse->json()
+            ], 500);
+        }
+
+        $status = strtoupper($statusResponse->json('state'));
+
+        if ($status !== 'COMPLETED') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment was not successful.',
+                'payment_status' => $status
             ], 402);
         }
 
         try {
-            $result = $this->registrationService->register($cached);
+            $formData = $request->all();
+            $result = $this->registrationService->register($formData);
 
             return response()->json([
                 'success' => true,
@@ -326,7 +353,6 @@ class AuthController extends Controller
             ], 500);
         }
     }
-
 
     /**
      * Send OTP for email verification.

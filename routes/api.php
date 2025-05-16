@@ -49,8 +49,8 @@ Route::prefix('v1')->group(function () {
         Route::post('verify-otp', [AuthController::class, 'verifyRegisterOtp']);
         
         
-        Route::post('admin-register', [AuthController::class, 'adminRegisterInitiate']);
-        Route::post('admin-register-confirm', [AuthController::class, 'adminRegisterConfirm']);
+        Route::post('/admin-register', [AuthController::class, 'adminRegisterInitiate']);
+        Route::post('/admin-register-confirm/{id}', [AuthController::class, 'adminRegisterConfirm']);
         Route::post('/send-wp-otp', [AuthController::class, 'sendWpOtp']);
         Route::post('/verify-wp-otp', [AuthController::class, 'veriWpfyOtp']);
 
