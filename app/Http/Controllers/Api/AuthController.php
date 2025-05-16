@@ -210,12 +210,8 @@ class AuthController extends Controller
             ], 422);
         }
 
-        $data = $validator->validated();
-        $merchantOrderId = 'ORDER_' . uniqid();
-        $amount = 100 * 100; // fixed registration fee in paise
-
-        // Cache form data until payment confirmation
-        Cache::put("admin_register_{$merchantOrderId}", $data, now()->addMinutes(30));
+        $merchantOrderId    = 'ORDER_' . uniqid();
+        $amount             = 100 * 100; // fixed registration fee in paise
 
         // Get PhonePe access token
         $oauthResponse = Http::asForm()->post('https://api-preprod.phonepe.com/apis/pg-sandbox/v1/oauth/token', [
@@ -236,7 +232,7 @@ class AuthController extends Controller
         $accessToken = $oauthResponse->json('access_token');
 
         // Set callback and redirect URLs
-        $callbackUrl = config('app.url') . "/api/v1/admin-register-confirm";
+        $callbackUrl = "http://localhost:8000/api/v1/admin-register-confirm/$merchantOrderId";
         $redirectUrl = "http://localhost:3000/payment-confirm?orderId={$merchantOrderId}";
 
         $checkoutPayload = [
@@ -256,8 +252,8 @@ class AuthController extends Controller
             'Content-Type'  => 'application/json',
         ])->post('https://api-preprod.phonepe.com/apis/pg-sandbox/checkout/v2/pay', $checkoutPayload);
 
-        $responseData = $checkoutResponse->json();
-        $paymentUrl = $responseData['redirectUrl'] ?? $responseData['data']['redirectUrl'] ?? null;
+        $responseData   = $checkoutResponse->json();
+        $paymentUrl     = $responseData['redirectUrl'] ?? $responseData['data']['redirectUrl'] ?? null;
 
         if (!$checkoutResponse->ok() || !$paymentUrl) {
             return response()->json([
