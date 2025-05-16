@@ -182,8 +182,6 @@ class ItemsController extends Controller
     public function update(Request $request, $id)
     {
 
-        
-        dd($request->all());
         $validator = Validator::make($request->all(), [
             'name'                      => 'nullable|string|max:255',
             'quantity_count'            => 'nullable|integer',
