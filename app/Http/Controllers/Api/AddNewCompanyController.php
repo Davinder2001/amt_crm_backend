@@ -43,16 +43,25 @@ class AddNewCompanyController extends Controller
         }
 
         $data = $validator->validated();
-        $merchantOrderId = 'ORDER_' . uniqid();
-        $package = Package::find($data['package_id'] ?? 1);
-        $amount = 100 * $package->price;
+        $slug = Str::slug($data['company_name']);
 
-        // Get OAuth token
-        $oauthResponse = Http::asForm()->post('https://api-preprod.phonepe.com/apis/pg-sandbox/v1/oauth/token', [
-            'client_id'      => 'TEST-M22CCW231A75L_25050',
-            'client_version' => '1',
-            'client_secret'  => 'ZmVjZWMwNWYtNzk4Ny00MWY4LTkzNGItNTA3MWQxNzZiODI5',
-            'grant_type'     => 'client_credentials',
+        if (Company::where('company_slug', $slug)->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Company already exists. Payment not initiated.',
+                'code'    => 'COMPANY_ALREADY_EXISTS'
+            ], 409);
+        }
+
+        $merchantOrderId    = 'ORDER_' . uniqid();
+        $package            = Package::find($data['package_id']);
+        $amount             = 100 * $package->price;
+
+        $oauthResponse = Http::asForm()->post(env('PHONEPE_OAUTH_URL'), [
+            'client_id'      => env('PHONEPE_CLIENT_ID'),
+            'client_version' => env('PHONEPE_CLIENT_VERSION'),
+            'client_secret'  => env('PHONEPE_CLIENT_SECRET'),
+            'grant_type'     => env('PHONEPE_GRANT_TYPE'),
         ]);
 
         if (!$oauthResponse->ok() || !$oauthResponse->json('access_token')) {
@@ -64,9 +73,9 @@ class AddNewCompanyController extends Controller
         }
 
         $accessToken = $oauthResponse->json('access_token');
-        $callbackUrl = "http://localhost:3000/payment-confirm?orderId={$merchantOrderId}";
-        $redirectUrl = "http://localhost:3000/payment-confirm?orderId={$merchantOrderId}";
-
+        $baseUrl = env('PHONEPE_CALLBACK_BASE_URL_COMPANY');
+        $callbackUrl = "{$baseUrl}?orderId={$merchantOrderId}";
+        $redirectUrl = "{$baseUrl}?orderId={$merchantOrderId}";
         $checkoutPayload = [
             "merchantOrderId" => $merchantOrderId,
             "amount"          => $amount,
@@ -82,10 +91,10 @@ class AddNewCompanyController extends Controller
         $checkoutResponse = Http::withHeaders([
             'Authorization' => 'O-Bearer ' . $accessToken,
             'Content-Type'  => 'application/json',
-        ])->post('https://api-preprod.phonepe.com/apis/pg-sandbox/checkout/v2/pay', $checkoutPayload);
+        ])->post(env('PHONEPE_CHECKOUT_URL'), $checkoutPayload);
 
-        $responseData = $checkoutResponse->json();
-        $paymentUrl = $responseData['redirectUrl'] ?? $responseData['data']['redirectUrl'] ?? null;
+        $responseData   = $checkoutResponse->json();
+        $paymentUrl     = $responseData['redirectUrl'] ?? $responseData['data']['redirectUrl'] ?? null;
 
         if (!$checkoutResponse->ok() || !$paymentUrl) {
             return response()->json([
@@ -101,6 +110,7 @@ class AddNewCompanyController extends Controller
             'redirect_url'     => $paymentUrl
         ]);
     }
+
 
     /**
      * Store the company after payment is completed
@@ -127,15 +137,24 @@ class AddNewCompanyController extends Controller
             ], 422);
         }
 
-        $data = $validator->validated();
+        $data            = $validator->validated();
+        $recoadedPayment = Company::where('order_id', $orderId)->where('payment_recoad_status', 'recorded')->first();
 
-        // Step 1: Verify payment status via PhonePe
-        $oauthResponse = Http::asForm()->post('https://api-preprod.phonepe.com/apis/pg-sandbox/v1/oauth/token', [
-            'client_id'      => 'TEST-M22CCW231A75L_25050',
-            'client_version' => '1',
-            'client_secret'  => 'ZmVjZWMwNWYtNzk4Ny00MWY4LTkzNGItNTA3MWQxNzZiODI5',
-            'grant_type'     => 'client_credentials',
+        if ($recoadedPayment) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment recorded. Company already exists.',
+                'company' => $recoadedPayment,
+            ], 201);
+        }
+
+        $oauthResponse = Http::asForm()->post(env('PHONEPE_OAUTH_URL'), [
+            'client_id'      => env('PHONEPE_CLIENT_ID'),
+            'client_version' => env('PHONEPE_CLIENT_VERSION'),
+            'client_secret'  => env('PHONEPE_CLIENT_SECRET'),
+            'grant_type'     => env('PHONEPE_GRANT_TYPE'),
         ]);
+
 
         $accessToken = $oauthResponse->json('access_token');
 
@@ -149,7 +168,7 @@ class AddNewCompanyController extends Controller
         $statusResponse = Http::withHeaders([
             'Authorization' => 'O-Bearer ' . $accessToken,
             'Content-Type'  => 'application/json',
-        ])->get("https://api-preprod.phonepe.com/apis/pg-sandbox/checkout/v2/order/{$orderId}/status");
+        ])->get(env('PHONEPE_STATUS_URL') . "/{$orderId}/status");
 
         if (!$statusResponse->ok()) {
             return response()->json([
@@ -168,7 +187,6 @@ class AddNewCompanyController extends Controller
             ], 402);
         }
 
-        // Step 2: Continue with company creation
         $slug = Str::slug($data['company_name']);
         if (Company::where('company_slug', $slug)->exists()) {
             throw ValidationException::withMessages([
@@ -205,9 +223,12 @@ class AddNewCompanyController extends Controller
             'company_id'            => $companyId,
             'company_name'          => $data['company_name'],
             'company_logo'          => $logoPath,
-            'package_id'            => $data['package_id'],
+            'package_id'            => $data['package_id'] ?? 1,
             'company_slug'          => $slug,
-            'payment_status'        => 'paid',
+            'payment_status'        => 'completed',
+            'order_id'              => $orderId,
+            'transation_id'         => $statusResponse['orderId'],
+            'payment_recoad_status' => 'recorded',
             'verification_status'   => 'pending',
             'business_address'      => $data['business_address'] ?? null,
             'pin_code'              => $data['pin_code'] ?? null,

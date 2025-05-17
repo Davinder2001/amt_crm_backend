@@ -214,11 +214,12 @@ class AuthController extends Controller
         $merchantOrderId = 'ORDER_' . uniqid();
         $amount          = 100 * $package->price;
 
-        $oauthResponse = Http::asForm()->post('https://api-preprod.phonepe.com/apis/pg-sandbox/v1/oauth/token', [
-            'client_id'      => 'TEST-M22CCW231A75L_25050',
-            'client_version' => '1',
-            'client_secret'  => 'ZmVjZWMwNWYtNzk4Ny00MWY4LTkzNGItNTA3MWQxNzZiODI5',
-            'grant_type'     => 'client_credentials',
+ 
+        $oauthResponse = Http::asForm()->post(env('PHONEPE_OAUTH_URL'), [
+            'client_id'      => env('PHONEPE_CLIENT_ID'),
+            'client_version' => env('PHONEPE_CLIENT_VERSION'),
+            'client_secret'  => env('PHONEPE_CLIENT_SECRET'),
+            'grant_type'     => env('PHONEPE_GRANT_TYPE'),
         ]);
 
         if (!$oauthResponse->ok() || !$oauthResponse->json('access_token')) {
@@ -230,8 +231,9 @@ class AuthController extends Controller
         }
 
         $accessToken = $oauthResponse->json('access_token');
-        $callbackUrl = "http://localhost:3000/payment-confirm?orderId={$merchantOrderId}";
-        $redirectUrl = "http://localhost:3000/payment-confirm?orderId={$merchantOrderId}";
+        $baseUrl = env('PHONEPE_CALLBACK_BASE_URL');
+        $callbackUrl = "{$baseUrl}?orderId={$merchantOrderId}";
+        $redirectUrl = "{$baseUrl}?orderId={$merchantOrderId}";
 
         $checkoutPayload = [
             "merchantOrderId" => $merchantOrderId,
@@ -248,7 +250,7 @@ class AuthController extends Controller
         $checkoutResponse = Http::withHeaders([
             'Authorization' => 'O-Bearer ' . $accessToken,
             'Content-Type'  => 'application/json',
-        ])->post('https://api-preprod.phonepe.com/apis/pg-sandbox/checkout/v2/pay', $checkoutPayload);
+        ])->post(env('PHONEPE_CHECKOUT_URL'), $checkoutPayload);
 
         $responseData   = $checkoutResponse->json();
         $paymentUrl     = $responseData['redirectUrl'] ?? $responseData['data']['redirectUrl'] ?? null;
@@ -282,11 +284,11 @@ class AuthController extends Controller
             ], 400);
         }
 
-        $oauthResponse = Http::asForm()->post('https://api-preprod.phonepe.com/apis/pg-sandbox/v1/oauth/token', [
-            'client_id'      => 'TEST-M22CCW231A75L_25050',
-            'client_version' => '1',
-            'client_secret'  => 'ZmVjZWMwNWYtNzk4Ny00MWY4LTkzNGItNTA3MWQxNzZiODI5',
-            'grant_type'     => 'client_credentials',
+        $oauthResponse = Http::asForm()->post(env('PHONEPE_OAUTH_URL'), [
+            'client_id'      => env('PHONEPE_CLIENT_ID'),
+            'client_version' => env('PHONEPE_CLIENT_VERSION'),
+            'client_secret'  => env('PHONEPE_CLIENT_SECRET'),
+            'grant_type'     => env('PHONEPE_GRANT_TYPE'),
         ]);
 
         $accessToken = $oauthResponse->json('access_token');
@@ -301,7 +303,7 @@ class AuthController extends Controller
         $statusResponse = Http::withHeaders([
             'Authorization' => 'O-Bearer ' . $accessToken,
             'Content-Type'  => 'application/json',
-        ])->get("https://api-preprod.phonepe.com/apis/pg-sandbox/checkout/v2/order/{$orderId}/status");
+        ])->get(env('PHONEPE_STATUS_URL') . "/{$orderId}/status");
 
 
         if (!$statusResponse->ok()) {
