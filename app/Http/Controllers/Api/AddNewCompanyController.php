@@ -23,11 +23,9 @@ class AddNewCompanyController extends Controller
     public function paymentInitiate(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            // 'email'                 => 'required|email',
             'company_name'          => 'required|string|max:255',
-            'company_id'            => 'nullable|string|max:50|unique:companies,company_id',
+            'package_id'            => 'required|exists:packages,id',
             'company_logo'          => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-            // 'package_id'            => 'required|exists:packages,id',
             'business_address'      => 'nullable|string',
             'pin_code'              => 'nullable|string|max:10',
             'business_proof_type'   => 'nullable|string|max:255',
@@ -111,7 +109,6 @@ class AddNewCompanyController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'company_name'          => 'required|string|max:255',
-            'company_id'            => 'nullable|string|max:50|unique:companies,company_id',
             'company_logo'          => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'package_id'            => 'required|exists:packages,id',
             'business_address'      => 'nullable|string',
@@ -203,8 +200,8 @@ class AddNewCompanyController extends Controller
             $logoPath = 'uploads/business_proofs/' . $name;
         }
 
-        $companyId = CompanyIdService::generateNewCompanyId();
-        $company = Company::create([
+        $companyId  = CompanyIdService::generateNewCompanyId();
+        $company    = Company::create([
             'company_id'            => $companyId,
             'company_name'          => $data['company_name'],
             'company_logo'          => $logoPath,
