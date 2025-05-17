@@ -354,7 +354,7 @@ class InvoicesController extends Controller
             'company_address'  => $selectedCompany->company->address ?? 'N/A',
             'company_phone'    => $selectedCompany->company->phone ?? 'N/A',
             'company_gstin'    => $selectedCompany->company->gstin ?? 'N/A',
-            'company_logo'    => $selectedCompany->company->company_logo ?? 'N/A',
+            'company_logo'     => $selectedCompany->company->company_logo ?? 'N/A',
             'issued_by'        => Auth::user()->name,
             'footer_note'      => 'Thank you for your business',
             'show_signature'   => true,
@@ -425,15 +425,15 @@ class InvoicesController extends Controller
                             "components" => [
                                 "header_1" => [
                                     "filename" => $fileName,
-                                    "type" => "document",
+                                    "type"  => "document",
                                     "value" => $publicUrl
                                 ],
                                 "body_1" => [
-                                    "type" => "text",
+                                    "type"  => "text",
                                     "value" => $invoice->client_name ?? 'Customer'
                                 ],
                                 "body_2" => [
-                                    "type" => "text",
+                                    "type"  => "text",
                                     "value" => '₹' . number_format($invoice->total_amount, 2)
                                 ]
                             ]
@@ -444,23 +444,23 @@ class InvoicesController extends Controller
         ];
 
         $response = Http::withHeaders([
-            'authkey' => '451198A9qD8Lu26821c9a6P1',
-            'Content-Type' => 'application/json'
+            'authkey'       => '451198A9qD8Lu26821c9a6P1',
+            'Content-Type'  => 'application/json'
         ])->post('https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/', $payload);
 
         if ($response->successful()) {
             $invoice->update(['sent_on_whatsapp' => true]);
             return response()->json([
-                'status' => true,
-                'message' => 'WhatsApp message sent successfully.',
-                'response' => $response->json()
+                'status'    => true,
+                'message'   => 'WhatsApp message sent successfully.',
+                'response'  => $response->json()
             ], 200);
         } else {
             Log::error("MSG91 WhatsApp send failed: " . $response->body());
             return response()->json([
-                'status' => false,
-                'message' => 'Failed to send WhatsApp message.',
-                'error' => $response->body()
+                'status'    => false,
+                'message'   => 'Failed to send WhatsApp message.',
+                'error'     => $response->body()
             ], $response->status());
         }
     }

@@ -23,10 +23,10 @@ class CompanyUser extends Model
     /**
      * The attributes that should be cast to native types.
      */
-    protected static function booted()
-    {
-        static::addGlobalScope(new CompanyScope());
-    }
+    // protected static function booted()
+    // {
+    //     static::addGlobalScope(new CompanyScope());
+    // }
 
     /**
      * The attributes that should be cast to native types.

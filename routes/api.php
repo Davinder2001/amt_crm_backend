@@ -32,7 +32,8 @@ use App\Http\Controllers\Api\{
     QuotationController,
     PhonePeController,
     PackageController,
-    BusinessCategoryController
+    BusinessCategoryController,
+    AddNewCompanyController
 };
 
 
@@ -361,6 +362,10 @@ Route::prefix('v1')->group(function () {
             Route::get('/{id}/pdf', [QuotationController::class, 'generatePdf']);
         });
 
+
+        Route::prefix('add-new-company')->group(function () {
+            Route::post('/', [AddNewCompanyController::class, 'store']); 
+        });
 
         Route::prefix('pricing-packages')->group(function () {
             Route::get('/', [PackageController::class, 'index']); 
