@@ -364,6 +364,7 @@ Route::prefix('v1')->group(function () {
 
 
         Route::prefix('add-new-company')->group(function () {
+            Route::post('/pay', [AddNewCompanyController::class, 'paymentInitiate']); 
             Route::post('/', [AddNewCompanyController::class, 'store']); 
         });
 

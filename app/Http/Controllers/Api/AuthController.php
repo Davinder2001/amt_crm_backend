@@ -11,18 +11,13 @@ use App\Services\AdminRegistrationService;
 use App\Http\Requests\AdminRegisterRequest;
 use App\Models\User;
 use App\Models\Package;
-use Illuminate\Support\Str;
 use App\Models\CompanyUser;
-use App\Models\Company;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Resources\UserResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Cache;
-use PhonePe\Env;
-use PhonePe\payments\v2\standardCheckout\StandardCheckoutClient;
-use PhonePe\payments\v2\models\request\builders\StandardCheckoutPayRequestBuilder;
 
 class AuthController extends Controller
 {
