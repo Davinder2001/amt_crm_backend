@@ -17,6 +17,7 @@ return new class extends Migration
             $table->unsignedInteger('employee_numbers');
             $table->unsignedInteger('items_number');
             $table->unsignedInteger('daily_tasks_number');
+            $table->enum('package_type', ['monthly', 'yearly']); 
             $table->unsignedInteger('invoices_number');
             $table->decimal('price', 10, 2); // Added price column
             $table->timestamps();

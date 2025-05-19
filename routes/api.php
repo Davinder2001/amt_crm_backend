@@ -41,6 +41,7 @@ use App\Http\Controllers\Api\{
 // Version 1 API's
 Route::prefix('v1')->group(function () {
 
+
     // Guest API's
     Route::middleware(['api'])->group(function () {
         Route::post('login', [AuthController::class, 'login']);
@@ -365,7 +366,7 @@ Route::prefix('v1')->group(function () {
 
         Route::prefix('add-new-company')->group(function () {
             Route::post('/pay', [AddNewCompanyController::class, 'paymentInitiate']); 
-            Route::post('/{id}', [AddNewCompanyController::class, 'store']); 
+            Route::post('/{id}', [AddNewCompanyController::class, 'store']);
         });
 
         Route::prefix('pricing-packages')->group(function () {

@@ -12,6 +12,7 @@ class Package extends Model
         'items_number',
         'daily_tasks_number',
         'invoices_number',
+        'package_type',
         'price'
     ];
 
@@ -19,4 +20,5 @@ class Package extends Model
     {
         return $this->belongsToMany(BusinessCategory::class, 'business_category_package');
     }
+    
 }

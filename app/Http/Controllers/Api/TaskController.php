@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Task;
 use App\Models\User;
+use App\Models\Package;
 use App\Models\TaskReminder;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Notifications\SystemNotification;
@@ -30,8 +32,23 @@ class TaskController extends Controller
      */
     public function store(Request $request)
     {
-        $authUser           = $request->user();
-        $activeCompanyId    = SelectedCompanyService::getSelectedCompanyOrFail();
+        $authUser        = $request->user();
+        $activeCompanyId = SelectedCompanyService::getSelectedCompanyOrFail();
+
+        $packageId           = $activeCompanyId->company->package_id;
+        $package             = Package::find($packageId);
+        $packageType         = $package['package_type'];
+        $daily_tasks_number  = $package['daily_tasks_number'];
+
+        $taskCount = Task::where('company_id', $activeCompanyId->company->id)
+            ->whereDate('created_at', Carbon::today())
+            ->count();
+
+        if ($taskCount >= $daily_tasks_number) {
+            return response()->json([
+                'message' => "Daily task limit of {$daily_tasks_number} reached for this company."
+            ], 403);
+        }
 
         $validator = Validator::make($request->all(), [
             'name'          => 'required|string|max:255',
@@ -52,8 +69,8 @@ class TaskController extends Controller
         $data = $request->except('attachment');
 
         if ($request->hasFile('attachment')) {
-            $path                     = $request->file('attachment')->store('task_attachments', 'public');
-            $data['attachment_path']  = $path;
+            $path                    = $request->file('attachment')->store('task_attachments', 'public');
+            $data['attachment_path'] = $path;
         }
 
         $data['assigned_by'] = $authUser->id;
@@ -69,6 +86,7 @@ class TaskController extends Controller
 
         return response()->json(new TaskResource($task), 201);
     }
+
 
     /**
      * Display the specified task.
@@ -165,10 +183,12 @@ class TaskController extends Controller
         $tasks  = Task::where('assigned_to', $user->id)->where('status', 'pending')->get();
 
         if ($tasks->isEmpty()) {
-            return response()->json([
-                'message' => 'No pending tasks found'],
-                 200
-                );
+            return response()->json(
+                [
+                    'message' => 'No pending tasks found'
+                ],
+                200
+            );
         }
 
         return TaskResource::collection($tasks);
@@ -181,16 +201,16 @@ class TaskController extends Controller
     {
         $user   = Auth::user();
         $tasks  = Task::where('assigned_to', $user->id)->whereIn('status', ['working', 'submitted'])->get();
-    
+
         if ($tasks->isEmpty()) {
             return response()->json([
                 'message' => 'No working or submitted tasks found'
             ], 200);
         }
-    
+
         return TaskResource::collection($tasks);
     }
-    
+
     /**
      * Change task status from pending to working.
      */
@@ -210,9 +230,11 @@ class TaskController extends Controller
         $task->save();
         $this->notifyAdmins('Task Started', "Task '{$task->name}' is now working.", "/tasks/{$task->id}");
 
-        return response()->json([
-            'message' => 'Task status updated to working',
-            'task' => new TaskResource($task)],
+        return response()->json(
+            [
+                'message' => 'Task status updated to working',
+                'task' => new TaskResource($task)
+            ],
             200
         );
     }
@@ -225,48 +247,48 @@ class TaskController extends Controller
         $activeCompanyId    = SelectedCompanyService::getSelectedCompanyOrFail();
 
         $admins             = User::role('admin')
-                            ->whereHas('companies', function ($query) use ($activeCompanyId) {
-                            $query->where('company_user.company_id', $activeCompanyId->company_id);
-                            })->get();
+            ->whereHas('companies', function ($query) use ($activeCompanyId) {
+                $query->where('company_user.company_id', $activeCompanyId->company_id);
+            })->get();
 
         foreach ($admins as $admin) {
             $admin->notify(new SystemNotification(
-                title:      $title,
-                message:    $message,
-                type:       'info',
-                url:        $url
+                title: $title,
+                message: $message,
+                type: 'info',
+                url: $url
             ));
         }
     }
 
 
     /**
-    * End the task
-    */
+     * End the task
+     */
     public function endTask($id)
     {
         $task = Task::find($id);
-    
+
         if (!$task) {
             return response()->json(['error' => 'Task not found'], 404);
         }
-    
+
         if (!in_array($task->status, ['working', 'submitted'])) {
             return response()->json([
                 'error' => 'Only working or submitted tasks can be ended'
             ], 400);
         }
-    
+
         $task->status = 'ended';
         $task->save();
-    
+
         return response()->json([
             'message' => 'Task has been marked as ended.',
             'task'    => $task
         ], 200);
     }
 
-    
+
 
     public function setReminder(Request $request, $taskId)
     {
@@ -313,21 +335,21 @@ class TaskController extends Controller
             'reminder_at' => 'required|date|before_or_equal:end_date',
             'end_date'    => 'required|date|after_or_equal:reminder_at',
         ]);
-    
+
         $reminder = TaskReminder::where('task_id', $taskId)->where('user_id', Auth::id())->first();
-    
+
         if (!$reminder) {
             return response()->json(['message' => 'Reminder not found.'], 404);
         }
-    
+
         $reminder->update([
             'reminder_at'   => $request->reminder_at,
             'task_end_date' => $request->end_date,
         ]);
-    
+
         return response()->json([
             'message' => 'Reminder updated successfully.',
             'reminder' => $reminder,
         ]);
-    }    
+    }
 }

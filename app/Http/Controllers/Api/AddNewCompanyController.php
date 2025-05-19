@@ -13,6 +13,7 @@ use Spatie\Permission\Models\Role;
 use App\Models\Company;
 use App\Models\CompanyUser;
 use App\Models\Package;
+use App\Services\SelectedCompanyService;
 use App\Services\CompanyIdService;
 
 class AddNewCompanyController extends Controller
@@ -72,10 +73,18 @@ class AddNewCompanyController extends Controller
             ], 500);
         }
 
+        $activeCompanyId = SelectedCompanyService::getSelectedCompanyOrFail();
+        $companySlug = $activeCompanyId->company->company_slug;
+
+
+
+
+
         $accessToken = $oauthResponse->json('access_token');
-        $baseUrl = env('PHONEPE_CALLBACK_BASE_URL_COMPANY');
-        $callbackUrl = "{$baseUrl}?orderId={$merchantOrderId}";
-        $redirectUrl = "{$baseUrl}?orderId={$merchantOrderId}";
+        $baseUrl     = env('PHONEPE_CALLBACK_BASE_URL_COMPANY');
+        $callbackUrl = "http://localhost:8000/api/v1/add-new-company/{$merchantOrderId}";
+        $redirectUrl = "{$baseUrl}/$companySlug/confirm-company-payment/?orderId={$merchantOrderId}";
+
         $checkoutPayload = [
             "merchantOrderId" => $merchantOrderId,
             "amount"          => $amount,
@@ -154,7 +163,6 @@ class AddNewCompanyController extends Controller
             'client_secret'  => env('PHONEPE_CLIENT_SECRET'),
             'grant_type'     => env('PHONEPE_GRANT_TYPE'),
         ]);
-
 
         $accessToken = $oauthResponse->json('access_token');
 
