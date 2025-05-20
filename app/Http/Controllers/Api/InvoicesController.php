@@ -112,7 +112,15 @@ class InvoicesController extends Controller
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
         $companyName     = $selectedCompany->company->company_name;
         $issuedByName    = Auth::user()->name;
-        $companyLogo     = public_path($selectedCompany->company->company_logo);
+        $logoFile = $selectedCompany->company->company_logo;
+
+        // Make sure it is NOT empty and is a file
+        if (!empty($logoFile) && !is_dir(public_path($logoFile))) {
+            $companyLogo = public_path($logoFile);
+        } else {
+            $companyLogo = null;
+        }
+
 
 
         $pdf = Pdf::loadView('invoices.pdf', [

@@ -93,7 +93,6 @@
                 @if (!empty($company_logo) && file_exists($company_logo))
                     <img src="{{ $company_logo }}" alt="Company Logo" style="height: 50px;">
                 @endif
-
             </div>
             <div class="store-info">
                 <strong>{{ $company_name }}</strong><br>
