@@ -130,7 +130,6 @@ class InvoicesController extends Controller
             $companyLogo = null;
         }
 
-
         $pdf = Pdf::loadView('invoices.pdf', [
             'invoice'          => $invoice,
             'company_name'     => $companyName,
