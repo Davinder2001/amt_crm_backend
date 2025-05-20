@@ -69,7 +69,13 @@ class InvoicesController extends Controller
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
         $companyName     = $selectedCompany->company->company_name;
         $issuedByName    = Auth::user()->name;
-        $companyLogo     = public_path($selectedCompany->company->company_logo);
+        $logoFile = $selectedCompany->company->company_logo;
+
+        if (!empty($logoFile) && !is_dir(public_path($logoFile))) {
+            $companyLogo = public_path($logoFile);
+        } else {
+            $companyLogo = null;
+        }
 
         if ($invoice->client_email) {
             Mail::send(
@@ -114,13 +120,11 @@ class InvoicesController extends Controller
         $issuedByName    = Auth::user()->name;
         $logoFile = $selectedCompany->company->company_logo;
 
-        // Make sure it is NOT empty and is a file
         if (!empty($logoFile) && !is_dir(public_path($logoFile))) {
             $companyLogo = public_path($logoFile);
         } else {
-            $companyLogo = null; 
+            $companyLogo = null;
         }
-
 
 
         $pdf = Pdf::loadView('invoices.pdf', [
@@ -402,8 +406,14 @@ class InvoicesController extends Controller
         if (!file_exists($folderPath)) {
             mkdir($folderPath, 0755, true);
         }
+        $logoFile = $selectedCompany->company->company_logo;
 
-        $companyLogo     = public_path($selectedCompany->company->company_logo);
+        if (!empty($logoFile) && !is_dir(public_path($logoFile))) {
+            $companyLogo = public_path($logoFile);
+        } else {
+            $companyLogo = null;
+        }
+
 
         $pdf = Pdf::loadView('invoices.pdf', [
             'invoice'          => $invoice,
