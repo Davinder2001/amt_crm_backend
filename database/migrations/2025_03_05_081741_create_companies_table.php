@@ -19,6 +19,8 @@ return new class extends Migration
 
             $table->unsignedBigInteger('package_id')->nullable();
             $table->foreign('package_id')->references('id')->on('packages')->nullOnDelete();
+            $table->dateTime('subscription_date')->nullable();
+            $table->enum('subscription_status', ['active', 'expired']);
 
             $table->string('company_name')->unique();
             $table->string('company_id')->unique();

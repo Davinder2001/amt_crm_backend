@@ -46,7 +46,8 @@ class PackageController extends Controller
 
         $data = $validator->validated();
 
-        // Create package
+
+
         $package = Package::create([
             'name'                  => $data['name'],
             'employee_numbers'      => $data['employee_numbers'],
@@ -57,7 +58,6 @@ class PackageController extends Controller
             'price'                 => $data['price'],
         ]);
 
-        // Sync related business categories
         $package->businessCategories()->sync($data['business_category_ids']);
 
         return response()->json([
@@ -66,6 +66,7 @@ class PackageController extends Controller
             'message'   => 'Package created successfully.',
         ], 201);
     }
+
 
 
     /**

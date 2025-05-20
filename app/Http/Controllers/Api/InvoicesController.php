@@ -69,6 +69,7 @@ class InvoicesController extends Controller
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
         $companyName     = $selectedCompany->company->company_name;
         $issuedByName    = Auth::user()->name;
+        $companyLogo     = public_path($selectedCompany->company->company_logo);
 
         if ($invoice->client_email) {
             Mail::send(
@@ -76,6 +77,7 @@ class InvoicesController extends Controller
                 [
                     'invoice'          => $invoice,
                     'company_name'     => $selectedCompany->company->company_name,
+                    'company_logo'     => $companyLogo,
                     'company_address'  => $selectedCompany->company->address ?? 'N/A',
                     'company_phone'    => $selectedCompany->company->phone ?? 'N/A',
                     'company_gstin'    => $selectedCompany->company->gstin ?? 'N/A',
@@ -110,10 +112,13 @@ class InvoicesController extends Controller
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
         $companyName     = $selectedCompany->company->company_name;
         $issuedByName    = Auth::user()->name;
+        $companyLogo     = public_path($selectedCompany->company->company_logo);
+
 
         $pdf = Pdf::loadView('invoices.pdf', [
             'invoice'          => $invoice,
             'company_name'     => $companyName,
+            'company_logo'     => $companyLogo,
             'company_address'  => $selectedCompany->company->address ?? 'N/A',
             'company_phone'    => $selectedCompany->company->phone ?? 'N/A',
             'company_gstin'    => $selectedCompany->company->gstin ?? 'N/A',
@@ -390,9 +395,12 @@ class InvoicesController extends Controller
             mkdir($folderPath, 0755, true);
         }
 
+        $companyLogo     = public_path($selectedCompany->company->company_logo);
+
         $pdf = Pdf::loadView('invoices.pdf', [
             'invoice'          => $invoice,
             'company_name'     => $selectedCompany->company->company_name,
+            'company_logo'     => $companyLogo,
             'company_address'  => $selectedCompany->company->address ?? 'N/A',
             'company_phone'    => $selectedCompany->company->phone ?? 'N/A',
             'company_gstin'    => $selectedCompany->company->gstin ?? 'N/A',

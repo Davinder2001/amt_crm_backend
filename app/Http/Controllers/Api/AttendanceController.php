@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Attendance;
 use Carbon\Carbon;
 use App\Http\Resources\AttendanceResource;
+use App\Services\SelectedCompanyService;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
@@ -20,9 +21,10 @@ class AttendanceController extends Controller
     public function recordAttendance(Request $request): JsonResponse
     {
         $user       = $request->user();
-        $company    = $user->companies()->first();
+        $activeCompany = SelectedCompanyService::getSelectedCompanyOrFail();
 
-        if (!$company) {
+
+        if (!$activeCompany) {
             return response()->json([
                 'message' => 'User is not associated with any company.'
             ], 422);
@@ -54,7 +56,7 @@ class AttendanceController extends Controller
             $clockInImagePath   = 'images/attendance_images/' . $imageName;
             $time               = Carbon::now('Asia/Kolkata')->format('h:i A');
 
-            $attendance->company_id       = $company->id;
+            $attendance->company_id       = $activeCompany->company_id;
             $attendance->clock_in         = $time;
             $attendance->clock_in_image   = $clockInImagePath;
             $attendance->status           = 'present';
@@ -86,7 +88,7 @@ class AttendanceController extends Controller
             $clockInImagePath = 'images/attendance_images/' . $imageName;
             $time = Carbon::now('Asia/Kolkata')->format('h:i A');
 
-            $attendance->company_id       = $company->id;
+            $attendance->company_id       = $activeCompany->company_id;
             $attendance->clock_in         = $time;
             $attendance->clock_in_image   = $clockInImagePath;
             $attendance->status           = 'present';
@@ -141,9 +143,9 @@ class AttendanceController extends Controller
     public function applyForLeave(Request $request): JsonResponse
     {
         $user       = $request->user();
-        $company    = $user->companies()->first();
+        $activeCompany = SelectedCompanyService::getSelectedCompanyOrFail();
 
-        if (!$company) {
+        if (!$activeCompany) {
             return response()->json([
                 'message' => 'User is not associated with any company.',
             ], 422);
@@ -177,7 +179,7 @@ class AttendanceController extends Controller
                 continue;
             }
 
-            $attendance->company_id       = $company->id;
+            $attendance->company_id       = $activeCompany->company_id;
             $attendance->status           = 'leave';
             $attendance->approval_status  = 'pending';
             $attendance->clock_out        = '-';

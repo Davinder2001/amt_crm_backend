@@ -225,7 +225,7 @@ class AddNewCompanyController extends Controller
             $file->move(public_path('uploads/business_proofs'), $name);
             $logoPath = 'uploads/business_proofs/' . $name;
         }
-
+        $subscriptionDate = now()->setTimezone('Asia/Kolkata')->toDateTimeString();
         $companyId  = CompanyIdService::generateNewCompanyId();
         $company    = Company::create([
             'company_id'            => $companyId,
@@ -244,6 +244,8 @@ class AddNewCompanyController extends Controller
             'business_id'           => $data['business_id'] ?? null,
             'business_proof_front'  => $frontPath,
             'business_proof_back'   => $backPath,
+               'subscription_date'     => $subscriptionDate,
+            'subscription_status'   => 'active',
         ]);
 
         $user = Auth::user();

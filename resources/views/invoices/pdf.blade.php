@@ -90,7 +90,10 @@
     <div class="container">
         <div class="header">
             <div class="logo">
-                <img src="{{ public_path('logo.png') }}" alt="Logo">
+                @if (!empty($company_logo) && file_exists($company_logo))
+                    <img src="{{ $company_logo }}" alt="Company Logo" style="height: 50px;">
+                @endif
+
             </div>
             <div class="store-info">
                 <strong>{{ $company_name }}</strong><br>
@@ -142,7 +145,9 @@
                 @if ($invoice->service_charge_amount > 0)
                     <tr>
                         <td><strong>Service Charge:</strong></td>
-                        <td>- ₹{{ number_format($invoice->service_charge_amount, 2) }} + 18% GST <strong>₹({{ $invoice->service_charge_final}})</strong></td>
+                        <td>- ₹{{ number_format($invoice->service_charge_amount, 2) }} + 18% GST
+                            <strong>₹({{ $invoice->service_charge_final }})</strong>
+                        </td>
                     </tr>
                 @endif
                 <tr>

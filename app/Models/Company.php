@@ -30,6 +30,8 @@ class Company extends Model
         'business_id',
         'business_proof_front',
         'business_proof_back',
+        'subscription_date',
+        'subscription_status',
     ];
 
     /**

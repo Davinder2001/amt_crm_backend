@@ -13,7 +13,7 @@ class Package extends Model
         'daily_tasks_number',
         'invoices_number',
         'package_type',
-        'price'
+        'price',
     ];
 
     public function businessCategories()
