@@ -115,6 +115,7 @@ class InvoicesController extends Controller
         $logoFile        = $selectedCompany->company->company_logo;
 
 
+        dd($logoFile);
 
         // Check if it's a full URL or a relative file
         if (!empty($logoFile)) {
