@@ -26,7 +26,7 @@
         }
 
         .logo img {
-            height: 50px;
+            height: 100px;
         }
 
         .store-info {
@@ -91,7 +91,7 @@
         <div class="header">
             <div class="logo">
                 @if (!empty($company_logo) && file_exists($company_logo))
-                    <img src="{{ $company_logo }}" alt="Company Logo" style="height: 50px;">
+                    <img src="{{ $company_logo }}" alt="Company Logo">
                 @endif
             </div>
             <div class="store-info">
@@ -113,6 +113,7 @@
                 <p><strong>Invoice No:</strong> {{ $invoice->invoice_number }}</p>
                 <p><strong>Date:</strong> {{ $invoice->invoice_date }}</p>
                 <p><strong>Payment Mode:</strong> {{ $invoice->payment_method }}</p>
+                <p><strong>Issued By:</strong> {{ $invoice->issued_by_name }}</p>
             </div>
 
             <table>

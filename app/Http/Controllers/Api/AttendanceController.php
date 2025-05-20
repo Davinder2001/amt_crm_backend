@@ -142,8 +142,8 @@ class AttendanceController extends Controller
      */
     public function applyForLeave(Request $request): JsonResponse
     {
-        $user       = $request->user();
-        $activeCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+        $user           = $request->user();
+        $activeCompany  = SelectedCompanyService::getSelectedCompanyOrFail();
 
         if (!$activeCompany) {
             return response()->json([
@@ -231,7 +231,7 @@ class AttendanceController extends Controller
 
     public function myAttendance(Request $request)
     {
-        $date = $request->query('date');
+        $date       = $request->query('date');
         $authUserId = $request->user()->id;
 
         if ($date) {

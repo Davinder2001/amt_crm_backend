@@ -11,7 +11,6 @@ use App\Models\ItemVariant;
 use App\Models\CustomerHistory;
 use App\Models\CustomerCredit;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
@@ -68,8 +67,7 @@ class InvoicesController extends Controller
 
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
         $companyName     = $selectedCompany->company->company_name;
-        $issuedByName    = Auth::user()->name;
-        $logoFile = $selectedCompany->company->company_logo;
+        $logoFile        = $selectedCompany->company->company_logo;
 
         if (!empty($logoFile) && !is_dir(public_path($logoFile))) {
             $companyLogo = public_path($logoFile);
@@ -82,16 +80,14 @@ class InvoicesController extends Controller
                 'invoices.pdf',
                 [
                     'invoice'          => $invoice,
-                    'company_name'     => $selectedCompany->company->company_name,
+                    'company_name'     => $companyName,
                     'company_logo'     => $companyLogo,
                     'company_address'  => $selectedCompany->company->address ?? 'N/A',
                     'company_phone'    => $selectedCompany->company->phone ?? 'N/A',
                     'company_gstin'    => $selectedCompany->company->gstin ?? 'N/A',
-                    'issued_by'        => Auth::user()->name,
                     'footer_note'      => 'Thank you for your business',
                     'show_signature'   => true,
                 ],
-
 
                 function ($message) use ($invoice, $pdfContent) {
                     $message->to($invoice->client_email)
@@ -117,8 +113,7 @@ class InvoicesController extends Controller
         $invoice         = Invoice::with('items')->findOrFail($id);
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
         $companyName     = $selectedCompany->company->company_name;
-        $issuedByName    = Auth::user()->name;
-        $logoFile = $selectedCompany->company->company_logo;
+        $logoFile        = $selectedCompany->company->company_logo;
 
         if (!empty($logoFile) && !is_dir(public_path($logoFile))) {
             $companyLogo = public_path($logoFile);
@@ -134,7 +129,6 @@ class InvoicesController extends Controller
             'company_address'  => $selectedCompany->company->address ?? 'N/A',
             'company_phone'    => $selectedCompany->company->phone ?? 'N/A',
             'company_gstin'    => $selectedCompany->company->gstin ?? 'N/A',
-            'issued_by'        => $issuedByName,
             'footer_note'      => 'Thank you for your business',
             'show_signature'   => true,
         ]);
@@ -143,6 +137,7 @@ class InvoicesController extends Controller
         return $pdf->download('invoice_' . $invoice->invoice_number . '.pdf');
     }
 
+    
     private function createInvoiceAndPdf(Request $request): array
     {
         $validator = Validator::make($request->all(), [
@@ -188,8 +183,9 @@ class InvoicesController extends Controller
         $data            = $validator->validated();
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
         $issuedById      = Auth::id();
+        $issuedByName    = Auth::user()->name;
 
-        $invoice = DB::transaction(function () use ($data, $selectedCompany, $issuedById) {
+        $invoice = DB::transaction(function () use ($data, $selectedCompany, $issuedById, $issuedByName) {
             foreach ($data['items'] as $line) {
                 $item = Item::findOrFail($line['item_id']);
                 if ($item->quantity_count < $line['quantity']) {
@@ -265,8 +261,6 @@ class InvoicesController extends Controller
             $nextSeq        = $last ? ((int) substr($last->invoice_number, -4)) + 1 : 1;
             $invoiceNumber  = "{$companyCode}{$datePrefix}" . str_pad($nextSeq, 4, '0', STR_PAD_LEFT);
 
-
-
             $inv = Invoice::create([
                 'invoice_number'            => $invoiceNumber,
                 'client_name'               => $data['client_name'] ?? 'Guest',
@@ -283,6 +277,7 @@ class InvoicesController extends Controller
                 'final_amount'              => $finalAmount,
                 'payment_method'            => $data['payment_method'],
                 'issued_by'                 => $issuedById,
+                'issued_by_name'            => $issuedByName,
                 'company_id'                => $selectedCompany->id,
             ]);
 
@@ -336,7 +331,7 @@ class InvoicesController extends Controller
             ]);
 
             $amountPaid = null;
-            $totalDue = null;
+            $totalDue   = null;
             if ($data['payment_method'] === 'credit') {
 
                 if ($data['creditPaymentType'] === 'partial') {
@@ -377,14 +372,13 @@ class InvoicesController extends Controller
             'show_signature'   => true,
         ]);
 
-
         return [$invoice, $pdf->output()];
     }
 
 
     public function sendToWhatsapp($id)
     {
-        $invoice = Invoice::with('items')->findOrFail($id);
+        $invoice         = Invoice::with('items')->findOrFail($id);
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
 
         if ($invoice->sent_on_whatsapp) {
@@ -401,7 +395,6 @@ class InvoicesController extends Controller
             ], 400);
         }
 
-        // Generate PDF logic...
         $folderPath = public_path('invoices');
         if (!file_exists($folderPath)) {
             mkdir($folderPath, 0755, true);
@@ -413,7 +406,6 @@ class InvoicesController extends Controller
         } else {
             $companyLogo = null;
         }
-
 
         $pdf = Pdf::loadView('invoices.pdf', [
             'invoice'          => $invoice,
@@ -490,11 +482,6 @@ class InvoicesController extends Controller
             ], $response->status());
         }
     }
-
-
-
-
-
 
 
     public function show($id)

@@ -25,6 +25,7 @@ class Invoice extends Model
         'final_amount',
         'payment_method',
         'issued_by',
+        'issued_by_name',
         'pdf_path',
         'company_id',
         'sent_on_whatsapp',
