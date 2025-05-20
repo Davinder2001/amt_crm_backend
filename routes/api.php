@@ -117,6 +117,8 @@ Route::prefix('v1')->group(function () {
         Route::delete('users/{user}', [UserController::class, 'destroy'])->middleware('permission:delete users');
 
 
+        Route::post('/check-package-allowance', [PermissionController::class, 'packagesAllowCheck']);
+
 
 
 

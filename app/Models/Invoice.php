@@ -16,6 +16,7 @@ class Invoice extends Model
         'client_phone',
         'invoice_date',
         'total_amount',
+        'sub_total',
         'service_charge_amount',
         'service_charge_percent',
         'service_charge_gst',

@@ -142,6 +142,10 @@
             </table>
 
             <table class="summary">
+                <tr>
+                    <td><strong>Sub Total:</strong></td>
+                    <td>- ₹{{ number_format($invoice->sub_total, 2) }}</td>
+                </tr>
                 @if ($invoice->service_charge_amount > 0)
                     <tr>
                         <td><strong>Service Charge:</strong></td>
@@ -150,10 +154,6 @@
                         </td>
                     </tr>
                 @endif
-                <tr>
-                    <td><strong>Sub Total:</strong></td>
-                    <td>- ₹{{ number_format($invoice->total_amount, 2) }}</td>
-                </tr>
                 @if ($invoice->discount_amount > 0)
                     <tr>
                         <td><strong>Discount:</strong></td>
@@ -168,12 +168,10 @@
                     </tr>
                 @endif
                 <tr>
-                    <td><strong>Total:</strong></td>
+                    <td><strong>Grand Total:</strong></td>
                     <td><strong>- ₹{{ number_format($invoice->final_amount, 2) }}</strong></td>
                 </tr>
             </table>
-
-
             @if (!empty($show_signature))
                 <div class="signature">
                     <p>Authorized Signatory</p>
@@ -183,5 +181,4 @@
         </div>
     </div>
 </body>
-
 </html>

@@ -36,6 +36,7 @@ class CreditManagementController extends Controller
             $first = $creditGroup->first();
 
             return [
+                'customer_id'    => $first->customer->id,
                 'name'           => $first->customer->name,
                 'number'         => $first->customer->number,
                 'total_invoices' => $creditGroup->count(),

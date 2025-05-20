@@ -45,9 +45,7 @@ class PackageController extends Controller
         }
 
         $data = $validator->validated();
-
-
-
+        
         $package = Package::create([
             'name'                  => $data['name'],
             'employee_numbers'      => $data['employee_numbers'],

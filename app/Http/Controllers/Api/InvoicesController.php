@@ -7,6 +7,7 @@ use App\Models\Invoice;
 use App\Models\Item;
 use Illuminate\Support\Facades\Log;
 use App\Models\Customer;
+use App\Models\Package;
 use App\Models\ItemVariant;
 use App\Models\CustomerHistory;
 use App\Models\CustomerCredit;
@@ -26,9 +27,7 @@ class InvoicesController extends Controller
      */
     public function index()
     {
-        $invoices   = Invoice::with(['items', 'credit'])
-            ->where('company_id', SelectedCompanyService::getSelectedCompanyOrFail()->company->id)
-            ->latest()->get();
+        $invoices   = Invoice::with(['items', 'credit'])->where('company_id', SelectedCompanyService::getSelectedCompanyOrFail()->company->id)->latest()->get();
 
         return response()->json([
             'status'   => true,
@@ -60,6 +59,7 @@ class InvoicesController extends Controller
                 'inline; filename="invoice_' . $invoice->invoice_number . '.pdf"'
             );
     }
+
 
     public function storeAndMail(Request $request)
     {
@@ -108,6 +108,7 @@ class InvoicesController extends Controller
         ], 201);
     }
 
+
     public function download($id)
     {
         $invoice         = Invoice::with('items')->findOrFail($id);
@@ -137,7 +138,8 @@ class InvoicesController extends Controller
         return $pdf->download('invoice_' . $invoice->invoice_number . '.pdf');
     }
 
-    
+
+
     private function createInvoiceAndPdf(Request $request): array
     {
         $validator = Validator::make($request->all(), [
@@ -180,10 +182,33 @@ class InvoicesController extends Controller
             ], 422));
         }
 
-        $data            = $validator->validated();
-        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $issuedById      = Auth::id();
-        $issuedByName    = Auth::user()->name;
+        $data                   = $validator->validated();
+        $selectedCompany        = SelectedCompanyService::getSelectedCompanyOrFail();
+        $issuedById             = Auth::id();
+        $issuedByName           = Auth::user()->name;
+        $packageId              = $selectedCompany->company->package_id ?? 1;
+        $package                = Package::find($packageId);
+        $packageType            = $package['package_type'];
+        $allowedInvoiceCount    = $package['invoices_number'];
+
+        $now = now();
+
+        $invoiceQuery = Invoice::where('company_id', $selectedCompany->company_id);
+
+        if ($packageType === 'monthly') {
+            $invoiceQuery->whereYear('invoice_date', $now->year)
+                ->whereMonth('invoice_date', $now->month);
+        } elseif ($packageType === 'yearly') {
+            $invoiceQuery->whereYear('invoice_date', $now->year);
+        }
+
+        $currentInvoiceCount = $invoiceQuery->count();
+
+        if ($currentInvoiceCount >= $allowedInvoiceCount) {
+            throw new \Exception("You have reached your invoice limit for the {$packageType} package ({$allowedInvoiceCount} invoices).");
+        }
+
+
 
         $invoice = DB::transaction(function () use ($data, $selectedCompany, $issuedById, $issuedByName) {
             foreach ($data['items'] as $line) {
@@ -230,33 +255,37 @@ class InvoicesController extends Controller
                 $finalServiceCharge     = $serviceChargeAmount + $serviceChargeGstAmount;
             }
 
-
             $subtotal = $total + $finalServiceCharge;
 
             if ($data['discount_type'] === 'amount' && $data['discount_price'] > 0) {
 
                 $discountAmount     = $data['discount_price'];
                 $discountPercentage = $subtotal ? round(($discountAmount / $subtotal) * 100, 2) : 0;
-                $finalAmount        = max(0, $subtotal - $discountAmount);
+                $finalAmount        = round(max(0, $subtotal - $discountAmount));
             } elseif ($data['discount_type'] === 'percentage' && $data['discount_percentage'] > 0) {
 
                 $discountPercentage = $data['discount_percentage'];
                 $discountAmount     = round(($discountPercentage / 100) * $subtotal, 2);
-                $finalAmount        = max(0, $subtotal - $discountAmount);
+                $finalAmount        = round(max(0, $subtotal - $discountAmount));
+            } else {
+                $discountAmount     = 0;
+                $discountPercentage = 0;
+                $finalAmount        = round($subtotal);
             }
 
-
             $customer = Customer::firstOrCreate(
-                ['number'   => $data['number'], 'company_id' => $selectedCompany->id],
+                ['number'   => $data['number'], 'company_id' => $selectedCompany->company_id],
                 ['name'     => $data['client_name'], 'email' => $data['email'] ?? null]
             );
 
+
             $companyCode =  $selectedCompany->company->company_id;
             $datePrefix  =  now()->format('Ymd');
-            $last        =  Invoice::where('company_id', $selectedCompany->id)
+            $last        =  Invoice::where('company_id', $selectedCompany->company_id)
                 ->whereDate('invoice_date', now()->toDateString())
                 ->orderBy('invoice_number', 'desc')
                 ->first();
+
 
             $nextSeq        = $last ? ((int) substr($last->invoice_number, -4)) + 1 : 1;
             $invoiceNumber  = "{$companyCode}{$datePrefix}" . str_pad($nextSeq, 4, '0', STR_PAD_LEFT);
@@ -268,6 +297,7 @@ class InvoicesController extends Controller
                 'client_email'              => $data['email'] ?? null,
                 'invoice_date'              => $data['invoice_date'],
                 'total_amount'              => $subtotal,
+                'sub_total'                 => $total,
                 'service_charge_amount'     => $serviceChargeAmount,
                 'service_charge_percent'    => $serviceChargePercent,
                 'service_charge_gst'        => $serviceChargeGstAmount,
@@ -278,7 +308,7 @@ class InvoicesController extends Controller
                 'payment_method'            => $data['payment_method'],
                 'issued_by'                 => $issuedById,
                 'issued_by_name'            => $issuedByName,
-                'company_id'                => $selectedCompany->id,
+                'company_id'                => $selectedCompany->company_id,
             ]);
 
 
@@ -350,7 +380,7 @@ class InvoicesController extends Controller
                     'total_due'    => $finalAmount,
                     'amount_paid'  => $amountPaid,
                     'outstanding'  => $totalDue,
-                    'company_id'   => $selectedCompany->id,
+                    'company_id'   => $selectedCompany->company_id,
                     'status'       => 'due',
                 ]);
             }

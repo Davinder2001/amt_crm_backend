@@ -32,9 +32,8 @@ class TaskController extends Controller
      */
     public function store(Request $request)
     {
-        $authUser        = $request->user();
-        $activeCompanyId = SelectedCompanyService::getSelectedCompanyOrFail();
-
+        $authUser            = $request->user();
+        $activeCompanyId     = SelectedCompanyService::getSelectedCompanyOrFail();
         $packageId           = $activeCompanyId->company->package_id;
         $package             = Package::find($packageId);
         $packageType         = $package['package_type'];

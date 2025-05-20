@@ -8,6 +8,7 @@ use App\Models\UserMeta;
 use \App\Services\EmployeeCreateService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use App\Models\Package;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Resources\EmployeeResource;
@@ -96,6 +97,30 @@ class EmployeeController extends Controller
             ], 422);
         }
 
+        $selectedCompany        = SelectedCompanyService::getSelectedCompanyOrFail();
+        $packageId              = $selectedCompany->company->package_id ?? 1;
+        $package                = Package::find($packageId);
+        $packageType            = $package['package_type'];
+        $allowedEmployeeCount   = $package['employee_numbers'];
+        $now                    = now();
+        $employeeQuery          = User::whereHas('roles', fn($q) => $q->where('name', '!=', 'admin'))
+                                ->where('company_id', $selectedCompany->id);
+
+        if ($packageType === 'monthly') {
+            $employeeQuery->whereYear('created_at', $now->year)->whereMonth('created_at', $now->month);
+        } elseif ($packageType === 'yearly') {
+            $employeeQuery->whereYear('created_at', $now->year);
+        }
+
+        $currentEmployeeCount = $employeeQuery->count();
+
+        if ($currentEmployeeCount >= $allowedEmployeeCount) {
+            return response()->json([
+                'message' => "You have reached your {$packageType} employee limit of {$allowedEmployeeCount}.",
+            ], 403);
+        }
+
+
         try {
             $employee = $userCreateService->createEmployee($validator->validated());
 
@@ -146,7 +171,7 @@ class EmployeeController extends Controller
                 'name'         => 'sometimes|string|max:255',
                 'email'        => 'sometimes|string|email|max:255',
                 'password'     => 'sometimes|string|min:8',
-                'role'         => 'required|exists:roles,name',
+                'role'         => 'sometimes|exists:roles,name',
                 'number'       => 'sometimes|string|max:20',
                 'salary'       => 'sometimes|numeric|min:0',
                 'dateOfHire'   => 'sometimes|date',
