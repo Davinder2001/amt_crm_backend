@@ -383,8 +383,8 @@ Route::prefix('v1')->group(function () {
 
         Route::apiResource('business-categories', BusinessCategoryController::class);
 
-
-
+        Route::get('export-inline', [ItemsController::class, 'exportInline']);
+        Route::post('import-inline', [ItemsController::class, 'importInline']);
 
     });
 });

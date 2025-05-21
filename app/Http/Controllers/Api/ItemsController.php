@@ -8,6 +8,9 @@ use Illuminate\Http\JsonResponse;
 use App\Models\Tax;
 use App\Models\Package;
 use App\Models\ItemTax;
+use Maatwebsite\Excel\Facades\Excel;
+use Maatwebsite\Excel\Concerns\FromArray;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Validator;
@@ -468,4 +471,232 @@ class ItemsController extends Controller
         $categories = Category::with(['childrenRecursive', 'items.variants.attributeValues.attribute', 'items.taxes', 'items.categories',])->get();
         return response()->json(CategoryTreeResource::collection($categories), 200);
     }
+
+
+
+
+    public function exportInline(): BinaryFileResponse
+    {
+        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+
+        $items = Item::where('company_id', $selectedCompany->company_id)
+            ->select([
+                'item_code',
+                'name',
+                'quantity_count',
+                'measurement',
+                'purchase_date',
+                'date_of_manufacture',
+                'date_of_expiry',
+                'brand_name',
+                'replacement',
+                'vendor_name',
+                'availability_stock',
+                'cost_price',
+                'selling_price'
+            ])
+            ->get();
+
+        $data = [[
+            'Item Code',
+            'Name',
+            'Quantity Count',
+            'Measurement',
+            'Purchase Date',
+            'Date of Manufacture',
+            'Date of Expiry',
+            'Brand Name',
+            'Replacement',
+            'Vendor Name',
+            'Available Stock',
+            'Cost Price',
+            'Selling Price',
+        ]];
+
+        foreach ($items as $item) {
+            $data[] = [
+                $item->item_code,
+                $item->name,
+                $item->quantity_count,
+                $item->measurement,
+                optional($item->purchase_date)->format('Y-m-d'),
+                optional($item->date_of_manufacture)->format('Y-m-d'),
+                optional($item->date_of_expiry)->format('Y-m-d'),
+                $item->brand_name,
+                $item->replacement,
+                $item->vendor_name,
+                $item->availability_stock,
+                $item->cost_price,
+                $item->selling_price,
+            ];
+        }
+
+        // Export
+        $export = new class($data) implements FromArray {
+            protected $data;
+            public function __construct(array $data)
+            {
+                $this->data = $data;
+            }
+            public function array(): array
+            {
+                return $this->data;
+            }
+        };
+
+        return Excel::download($export, 'items_export.xlsx');
+    }
+
+
+    public function importInline(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'file' => 'required|file|mimes:xlsx,xls',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid file.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+        $companyId       = $selectedCompany->company_id;
+
+        try {
+            $path = $request->file('file')->getRealPath();
+            $rows = Excel::toArray([], $path)[0];
+
+            unset($rows[0]);
+
+            foreach ($rows as $row) {
+                if (!isset($row[0]) || empty($row[0])) continue;
+
+                Item::create([
+                    'item_code'             => $row[0],
+                    'name'                  => $row[1],
+                    'quantity_count'        => $row[2],
+                    'measurement'           => $row[3],
+                    'purchase_date'         => $row[4] ?? null,
+                    'date_of_manufacture'   => $row[5] ?? null,
+                    'date_of_expiry'        => $row[6] ?? null,
+                    'brand_name'            => $row[7],
+                    'replacement'           => $row[8],
+                    'vendor_name'           => $row[9],
+                    'availability_stock'    => $row[10],
+                    'cost_price'            => $row[11],
+                    'selling_price'         => $row[12],
+                    'company_id'            => $companyId,
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Items imported successfully.',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Import failed.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+
+
+    // public function importInline(Request $request): JsonResponse
+    // {
+    //     $validator = Validator::make($request->all(), [
+    //         'file' => 'required|file|mimes:xlsx,xls',
+    //     ]);
+
+    //     if ($validator->fails()) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Invalid file.',
+    //             'errors' => $validator->errors(),
+    //         ], 422);
+    //     }
+
+    //     $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+    //     $companyId       = $selectedCompany->company_id;
+
+    //     try {
+    //         $path = $request->file('file')->getRealPath();
+    //         $rows = Excel::toArray([], $path)[0]; // First sheet
+    //         unset($rows[0]); // Remove headers
+
+    //         $inserted = 0;
+    //         $updated  = 0;
+    //         $skipped  = 0;
+
+    //         foreach ($rows as $row) {
+    //             if (!isset($row[0]) || empty($row[0])) continue;
+
+    //             $existing = Item::where('company_id', $companyId)
+    //                 ->where('item_code', $row[0])
+    //                 ->first();
+
+    //             $fields = [
+    //                 'item_code'          => $row[0],
+    //                 'name'               => $row[1],
+    //                 'quantity_count'     => $row[2],
+    //                 'measurement'        => $row[3],
+    //                 'purchase_date'      => $row[4] ?? null,
+    //                 'date_of_manufacture' => $row[5] ?? null,
+    //                 'date_of_expiry'     => $row[6] ?? null,
+    //                 'brand_name'         => $row[7],
+    //                 'replacement'        => $row[8],
+    //                 'vendor_name'        => $row[9],
+    //                 'availability_stock' => $row[10],
+    //                 'cost_price'         => $row[11],
+    //                 'selling_price'      => $row[12],
+    //                 'company_id'         => $companyId,
+    //             ];
+
+    //             if ($existing) {
+    //                 $diff = [];
+    //                 foreach ($fields as $key => $value) {
+    //                     if ($existing->{$key} != $value) {
+    //                         $diff[$key] = $value;
+    //                     }
+    //                 }
+
+    //                 if (!empty($diff)) {
+    //                     $existing->update($diff);
+    //                     $updated++;
+    //                 } else {
+    //                     $skipped++;
+    //                 }
+    //             } else {
+    //                 Item::create($fields);
+    //                 $inserted++;
+    //             }
+    //         }
+
+    //         if ($inserted === 0 && $updated === 0) {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'message' => 'All data already exists. No new or updated rows.',
+    //             ], 200);
+    //         }
+
+    //         return response()->json([
+    //             'success' => true,
+    //             'message' => 'Import completed.',
+    //             'inserted' => $inserted,
+    //             'updated'  => $updated,
+    //             'skipped'  => $skipped,
+    //         ]);
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Import failed.',
+    //             'error' => $e->getMessage(),
+    //         ], 500);
+    //     }
+    // }
 }
