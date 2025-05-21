@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\User;
 use App\Models\Company;
 use App\Models\Role;
+use App\Models\Package;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -55,13 +56,15 @@ class AdminSeeder extends Seeder
             ],
         ];
 
+        $defaultPackage = Package::where('name', 'Basic')->first();
+
         foreach ($companies as $index => $companyData) {
-            // Create or find company
             $company = Company::firstOrCreate(
                 ['company_id' => $companyData['company_id']],
                 array_merge($companyData, [
-                    'payment_status'      => 'completed',
-                    'verification_status' => 'verified',
+                    'package_id'           => $defaultPackage?->id, 
+                    'payment_status'       => 'completed',
+                    'verification_status'  => 'verified',
                 ])
             );
 
@@ -69,8 +72,8 @@ class AdminSeeder extends Seeder
                 ['name' => 'admin', 'guard_name' => 'web', 'company_id' => $company->id]
             );
 
-            $adminData = $admins[$index];
-            $admin = User::factory()->create(array_merge($adminData, [
+            $adminData  = $admins[$index];
+            $admin      = User::factory()->create(array_merge($adminData, [
                 'user_type' => 'admin',
             ]));
 
