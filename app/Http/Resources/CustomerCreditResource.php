@@ -23,6 +23,7 @@ class CustomerCreditResource extends JsonResource
             'id'         => $customer->id,
             'name'       => $customer->name,
             'email'      => $customer->email,
+            'number'     => $customer->number,
             'total_due'  => number_format($credits->sum('outstanding'), 2, '.', ''),
             'credits'    => $credits->map(function ($credit) {
                 return [

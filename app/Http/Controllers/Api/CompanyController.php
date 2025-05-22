@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Company;
 use App\Services\SelectedCompanyService;
 use App\Models\CompanyUser;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Resources\CompanyResource;
 
@@ -146,32 +147,56 @@ class CompanyController extends Controller
     /**
      * Mark a company's payment as verified.
      */
-    public function verifyPayment($id)
+    public function paymentStatus(Request $request, $id)
     {
+        $validator = Validator::make($request->all(), [
+            'payment_status' => 'required|in:pending,completed,failed',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Validation failed.',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
         $company = Company::findOrFail($id);
-        $company->payment_status = 'completed';
+        $company->payment_status = $request->payment_status;
         $company->save();
 
         return response()->json([
-            'status'    => 'success',
-            'message'   => 'Payment verified successfully.',
-            'data'      => new CompanyResource($company),
+            'status'  => 'success',
+            'message' => 'Payment status updated successfully.',
+            'data'    => new CompanyResource($company),
         ]);
     }
 
     /**
      * Mark a company's verification status as verified.
      */
-    public function verifyStatus($id)
+    public function verificationStatus(Request $request, $id)
     {
+        $validator = Validator::make($request->all(), [
+            'verification_status' => 'required|in:pending,verified,rejected,block',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Validation failed.',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
         $company = Company::findOrFail($id);
-        $company->verification_status = 'verified';
+        $company->verification_status = $request->verification_status;
         $company->save();
 
         return response()->json([
-            'status'    => 'success',
-            'message'   => 'Verification status updated successfully.',
-            'data'      => new CompanyResource($company),
+            'status'  => 'success',
+            'message' => 'Verification status updated successfully.',
+            'data'    => new CompanyResource($company),
         ]);
     }
 }

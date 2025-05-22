@@ -73,12 +73,27 @@ Route::prefix('v1')->group(function () {
         //Super Admin Routes API's
         Route::middleware(['check.superadmin'])->group(function () {
             Route::get('/companies/pending', [CompanyController::class, 'getPendingCompanies']);
-            Route::post('/companies/{id}/payment-verify', [CompanyController::class, 'verifyPayment']);
-            Route::post('/companies/{id}/status-verify', [CompanyController::class, 'verifyStatus']);
+            Route::post('/companies/{id}/payment-status', [CompanyController::class, 'paymentStatus']);
+            Route::post('/companies/{id}/verification-status', [CompanyController::class, 'verificationStatus']);
             Route::get('/admins-management', [AdminManagementController::class, 'index']);
             Route::post('/admin-management/{id}/status', [AdminManagementController::class, 'updateStatus']);
             Route::get('/admins/{id}', [AdminManagementController::class, 'show']);
         });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
         // Auth API's

@@ -38,7 +38,7 @@ return new class extends Migration
             $table->string('payment_recoad_status')->nullable();
 
             $table->enum('payment_status', ['pending', 'completed', 'failed'])->default('pending');
-            $table->enum('verification_status', ['pending', 'verified', 'rejected'])->default('pending');
+            $table->enum('verification_status', ['pending', 'verified', 'rejected', 'block'])->default('pending');
 
             $table->timestamps();
         });
