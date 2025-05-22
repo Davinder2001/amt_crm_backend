@@ -38,8 +38,8 @@ class QuotationController extends Controller
         $company    = SelectedCompanyService::getSelectedCompanyOrFail();
         $data       = $validator->validated();
         $user       = $request->user();
+        $subtotal   = 0;
 
-        $subtotal = 0;
         foreach ($data['items'] as $item) {
             $subtotal += $item['quantity'] * $item['price'];
         }

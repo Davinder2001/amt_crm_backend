@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Role;
 use App\Models\Company;
+use App\Models\Payment;
 use App\Models\CompanyUser;
 use App\Models\Package;
 use App\Services\SelectedCompanyService;
@@ -195,6 +196,19 @@ class AddNewCompanyController extends Controller
             ], 402);
         }
 
+        
+        // Payment::create([
+        //     'user_id'              => 1,
+        //     'order_id'             => $orderId,
+        //     'transaction_id'       => $statusResponse['orderId'],
+        //     'payment_status'       => 'success',
+        //     'payment_method'       => 'PhonePe',
+        //     'payment_reason'       => 'Company registration for package ID ' . $data['package_id'],
+        //     'payment_fail_reason'  => null,
+        //     'is_last_payment'      => true,
+        // ]);
+
+
         $slug = Str::slug($data['company_name']);
         if (Company::where('company_slug', $slug)->exists()) {
             throw ValidationException::withMessages([
@@ -244,7 +258,7 @@ class AddNewCompanyController extends Controller
             'business_id'           => $data['business_id'] ?? null,
             'business_proof_front'  => $frontPath,
             'business_proof_back'   => $backPath,
-               'subscription_date'     => $subscriptionDate,
+            'subscription_date'     => $subscriptionDate,
             'subscription_status'   => 'active',
         ]);
 
@@ -261,6 +275,7 @@ class AddNewCompanyController extends Controller
             'guard_name' => 'web',
             'company_id' => $company->id,
         ]);
+
 
         $user->assignRole($role);
 
