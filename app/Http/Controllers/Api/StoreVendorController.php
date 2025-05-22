@@ -30,7 +30,10 @@ class StoreVendorController extends Controller
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
 
         $validator = Validator::make($request->all(), [
-            'vendor_name' => 'required|string|max:255',
+            'vendor_name'       => 'required|string|max:255',
+            'vendor_number'     => 'required|string|max:255',
+            'vendor_email'      => 'nullable|string|max:255',
+            'vendor_address'    => 'nullable|string|max:255',
         ]);
 
         if ($validator->fails()) {
@@ -43,7 +46,14 @@ class StoreVendorController extends Controller
         $data               = $validator->validated();
         $data['company_id'] = $selectedCompany->company_id;
 
-        $vendor = StoreVendor::create($data);
+        $vendor = StoreVendor::create([
+            'company_id'     => $data['company_id'],
+            'vendor_name'    => $data['vendor_name'],
+            'vendor_number'  => $data['vendor_number'],
+            'vendor_email'   => $data['vendor_email'] ?? "NA",
+            'vendor_address' => $data['vendor_address'] ?? "NA",
+
+        ]);
 
         return response()->json([
             'message' => 'Vendor created successfully.',
@@ -70,7 +80,7 @@ class StoreVendorController extends Controller
 
         return response()->json($vendor);
     }
-    
+
     /* /
      * Update the specified resource in storage.
      */
@@ -130,7 +140,8 @@ class StoreVendorController extends Controller
     /**
      * Add a company as a vendor.
      */
-    public function addAsVendor(Request $request){
+    public function addAsVendor(Request $request)
+    {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
         return response()->json([
             'message' => 'Cpmpany retrive successfully.',

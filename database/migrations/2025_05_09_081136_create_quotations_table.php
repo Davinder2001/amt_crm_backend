@@ -14,11 +14,18 @@ return new class extends Migration
         Schema::create('quotations', function (Blueprint $table) {
             $table->id();
             $table->string('customer_name');
+            $table->string('customer_number');
+            $table->string('customer_email')->nullable();
             $table->json('items');
+            $table->decimal('tax_percent', 5, 2)->nullable();
+            $table->decimal('tax_amount', 10, 2)->nullable();
+            $table->decimal('service_charges', 10, 2)->nullable();
+            $table->decimal('total', 10, 2);
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('company_id')->constrained()->onDelete('cascade');
+            $table->string('company_name');
             $table->timestamps();
         });
-        
     }
 
     /**

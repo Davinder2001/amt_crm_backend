@@ -16,9 +16,12 @@ class StoreVendor extends Model
     protected $fillable = [
         'company_id',
         'vendor_name',
+        'vendor_number',
+        'vendor_email',
+        'vendor_address',
     ];
 
-    
+
     /**
      * Get the company that owns the vendor.
      */
@@ -27,7 +30,7 @@ class StoreVendor extends Model
         return $this->belongsTo(Company::class);
     }
 
-    
+
     protected static function booted()
     {
         static::addGlobalScope(new CompanyScope);
