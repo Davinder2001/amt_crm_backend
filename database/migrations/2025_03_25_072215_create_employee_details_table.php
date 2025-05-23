@@ -23,7 +23,8 @@ return new class extends Migration
             $table->string('dob')->nullable();
             $table->string('religion')->nullable();
             $table->string('maritalStatus')->nullable();
-            $table->string('passportNo')->nullable();
+            $table->string('id_proof_type')->nullable();
+            $table->string('id_proof_value')->nullable();
             $table->string('emergencyContact')->nullable();
             $table->string('emergencyContactRelation')->nullable();
             $table->string('currentSalary')->nullable();

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Attendance;
 use App\Models\Shift;
 use App\Models\User;
@@ -22,15 +21,10 @@ class HRController extends Controller
             ->with(['roles.permissions', 'companies', 'employeeDetail'])
             ->count();
 
-        $presentToday   = Attendance::whereDate('attendance_date', $today)
-            ->where('status', 'present')
-            ->count(); // Fix: count instead of get
-
+        $presentToday   = Attendance::whereDate('attendance_date', $today)->where('status', 'present')->count(); 
         $absentToday    = $totalEmployees - $presentToday;
+        $shifts         = Shift::pluck('start_time')->toArray(); 
 
-        $shifts         = Shift::pluck('start_time')->toArray(); // Fix: convert collection to array
-
-        // Fix: compare each clock_out time to the corresponding shift
         $earlyDepartures = Attendance::whereDate('attendance_date', $today)
             ->whereNotNull('clock_out')
             ->where(function ($query) use ($shifts) {

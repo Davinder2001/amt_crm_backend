@@ -33,7 +33,9 @@ use App\Http\Controllers\Api\{
     PhonePeController,
     PackageController,
     BusinessCategoryController,
-    AddNewCompanyController
+    AddNewCompanyController,
+    CustomTableColumnController,
+    PaymentAndBillingController
 };
 
 
@@ -49,8 +51,8 @@ Route::prefix('v1')->group(function () {
         Route::post('register', [AuthController::class, 'register']);
         Route::post('email-verification', [AuthController::class, 'mailVerification']);
         Route::post('verify-otp', [AuthController::class, 'verifyRegisterOtp']);
-        
-        
+
+
         Route::post('/admin-register', [AuthController::class, 'adminRegisterInitiate']);
         Route::post('/admin-register-confirm/{id}', [AuthController::class, 'adminRegisterConfirm']);
         Route::post('/send-wp-otp', [AuthController::class, 'sendWpOtp']);
@@ -61,8 +63,8 @@ Route::prefix('v1')->group(function () {
         Route::post('password/verify-otp', [AuthController::class, 'verifyOtp']);
         Route::get('companies/names', [CompanyController::class, 'getAllCompanyNames']);
 
-         Route::get('/all-packages', [PackageController::class, 'index']); 
-         Route::get('/all-business-categories', [BusinessCategoryController::class, 'index']); 
+        Route::get('/all-packages', [PackageController::class, 'index']);
+        Route::get('/all-business-categories', [BusinessCategoryController::class, 'index']);
     });
 
 
@@ -78,6 +80,11 @@ Route::prefix('v1')->group(function () {
             Route::get('/admins-management', [AdminManagementController::class, 'index']);
             Route::post('/admin-management/{id}/status', [AdminManagementController::class, 'updateStatus']);
             Route::get('/admins/{id}', [AdminManagementController::class, 'show']);
+
+
+
+            // Crud for businedd catagery
+            Route::apiResource('business-categories', BusinessCategoryController::class);
         });
 
 
@@ -382,24 +389,37 @@ Route::prefix('v1')->group(function () {
 
 
         Route::prefix('add-new-company')->group(function () {
-            Route::post('/pay', [AddNewCompanyController::class, 'paymentInitiate']); 
+            Route::post('/pay', [AddNewCompanyController::class, 'paymentInitiate']);
             Route::post('/{id}', [AddNewCompanyController::class, 'store']);
         });
 
         Route::prefix('pricing-packages')->group(function () {
-            Route::get('/', [PackageController::class, 'index']); 
+            Route::get('/', [PackageController::class, 'index']);
             Route::post('/', [PackageController::class, 'store']);
-            Route::get('/{id}', [PackageController::class, 'show']); 
+            Route::get('/{id}', [PackageController::class, 'show']);
             Route::put('/{id}', [PackageController::class, 'update']);
             Route::patch('/{id}', [PackageController::class, 'update']);
             Route::delete('/{id}', [PackageController::class, 'destroy']);
         });
 
 
-        Route::apiResource('business-categories', BusinessCategoryController::class);
 
+        // Export and import Items
         Route::get('export-inline', [ItemsController::class, 'exportInline']);
         Route::post('import-inline', [ItemsController::class, 'importInline']);
 
+
+
+        // Table management API's
+        Route::prefix('tables')->controller(CustomTableColumnController::class)->group(function () {
+            Route::post('/store', 'storeManagedTable');
+            Route::get('/list', 'listManagedTables');
+            Route::delete('/{id}', 'deleteManagedTable');
+            Route::post('/meta/store', 'storeMetaField');
+            Route::get('/meta/{managedTableId}', 'listMetaFields');
+            Route::delete('/meta/{id}', 'deleteMetaField');
+        });
+
+        Route::get('billings', [PaymentAndBillingController::class, 'adminBilling']);
     });
 });

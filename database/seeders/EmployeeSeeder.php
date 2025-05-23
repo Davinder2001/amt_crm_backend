@@ -67,7 +67,6 @@ class EmployeeSeeder extends Seeder
                     'dob'                      => '1995-01-01',
                     'religion'                 => 'Hindu',
                     'maritalStatus'            => 'Single',
-                    'passportNo'               => "PASS$employeeCounter",
                     'emergencyContact'         => "99999999$employeeCounter",
                     'emergencyContactRelation' => 'Father',
                     'currentSalary'            => 26000 + ($employeeCounter * 500),

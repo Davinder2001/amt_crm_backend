@@ -20,6 +20,8 @@ class Payment extends Model
         'payment_method',
         'payment_reason',
         'payment_fail_reason',
-        'is_last_payment',
+        'transaction_amount',
+        'payment_date',
+        'payment_time',
     ];
 }

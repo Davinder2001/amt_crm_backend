@@ -9,14 +9,16 @@ return new class extends Migration {
     {
         Schema::create('payments', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('order_id');
+            $table->string('order_id');
             $table->unsignedBigInteger('user_id');
             $table->string('transaction_id')->unique();
-            $table->enum('payment_status', ['pending', 'success', 'failed'])->default('pending');
+            $table->string('payment_status');
             $table->string('payment_method')->nullable();
             $table->text('payment_fail_reason')->nullable();
             $table->text('payment_reason')->nullable();
-            $table->boolean('is_last_payment')->default(false);
+            $table->string('transaction_amount')->nullable();
+            $table->string('payment_date');
+            $table->string('payment_time');
             $table->timestamps();
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
         });

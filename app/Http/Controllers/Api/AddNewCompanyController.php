@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
@@ -187,7 +188,33 @@ class AddNewCompanyController extends Controller
             ], 500);
         }
 
-        $status = strtoupper($statusResponse->json('state'));
+        $status             = strtoupper($statusResponse->json('state'));
+        $paymentCheck       = $statusResponse->json();
+        $paymentMode        = isset($paymentCheck['paymentDetails'][0]['paymentMode']) ? $paymentCheck['paymentDetails'][0]['paymentMode'] : null;
+        $transactionId      = $paymentCheck['orderId'];
+        $userId             = Auth::id();
+        $transactionAmount  = $paymentCheck['amount'] / 100;
+
+        $orderIdExists = Payment::where('order_id', $orderId)->exists();
+
+
+        if (!$orderIdExists) {
+
+            $nowIST = Carbon::now('Asia/Kolkata');
+            Payment::create([
+                'user_id'              => $userId,
+                'order_id'             => $orderId,
+                'transaction_id'       => $transactionId,
+                'payment_status'       => $status,
+                'payment_method'       => $paymentMode,
+                'payment_reason'       => 'Company registration for package ID ' . $data['package_id'],
+                'payment_fail_reason'  => null,
+                'transaction_amount'   => $transactionAmount,
+                'payment_date'         => $nowIST->format('d/m/Y'),
+                'payment_time'         => $nowIST->format('h:i A'),
+            ]);
+        }
+
         if ($status !== 'COMPLETED') {
             return response()->json([
                 'success' => false,
@@ -196,17 +223,9 @@ class AddNewCompanyController extends Controller
             ], 402);
         }
 
-        
-        // Payment::create([
-        //     'user_id'              => 1,
-        //     'order_id'             => $orderId,
-        //     'transaction_id'       => $statusResponse['orderId'],
-        //     'payment_status'       => 'success',
-        //     'payment_method'       => 'PhonePe',
-        //     'payment_reason'       => 'Company registration for package ID ' . $data['package_id'],
-        //     'payment_fail_reason'  => null,
-        //     'is_last_payment'      => true,
-        // ]);
+
+
+
 
 
         $slug = Str::slug($data['company_name']);
