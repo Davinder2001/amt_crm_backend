@@ -392,6 +392,8 @@ Route::prefix('v1')->group(function () {
             Route::post('/pay', [AddNewCompanyController::class, 'paymentInitiate']);
             Route::post('/{id}', [AddNewCompanyController::class, 'store']);
         });
+        
+        Route::post('upgrade-package', [AddNewCompanyController::class, 'upgradePackage']);
 
         Route::prefix('pricing-packages')->group(function () {
             Route::get('/', [PackageController::class, 'index']);

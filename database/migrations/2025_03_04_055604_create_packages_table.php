@@ -20,6 +20,8 @@ return new class extends Migration
             $table->enum('package_type', ['monthly', 'yearly']);
             $table->unsignedInteger('invoices_number');
             $table->decimal('price', 10, 2);
+            $table->unsignedBigInteger('business_category_id')->nullable();
+            $table->foreign('business_category_id')->references('id')->on('business_categories')->onDelete('set null');
             $table->timestamps();
         });
     }

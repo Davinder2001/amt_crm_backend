@@ -11,6 +11,7 @@ use App\Services\AdminRegistrationService;
 use App\Http\Requests\AdminRegisterRequest;
 use App\Models\User;
 use App\Models\Package;
+use App\Models\Company;
 use App\Models\CompanyUser;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Resources\UserResource;
@@ -77,7 +78,7 @@ class AuthController extends Controller
     }
 
 
-   /**
+    /**
      * Send Otp for Register.
      */
     public function sendWpOtp(Request $request): JsonResponse
@@ -158,7 +159,7 @@ class AuthController extends Controller
         ], 500);
     }
 
-   /**
+    /**
      * Verify Otp
      */
     public function veriWpfyOtp(Request $request): JsonResponse
@@ -208,13 +209,26 @@ class AuthController extends Controller
                 'errors'  => $validator->errors()
             ], 422);
         }
-        
+
+        $name = $validator->validated()['packageId'];
+
+        if (Company::where('company_name', $name)->exists()) {
+            throw ValidationException::withMessages([
+                'company_name' => ['Company slug already exists. Please choose a different company name.']
+            ]);
+        }
+
+        if (User::where('number', $validator->validated()['number'])->exists()) {
+            throw ValidationException::withMessages([
+                'number' => ['User already exists. Please login and upgrade the package.']
+            ]);
+        }
+
         $packageId       = $validator->validated()['packageId'];
         $package         = Package::where('id', $packageId)->first();
         $merchantOrderId = 'ORDER_' . uniqid();
         $amount          = 100 * $package->price;
 
- 
         $oauthResponse = Http::asForm()->post(env('PHONEPE_OAUTH_URL'), [
             'client_id'      => env('PHONEPE_CLIENT_ID'),
             'client_version' => env('PHONEPE_CLIENT_VERSION'),
@@ -230,10 +244,10 @@ class AuthController extends Controller
             ], 500);
         }
 
-        $accessToken = $oauthResponse->json('access_token');
-        $baseUrl = env('PHONEPE_CALLBACK_BASE_URL');
-        $callbackUrl = "{$baseUrl}?orderId={$merchantOrderId}";
-        $redirectUrl = "{$baseUrl}?orderId={$merchantOrderId}";
+        $accessToken    = $oauthResponse->json('access_token');
+        $baseUrl        = env('PHONEPE_CALLBACK_BASE_URL');
+        $callbackUrl    = "{$baseUrl}?orderId={$merchantOrderId}";
+        $redirectUrl    = "{$baseUrl}?orderId={$merchantOrderId}";
 
         $checkoutPayload = [
             "merchantOrderId" => $merchantOrderId,
@@ -257,9 +271,9 @@ class AuthController extends Controller
 
         if (!$checkoutResponse->ok() || !$paymentUrl) {
             return response()->json([
-                'success' => false,
-                'message' => 'Failed to initialize payment',
-                'response' => $responseData
+                'success'   => false,
+                'message'   => 'Failed to initialize payment',
+                'response'  => $responseData
             ], 500);
         }
 
@@ -326,7 +340,7 @@ class AuthController extends Controller
 
         try {
             $formData   = $request->all();
-            $result     = $this->registrationService->register($formData);
+            $result     = $this->registrationService->register($formData, $statusResponse,  $orderId);
 
             return response()->json([
                 'success' => true,

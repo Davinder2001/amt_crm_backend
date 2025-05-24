@@ -4,17 +4,19 @@ namespace App\Services;
 
 use App\Models\Company;
 use App\Models\User;
-use App\Services\CompanyIdService;
-use App\Services\UserUidService;
+use App\Models\Payment;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Role;
+use App\Services\CompanyIdService;
+use App\Services\UserUidService;
 
 class AdminRegistrationService
 {
-    public function register(array $data)
+    public function register(array $data, $statusResponse, $orderId)
     {
         $slug = Str::slug($data['company_name']);
 
@@ -30,34 +32,12 @@ class AdminRegistrationService
             ]);
         }
 
-        return DB::transaction(function () use ($data, $slug) {
-
+        return DB::transaction(function () use ($data, $slug, $statusResponse, $orderId) {
             $companyId = CompanyIdService::generateNewCompanyId();
             $uid       = UserUidService::generateNewUid();
-
-            $frontPath = null;
-            if (!empty($data['business_proof_image_front'])) {
-                $file     = $data['business_proof_image_front'];
-                $name     = uniqid('proof_front_') . '.' . $file->getClientOriginalExtension();
-                $file->move(public_path('uploads/business_proofs'), $name);
-                $frontPath = 'uploads/business_proofs/' . $name;
-            }
-
-            $backPath = null;
-            if (!empty($data['business_proof_image_back'])) {
-                $file     = $data['business_proof_image_back'];
-                $name     = uniqid('proof_back_') . '.' . $file->getClientOriginalExtension();
-                $file->move(public_path('uploads/business_proofs'), $name);
-                $backPath = 'uploads/business_proofs/' . $name;
-            }
-
-            $logoPath = null;
-            if (!empty($data['company_logo'])) {
-                $file     = $data['company_logo'];
-                $name     = uniqid('company_logo_') . '.' . $file->getClientOriginalExtension();
-                $file->move(public_path('uploads/business_proofs'), $name);
-                $logoPath = 'uploads/business_proofs/' . $name;
-            }
+            $frontPath = $this->uploadFile($data['business_proof_image_front'] ?? null, 'proof_front');
+            $backPath  = $this->uploadFile($data['business_proof_image_back'] ?? null, 'proof_back');
+            $logoPath  = $this->uploadFile($data['company_logo'] ?? null, 'company_logo');
 
             $company = Company::create([
                 'company_id'            => $companyId,
@@ -65,7 +45,7 @@ class AdminRegistrationService
                 'company_logo'          => $logoPath,
                 'package_id'            => $data['packageId'],
                 'company_slug'          => $slug,
-                'payment_status'        => 'pending',
+                'payment_status'        => 'completed',
                 'verification_status'   => 'pending',
                 'business_address'      => $data['business_address'],
                 'pin_code'              => $data['pin_code'],
@@ -84,8 +64,33 @@ class AdminRegistrationService
                 'user_type'   => 'admin',
             ]);
 
+            $status            = strtoupper($statusResponse->json('state'));
+            $paymentCheck      = $statusResponse->json();
+            $paymentMode       = $paymentCheck['paymentDetails'][0]['paymentMode'] ?? null;
+            $transactionId     = $paymentCheck['order_id'] ;
+            $transactionAmount = ($paymentCheck['amount'] ?? 0) / 100;
+
+            if ($orderId && !Payment::where('order_id', $orderId)->exists()) {
+                $nowIST = Carbon::now('Asia/Kolkata');
+
+                Payment::create([
+                    'user_id'             => $user->id,
+                    'order_id'            => $orderId,
+                    'transaction_id'      => $transactionId,
+                    'payment_status'      => $status,
+                    'payment_method'      => $paymentMode,
+                    'payment_reason'      => 'Company registration for package ID ' . $data['packageId'],
+                    'payment_fail_reason' => null,
+                    'transaction_amount'  => $transactionAmount,
+                    'payment_date'        => $nowIST->format('d/m/Y'),
+                    'payment_time'        => $nowIST->format('h:i A'),
+                ]);
+            }
+
+            // Assign user to company
             $user->companies()->attach($company->id, ['user_type' => 'admin']);
 
+            // Assign role
             $role = Role::firstOrCreate([
                 'name'       => 'admin',
                 'guard_name' => 'web',
@@ -95,5 +100,15 @@ class AdminRegistrationService
 
             return ['user' => $user, 'company' => $company];
         });
+    }
+
+    private function uploadFile($file, $prefix)
+    {
+        if ($file) {
+            $name = uniqid($prefix . '_') . '.' . $file->getClientOriginalExtension();
+            $file->move(public_path('uploads/business_proofs'), $name);
+            return 'uploads/business_proofs/' . $name;
+        }
+        return null;
     }
 }

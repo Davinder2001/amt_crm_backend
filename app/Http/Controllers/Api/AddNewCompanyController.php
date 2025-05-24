@@ -135,7 +135,7 @@ class AddNewCompanyController extends Controller
             'business_address'      => 'nullable|string',
             'pin_code'              => 'nullable|string|max:10',
             'business_proof_type'   => 'nullable|string|max:255',
-            'business_id'           => 'nullable|string|max:255',
+            'business_id'           => 'required|string|max:255',
             'business_proof_front'  => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'business_proof_back'   => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
@@ -224,10 +224,6 @@ class AddNewCompanyController extends Controller
         }
 
 
-
-
-
-
         $slug = Str::slug($data['company_name']);
         if (Company::where('company_slug', $slug)->exists()) {
             throw ValidationException::withMessages([
@@ -264,7 +260,7 @@ class AddNewCompanyController extends Controller
             'company_id'            => $companyId,
             'company_name'          => $data['company_name'],
             'company_logo'          => $logoPath,
-            'package_id'            => $data['package_id'] ?? 1,
+            'package_id'            => $data['package_id'],
             'company_slug'          => $slug,
             'payment_status'        => 'completed',
             'order_id'              => $orderId,
@@ -274,7 +270,7 @@ class AddNewCompanyController extends Controller
             'business_address'      => $data['business_address'] ?? null,
             'pin_code'              => $data['pin_code'] ?? null,
             'business_proof_type'   => $data['business_proof_type'] ?? null,
-            'business_id'           => $data['business_id'] ?? null,
+            'business_id'           => $data['business_id'],
             'business_proof_front'  => $frontPath,
             'business_proof_back'   => $backPath,
             'subscription_date'     => $subscriptionDate,
@@ -303,5 +299,14 @@ class AddNewCompanyController extends Controller
             'message' => 'Company created successfully after successful payment.',
             'company' => $company,
         ], 201);
+    }
+
+
+    public function upgradePackage()
+    {
+        $user               = Auth::user();
+        $activeCompanyId    = SelectedCompanyService::getSelectedCompanyOrFail();
+
+        dd($activeCompanyId);
     }
 }
