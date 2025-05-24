@@ -299,7 +299,7 @@ class InvoicesController extends Controller
                 'total_amount'              => $subtotal,
                 'sub_total'                 => $total,
                 'service_charge_amount'     => $serviceChargeAmount,
-                'service_charge_percent'    => $serviceChargePercent,
+                'service_charge_percent'    => 18,
                 'service_charge_gst'        => $serviceChargeGstAmount,
                 'service_charge_final'      => $finalServiceCharge,
                 'discount_amount'           => $discountAmount ?? 0,
