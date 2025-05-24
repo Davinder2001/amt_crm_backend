@@ -27,7 +27,9 @@ class InvoicesController extends Controller
      */
     public function index()
     {
-        $invoices   = Invoice::with(['items', 'credit'])->where('company_id', SelectedCompanyService::getSelectedCompanyOrFail()->company->id)->latest()->get();
+        $invoices   = Invoice::with(['items', 'credit'])
+                    ->where('company_id', SelectedCompanyService::getSelectedCompanyOrFail()
+                    ->company->id)->latest()->get();
 
         return response()->json([
             'status'   => true,
@@ -134,7 +136,6 @@ class InvoicesController extends Controller
             'show_signature'   => true,
         ]);
 
-
         return $pdf->download('invoice_' . $invoice->invoice_number . '.pdf');
     }
 
@@ -190,10 +191,8 @@ class InvoicesController extends Controller
         $package                = Package::find($packageId);
         $packageType            = $package['package_type'];
         $allowedInvoiceCount    = $package['invoices_number'];
-
-        $now = now();
-
-        $invoiceQuery = Invoice::where('company_id', $selectedCompany->company_id);
+        $now                    = now();
+        $invoiceQuery           = Invoice::where('company_id', $selectedCompany->company_id);
 
         if ($packageType === 'monthly') {
             $invoiceQuery->whereYear('invoice_date', $now->year)

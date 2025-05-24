@@ -305,7 +305,7 @@ class AddNewCompanyController extends Controller
     }
 
 
-    public function upgradePackage()
+    public function upgradePackage($id)
     {
         $user               = Auth::user();
         $activeCompanyId    = SelectedCompanyService::getSelectedCompanyOrFail();
