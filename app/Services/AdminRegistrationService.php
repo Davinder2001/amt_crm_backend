@@ -44,6 +44,7 @@ class AdminRegistrationService
                 'company_name'          => $data['company_name'],
                 'company_logo'          => $logoPath,
                 'package_id'            => $data['packageId'],
+                'business_category'     => $data['business_category_id'],
                 'company_slug'          => $slug,
                 'payment_status'        => 'completed',
                 'verification_status'   => 'pending',

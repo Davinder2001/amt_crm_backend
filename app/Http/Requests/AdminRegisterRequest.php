@@ -22,6 +22,8 @@ class AdminRegisterRequest extends FormRequest
             'email'                        => 'required|email|max:255|unique:users,email',
             'password'                     => 'required|string|min:8|confirmed',
             'company_name'                 => 'required|string|max:255',
+            'packageId'                    => 'required|exists:packages,id',
+            'business_category_id'         => 'required|exists:business_categories,id',
             'business_address'             => 'nullable|string',
             'pin_code'                     => 'nullable|string|max:20',
             'business_proof_type'          => 'nullable|string|max:255',
@@ -29,7 +31,6 @@ class AdminRegisterRequest extends FormRequest
             'business_proof_image_front'   => 'nullable|mimes:jpg,jpeg,png,pdf|max:5120',
             'company_logo'                 => 'nullable|mimes:jpg,jpeg,png,pdf|max:5120',
             'business_proof_image_back'    => 'nullable|mimes:jpg,jpeg,png,pdf|max:5120',
-            'packageId'                    => 'nullable|exists:packages,id',
 
         ];
     }

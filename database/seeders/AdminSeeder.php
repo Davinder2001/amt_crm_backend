@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\Company;
 use App\Models\Role;
 use App\Models\Package;
+use App\Models\BusinessCategory;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -19,16 +20,19 @@ class AdminSeeder extends Seeder
                 'company_id'   => 'AMTCOM0000002',
                 'company_name' => 'Demo Admin Company One',
                 'company_slug' => 'demo-admin-company-one',
+                'package_name' => 'Basic',
             ],
             [
                 'company_id'   => 'AMTCOM0000003',
                 'company_name' => 'Demo Admin Company Two',
                 'company_slug' => 'demo-admin-company-two',
+                'package_name' => 'Standard',
             ],
             [
                 'company_id'   => 'AMTCOM0000004',
                 'company_name' => 'Demo Admin Company Three',
                 'company_slug' => 'demo-admin-company-three',
+                'package_name' => 'Premium',
             ],
         ];
 
@@ -56,16 +60,24 @@ class AdminSeeder extends Seeder
             ],
         ];
 
-        $defaultPackage = Package::where('name', 'Basic')->first();
-
         foreach ($companies as $index => $companyData) {
+            // Get the package by name
+            $package = Package::where('name', $companyData['package_name'])->first();
+
+            // Get the related business category from pivot OR use relation
+            $businessCategory = $package->businessCategories()->first(); // only works if many-to-many
+            // OR if using foreign key directly: $package->businessCategory
+
             $company = Company::firstOrCreate(
                 ['company_id' => $companyData['company_id']],
-                array_merge($companyData, [
-                    'package_id'           => $defaultPackage?->id, 
-                    'payment_status'       => 'completed',
-                    'verification_status'  => 'verified',
-                ])
+                [
+                    'company_name'          => $companyData['company_name'],
+                    'company_slug'          => $companyData['company_slug'],
+                    'package_id'            => $package?->id,
+                    'business_category'     => $businessCategory?->id,
+                    'payment_status'        => 'completed',
+                    'verification_status'   => 'verified',
+                ]
             );
 
             $role = Role::updateOrCreate(

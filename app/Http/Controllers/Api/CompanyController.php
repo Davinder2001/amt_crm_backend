@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Models\Package;
 use App\Models\Company;
 use App\Services\SelectedCompanyService;
 use App\Models\CompanyUser;
+use App\Models\BusinessCategory;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Resources\CompanyResource;
@@ -197,6 +199,21 @@ class CompanyController extends Controller
             'status'  => 'success',
             'message' => 'Verification status updated successfully.',
             'data'    => new CompanyResource($company),
+        ]);
+    }
+
+    public function companyDetails()
+    {
+        $selectedCompany    = SelectedCompanyService::getSelectedCompanyOrFail();
+        $company            = Company::findOrFail($selectedCompany->company_id);
+        $subscribedPackage  = Package::find($company->package_id);
+        $businessCategory   = BusinessCategory::find($company->business_category);
+        $relatedPackages    = $businessCategory ? $businessCategory->packages : [];
+
+        return response()->json([
+            'company'            => $company,
+            'subscribed_package' => $subscribedPackage,
+            'related_packages'   => $relatedPackages,
         ]);
     }
 }

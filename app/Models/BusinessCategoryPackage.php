@@ -12,4 +12,9 @@ class BusinessCategoryPackage extends Model
         'business_category_id',
         'package_id',
     ];
+
+    public function packages()
+    {
+        return $this->belongsToMany(Package::class, 'business_category_package', 'business_category_id', 'package_id');
+    }
 }

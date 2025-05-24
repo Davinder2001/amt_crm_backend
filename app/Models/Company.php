@@ -19,6 +19,7 @@ class Company extends Model
         'admin_id',
         'company_slug',
         'package_id',
+        'business_category',
         'order_id',
         'transation_id',
         'payment_recoad_status',
@@ -65,4 +66,9 @@ class Company extends Model
     {
         return $this->hasMany(Shift::class);
     }
+    public function package()
+    {
+        return $this->belongsTo(Package::class);
+    }
+    
 }

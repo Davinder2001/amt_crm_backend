@@ -28,6 +28,7 @@ class AddNewCompanyController extends Controller
         $validator = Validator::make($request->all(), [
             'company_name'          => 'required|string|max:255',
             'package_id'            => 'required|exists:packages,id',
+            'business_category_id'  => 'required|exists:business_categories,id',
             'company_logo'          => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'business_address'      => 'nullable|string',
             'pin_code'              => 'nullable|string|max:10',
@@ -76,7 +77,7 @@ class AddNewCompanyController extends Controller
         }
 
         $activeCompanyId = SelectedCompanyService::getSelectedCompanyOrFail();
-        $companySlug = $activeCompanyId->company->company_slug;
+        $companySlug     = $activeCompanyId->company->company_slug;
 
 
 
@@ -132,10 +133,11 @@ class AddNewCompanyController extends Controller
             'company_name'          => 'required|string|max:255',
             'company_logo'          => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'package_id'            => 'required|exists:packages,id',
+            'business_category_id'  => 'required|exists:business_categories,id',
             'business_address'      => 'nullable|string',
             'pin_code'              => 'nullable|string|max:10',
             'business_proof_type'   => 'nullable|string|max:255',
-            'business_id'           => 'required|string|max:255',
+            'business_id'           => 'nullable|string|max:255',
             'business_proof_front'  => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'business_proof_back'   => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
@@ -261,6 +263,7 @@ class AddNewCompanyController extends Controller
             'company_name'          => $data['company_name'],
             'company_logo'          => $logoPath,
             'package_id'            => $data['package_id'],
+            'business_category'     => $data['business_category_id'],
             'company_slug'          => $slug,
             'payment_status'        => 'completed',
             'order_id'              => $orderId,
@@ -270,7 +273,7 @@ class AddNewCompanyController extends Controller
             'business_address'      => $data['business_address'] ?? null,
             'pin_code'              => $data['pin_code'] ?? null,
             'business_proof_type'   => $data['business_proof_type'] ?? null,
-            'business_id'           => $data['business_id'],
+            'business_id'           => $data['business_id'] ?? null,
             'business_proof_front'  => $frontPath,
             'business_proof_back'   => $backPath,
             'subscription_date'     => $subscriptionDate,

@@ -4,11 +4,29 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\Package;
+use App\Models\BusinessCategory;
 
 class PackageSeeder extends Seeder
 {
     public function run()
     {
+        // Step 1: Create 3 business categories
+        $categories = [
+            ['name' => 'Retail', 'description' => 'Retail businesses'],
+            ['name' => 'Services', 'description' => 'Service providers'],
+            ['name' => 'Manufacturing', 'description' => 'Manufacturing units'],
+        ];
+
+        $categoryMap = [];
+
+        foreach ($categories as $cat) {
+            $category = BusinessCategory::updateOrCreate(
+                ['name' => $cat['name']],
+                ['description' => $cat['description']]
+            );
+            $categoryMap[$cat['name']] = $category;
+        }
+
         $packages = [
             [
                 'name' => 'Basic',
@@ -18,6 +36,7 @@ class PackageSeeder extends Seeder
                 'invoices_number' => 100,
                 'package_type' => 'monthly',
                 'price' => 499.00,
+                'category' => 'Retail',
             ],
             [
                 'name' => 'Standard',
@@ -27,6 +46,7 @@ class PackageSeeder extends Seeder
                 'invoices_number' => 300,
                 'package_type' => 'monthly',
                 'price' => 999.00,
+                'category' => 'Services',
             ],
             [
                 'name' => 'Premium',
@@ -36,11 +56,24 @@ class PackageSeeder extends Seeder
                 'invoices_number' => 1000,
                 'package_type' => 'monthly',
                 'price' => 1999.00,
+                'category' => 'Manufacturing',
             ],
         ];
 
-        foreach ($packages as $package) {
-            Package::updateOrCreate(['name' => $package['name']], $package);
+        foreach ($packages as $pkg) {
+            $package = Package::updateOrCreate(
+                ['name' => $pkg['name']],
+                [
+                    'employee_numbers'      => $pkg['employee_numbers'],
+                    'items_number'          => $pkg['items_number'],
+                    'daily_tasks_number'    => $pkg['daily_tasks_number'],
+                    'invoices_number'       => $pkg['invoices_number'],
+                    'package_type'          => $pkg['package_type'],
+                    'price'                 => $pkg['price'],
+                ]
+            );
+
+            $package->businessCategories()->sync([$categoryMap[$pkg['category']]->id]);
         }
     }
 }
