@@ -28,7 +28,7 @@ class AddNewCompanyController extends Controller
         $validator = Validator::make($request->all(), [
             'company_name'          => 'required|string|max:255',
             'package_id'            => 'required|exists:packages,id',
-            'business_category_id'  => 'nullable|exists:business_categories,id',
+            'business_category_id'  => 'required|exists:business_categories,id',
             'company_logo'          => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'business_address'      => 'nullable|string',
             'pin_code'              => 'nullable|string|max:10',
@@ -84,19 +84,19 @@ class AddNewCompanyController extends Controller
 
 
         $accessToken = $oauthResponse->json('access_token');
-       $host = request()->getHost(); // returns domain like 'localhost' or 'amt.sparkweb.co.in'
+        $host = request()->getHost(); // returns domain like 'localhost' or 'amt.sparkweb.co.in'
 
-if (str_contains($host, 'localhost')) {
-    $baseUrl = env('PHONEPE_CALLBACK_BASE_URL_COMPANY');
-    $callbackUrl = env('PHONEPE_CALLBACK_BASE_URL');
-} elseif (str_contains($host, 'amt.sparkweb.co.in')) {
-    $baseUrl = env('PHONEPE_CALLBACK_BASE_URL_COMPANY_PROD');
-    $callbackUrl = env('PHONEPE_CALLBACK_BASE_URL_PROD');
-} else {
-    // Optional fallback if needed
-    $baseUrl = env('PHONEPE_CALLBACK_BASE_URL_COMPANY_PROD');
-    $callbackUrl = env('PHONEPE_CALLBACK_BASE_URL_PROD');
-}
+        if (str_contains($host, 'localhost')) {
+            $baseUrl = env('PHONEPE_CALLBACK_BASE_URL_COMPANY');
+            $callbackUrl = env('PHONEPE_CALLBACK_BASE_URL');
+        } elseif (str_contains($host, 'amt.sparkweb.co.in')) {
+            $baseUrl = env('PHONEPE_CALLBACK_BASE_URL_COMPANY_PROD');
+            $callbackUrl = env('PHONEPE_CALLBACK_BASE_URL_PROD');
+        } else {
+            // Optional fallback if needed
+            $baseUrl = env('PHONEPE_CALLBACK_BASE_URL_COMPANY_PROD');
+            $callbackUrl = env('PHONEPE_CALLBACK_BASE_URL_PROD');
+        }
 
         $callbackUrl = "http://localhost:8000/api/v1/add-new-company/{$merchantOrderId}";
         $redirectUrl = "{$baseUrl}/$companySlug/confirm-company-payment/?orderId={$merchantOrderId}";
@@ -146,7 +146,7 @@ if (str_contains($host, 'localhost')) {
             'company_name'          => 'required|string|max:255',
             'company_logo'          => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'package_id'            => 'required|exists:packages,id',
-            'business_category_id'  => 'nullable|exists:business_categories,id',
+            'business_category_id'  => 'required|exists:business_categories,id',
             'business_address'      => 'nullable|string',
             'pin_code'              => 'nullable|string|max:10',
             'business_proof_type'   => 'nullable|string|max:255',
@@ -276,7 +276,7 @@ if (str_contains($host, 'localhost')) {
             'company_name'          => $data['company_name'],
             'company_logo'          => $logoPath,
             'package_id'            => $data['package_id'],
-            'business_category'     => $data['business_category_id'] ?? 1,
+            'business_category'     => $data['business_category_id'],
             'company_slug'          => $slug,
             'payment_status'        => 'completed',
             'order_id'              => $orderId,
@@ -318,11 +318,14 @@ if (str_contains($host, 'localhost')) {
     }
 
 
-    public function upgradePackage(Request $request, $id)
+    public function upgradePackage(Request $request)
     {
         // dd($id);
         $activeCompany      = SelectedCompanyService::getSelectedCompanyOrFail();
-        $packageId          = $activeCompany->company->package_id;  
-        dd($activeCompany->company->id);
+        $packageId          = $activeCompany->company->package_id;
+        $activeCompanyId    = $activeCompany->company->id;
+        $businessId         = $activeCompany->company->business_category;
+        $canSubscribe       = Package::where('business_category_id', $businessId)->exists();
+        dd($canSubscribe);
     }
 }
