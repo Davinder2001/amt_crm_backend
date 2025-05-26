@@ -87,14 +87,14 @@ class AddNewCompanyController extends Controller
         $host = request()->getHost(); // returns domain like 'localhost' or 'amt.sparkweb.co.in'
 
         if (str_contains($host, 'localhost')) {
-            $baseUrl = env('PHONEPE_CALLBACK_BASE_URL');
+            $baseUrl = env('PHONEPE_CALLBACK_BASE_URL_COMPANY');
             $callbackUrl = env('PHONEPE_CALLBACK_BASE_URL');
         } elseif (str_contains($host, 'amt.sparkweb.co.in')) {
-            $baseUrl = env('PHONEPE_CALLBACK_BASE_URL_PROD');
+            $baseUrl = env('PHONEPE_CALLBACK_BASE_URL_COMPANY_PROD');
             $callbackUrl = env('PHONEPE_CALLBACK_BASE_URL_PROD');
         } else {
             // Optional fallback if needed
-            $baseUrl = env('PHONEPE_CALLBACK_BASE_URL_PROD');
+            $baseUrl = env('PHONEPE_CALLBACK_BASE_URL_COMPANY_PROD');
             $callbackUrl = env('PHONEPE_CALLBACK_BASE_URL_PROD');
         }
 
@@ -272,7 +272,7 @@ class AddNewCompanyController extends Controller
 
         $subscriptionDate = now()->setTimezone('Asia/Kolkata')->toDateTimeString();
         $companyId  = CompanyIdService::generateNewCompanyId();
-
+        
         $company    = Company::create([
             'company_id'            => $companyId,
             'company_name'          => $data['company_name'],
