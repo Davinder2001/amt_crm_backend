@@ -84,7 +84,14 @@ class AddNewCompanyController extends Controller
 
 
         $accessToken = $oauthResponse->json('access_token');
-        $baseUrl     = env('PHONEPE_CALLBACK_BASE_URL_COMPANY');
+        if (app()->environment('production')) {
+            $baseUrl = env('PHONEPE_CALLBACK_BASE_URL_COMPANY_PROD');
+            $callbackUrl = env('PHONEPE_CALLBACK_BASE_URL_PROD');
+        } else {
+            $baseUrl = env('PHONEPE_CALLBACK_BASE_URL_COMPANY');
+            $callbackUrl = env('PHONEPE_CALLBACK_BASE_URL');
+        }
+
         $callbackUrl = "http://localhost:8000/api/v1/add-new-company/{$merchantOrderId}";
         $redirectUrl = "{$baseUrl}/$companySlug/confirm-company-payment/?orderId={$merchantOrderId}";
 
@@ -305,11 +312,11 @@ class AddNewCompanyController extends Controller
     }
 
 
-    public function upgradePackage($id)
+    public function upgradePackage(Request $request, $id)
     {
-        $user               = Auth::user();
-        $activeCompanyId    = SelectedCompanyService::getSelectedCompanyOrFail();
-
-        dd($activeCompanyId);
+        // dd($id);
+        $activeCompany      = SelectedCompanyService::getSelectedCompanyOrFail();
+        $packageId          = $activeCompany->company->package_id;
+        dd($activeCompany->company->id);
     }
 }
