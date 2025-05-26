@@ -105,7 +105,7 @@ class EmployeeController extends Controller
         $allowedEmployeeCount   = $package['employee_numbers'];
         $now                    = now();
         $employeeQuery          = User::whereHas('roles', fn($q) => $q->where('name', '!=', 'admin'))
-                                ->where('company_id', $selectedCompany->id);
+            ->where('company_id', $selectedCompany->id);
 
         if ($packageType === 'monthly') {
             $employeeQuery->whereYear('created_at', $now->year)->whereMonth('created_at', $now->month);
@@ -240,5 +240,31 @@ class EmployeeController extends Controller
         $employee->delete();
 
         return response()->json(['message' => 'Employee deleted successfully.']);
+    }
+
+    public function changeEmpStatus(Request $request, $id)
+    {
+        $validator = Validator::make($request->all(), [
+            'status' => 'required|in:active,inactive,blocked',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed.',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        $status = $request->input('status');
+
+        $employee = User::where('user_type', 'employee')->findOrFail($id);
+
+        $employee->user_status = $status;
+        $employee->save();
+
+        return response()->json([
+            'message' => 'Employee status updated successfully.',
+            'employee' => $employee,
+        ]);
     }
 }

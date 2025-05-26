@@ -201,6 +201,8 @@ Route::prefix('v1')->group(function () {
                 Route::get('downloadSlip/{id}', [SalaryController::class, 'downloadPdfSlip']);
             });
         });
+        
+        Route::post('change-emp-status/{id}', [EmployeeController::class, 'changeEmpStatus']);
 
 
         // Companies API's
