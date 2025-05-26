@@ -146,7 +146,7 @@ if (str_contains($host, 'localhost')) {
             'company_name'          => 'required|string|max:255',
             'company_logo'          => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'package_id'            => 'required|exists:packages,id',
-            'business_category_id'  => 'required|exists:business_categories,id',
+            'business_category_id'  => 'nullable|exists:business_categories,id',
             'business_address'      => 'nullable|string',
             'pin_code'              => 'nullable|string|max:10',
             'business_proof_type'   => 'nullable|string|max:255',
