@@ -68,7 +68,7 @@ class AdminRegistrationService
             $status            = strtoupper($statusResponse->json('state'));
             $paymentCheck      = $statusResponse->json();
             $paymentMode       = $paymentCheck['paymentDetails'][0]['paymentMode'] ?? null;
-            $transactionId     = $paymentCheck['order_id'] ;
+            $transactionId     = $paymentCheck['order_id'] ?? 1;
             $transactionAmount = ($paymentCheck['amount'] ?? 0) / 100;
 
             if ($orderId && !Payment::where('order_id', $orderId)->exists()) {
@@ -76,7 +76,7 @@ class AdminRegistrationService
 
                 Payment::create([
                     'user_id'             => $user->id,
-                    'order_id'            => $orderId,
+                    'order_id'            => $orderId ?? 1,
                     'transaction_id'      => $transactionId,
                     'payment_status'      => $status,
                     'payment_method'      => $paymentMode,
