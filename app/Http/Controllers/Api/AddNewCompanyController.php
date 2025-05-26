@@ -28,7 +28,7 @@ class AddNewCompanyController extends Controller
         $validator = Validator::make($request->all(), [
             'company_name'          => 'required|string|max:255',
             'package_id'            => 'required|exists:packages,id',
-            'business_category_id'  => 'required|exists:business_categories,id',
+            'business_category_id'  => 'nullable|exists:business_categories,id',
             'company_logo'          => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'business_address'      => 'nullable|string',
             'pin_code'              => 'nullable|string|max:10',
@@ -276,7 +276,7 @@ if (str_contains($host, 'localhost')) {
             'company_name'          => $data['company_name'],
             'company_logo'          => $logoPath,
             'package_id'            => $data['package_id'],
-            'business_category'     => $data['business_category_id'],
+            'business_category'     => $data['business_category_id'] ?? 1,
             'company_slug'          => $slug,
             'payment_status'        => 'completed',
             'order_id'              => $orderId,
