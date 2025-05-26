@@ -245,7 +245,19 @@ class AuthController extends Controller
         }
 
         $accessToken    = $oauthResponse->json('access_token');
-        $baseUrl        = env('PHONEPE_CALLBACK_BASE_URL');
+        $host = request()->getHost(); // returns domain like 'localhost' or 'amt.sparkweb.co.in'
+
+        if (str_contains($host, 'localhost')) {
+            $baseUrl = env('PHONEPE_CALLBACK_BASE_URL_COMPANY');
+            $callbackUrl = env('PHONEPE_CALLBACK_BASE_URL');
+        } elseif (str_contains($host, 'amt.sparkweb.co.in')) {
+            $baseUrl = env('PHONEPE_CALLBACK_BASE_URL_COMPANY_PROD');
+            $callbackUrl = env('PHONEPE_CALLBACK_BASE_URL_PROD');
+        } else {
+            // Optional fallback if needed
+            $baseUrl = env('PHONEPE_CALLBACK_BASE_URL_COMPANY_PROD');
+            $callbackUrl = env('PHONEPE_CALLBACK_BASE_URL_PROD');
+        }
         $callbackUrl    = "{$baseUrl}?orderId={$merchantOrderId}";
         $redirectUrl    = "{$baseUrl}?orderId={$merchantOrderId}";
 

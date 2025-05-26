@@ -269,8 +269,10 @@ class AddNewCompanyController extends Controller
             $file->move(public_path('uploads/business_proofs'), $name);
             $logoPath = 'uploads/business_proofs/' . $name;
         }
+
         $subscriptionDate = now()->setTimezone('Asia/Kolkata')->toDateTimeString();
         $companyId  = CompanyIdService::generateNewCompanyId();
+
         $company    = Company::create([
             'company_id'            => $companyId,
             'company_name'          => $data['company_name'],
