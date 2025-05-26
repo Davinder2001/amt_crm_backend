@@ -87,14 +87,14 @@ class AddNewCompanyController extends Controller
         $host = request()->getHost(); // returns domain like 'localhost' or 'amt.sparkweb.co.in'
 
         if (str_contains($host, 'localhost')) {
-            $baseUrl = env('PHONEPE_CALLBACK_BASE_URL_COMPANY');
+            $baseUrl = env('PHONEPE_CALLBACK_BASE_URL');
             $callbackUrl = env('PHONEPE_CALLBACK_BASE_URL');
         } elseif (str_contains($host, 'amt.sparkweb.co.in')) {
-            $baseUrl = env('PHONEPE_CALLBACK_BASE_URL_COMPANY_PROD');
+            $baseUrl = env('PHONEPE_CALLBACK_BASE_URL_PROD');
             $callbackUrl = env('PHONEPE_CALLBACK_BASE_URL_PROD');
         } else {
             // Optional fallback if needed
-            $baseUrl = env('PHONEPE_CALLBACK_BASE_URL_COMPANY_PROD');
+            $baseUrl = env('PHONEPE_CALLBACK_BASE_URL_PROD');
             $callbackUrl = env('PHONEPE_CALLBACK_BASE_URL_PROD');
         }
 
