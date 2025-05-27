@@ -17,6 +17,9 @@ use Illuminate\Support\Facades\Validator;
 use App\Services\SelectedCompanyService;
 use App\Http\Resources\ItemResource;
 use App\Http\Resources\CategoryTreeResource;
+use App\Models\TableMeta;
+use App\Models\TableManagement;
+use Illuminate\Support\Facades\Auth;
 
 
 
@@ -25,10 +28,64 @@ class ItemsController extends Controller
     /**
      * Display a listing of the resource.
      */
+    // public function index(): JsonResponse
+    // {
+    //     $items = Item::with(['variants.attributeValues.attribute', 'taxes', 'categories'])->get();
+    //     return response()->json(ItemResource::collection($items));
+    // }
+
+
     public function index(): JsonResponse
     {
-        $items = Item::with(['variants.attributeValues.attribute', 'taxes', 'categories'])->get();
-        return response()->json(ItemResource::collection($items));
+        $activeCompanyId = SelectedCompanyService::getSelectedCompanyOrFail()->company->id;
+        $userId = Auth::id();
+        $tableName = 'items';
+
+        $table = TableManagement::where('company_id', $activeCompanyId)
+            ->where('user_id', $userId)
+            ->where('table_name', $tableName)
+            ->first();
+
+        if (!$table) {
+            return response()->json(['message' => 'No column configuration found.'], 404);
+        }
+
+        // Step 1: Get selected column names
+        $columns = TableMeta::where('table_id', $table->id)
+            ->where('value', true)
+            ->pluck('col_name')
+            ->toArray();
+
+        // Step 2: Ensure 'id' is included for joins
+        if (!in_array('id', $columns)) {
+            array_unshift($columns, 'id');
+        }
+
+        // Step 3: Dynamically build relationships
+        $relations = [];
+
+        if (in_array('variants', $columns)) {
+            $relations[] = 'variants.attributeValues.attribute';
+            // Remove 'variants' from columns to avoid SQL error
+            $columns = array_filter($columns, fn($col) => $col !== 'variants');
+        }
+
+        if (in_array('taxes', $columns)) {
+            $relations[] = 'taxes';
+            $columns = array_filter($columns, fn($col) => $col !== 'taxes');
+        }
+
+        if (in_array('categories', $columns)) {
+            $relations[] = 'categories';
+            $columns = array_filter($columns, fn($col) => $col !== 'categories');
+        }
+
+        // Step 4: Get items with selected columns and relations
+        $items = Item::select($columns)
+            ->with($relations)
+            ->get();
+
+        return response()->json($items);
     }
 
 

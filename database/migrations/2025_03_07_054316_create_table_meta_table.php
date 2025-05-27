@@ -11,13 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('table_meta_fields', function (Blueprint $table) {
+        Schema::create('table_meta', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('managed_table_id');
-            $table->string('meta_key');
-            $table->boolean('meta_value')->default(false);
+            $table->unsignedBigInteger('table_id');
+            $table->string('col_name');
+            $table->boolean('value')->default(false);
             $table->timestamps();
-            $table->foreign('managed_table_id')->references('id')->on('managed_tables')->onDelete('cascade');
+
+            $table->foreign('table_id')->references('id')->on('table_management')->onDelete('cascade');
         });
     }
 
@@ -26,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('table_meta_fields');
+        Schema::dropIfExists('table_meta');
     }
 };

@@ -112,7 +112,7 @@ class AuthController extends Controller
                 "template" => [
                     "name" => "authentication",
                     "language" => [
-                        "code" => "en_US",
+                        "code"   => "en_US",
                         "policy" => "deterministic"
                     ],
                     "namespace" => $namespace,
@@ -121,13 +121,13 @@ class AuthController extends Controller
                             "to" => $number,
                             "components" => [
                                 "body_1" => [
-                                    "type" => "text",
+                                    "type"  => "text",
                                     "value" => $otp
                                 ],
                                 "button_1" => [
-                                    "subtype" => "url",
-                                    "type" => "text",
-                                    "value" => "COPY"
+                                    "subtype"   => "url",
+                                    "type"      => "text",
+                                    "value"     => "COPY"
                                 ]
                             ]
                         ]
@@ -245,7 +245,7 @@ class AuthController extends Controller
         }
 
         $accessToken    = $oauthResponse->json('access_token');
-         $host = request()->getHost(); // returns domain like 'localhost' or 'amt.sparkweb.co.in'
+        $host           = request()->getHost();
 
         if (str_contains($host, 'localhost')) {
             $baseUrl = env('PHONEPE_CALLBACK_BASE_URL');
@@ -254,7 +254,6 @@ class AuthController extends Controller
             $baseUrl = env('PHONEPE_CALLBACK_BASE_URL_PROD');
             $callbackUrl = env('PHONEPE_CALLBACK_BASE_URL_PROD');
         } else {
-            // Optional fallback if needed
             $baseUrl = env('PHONEPE_CALLBACK_BASE_URL_PROD');
             $callbackUrl = env('PHONEPE_CALLBACK_BASE_URL_PROD');
         }
@@ -517,9 +516,9 @@ class AuthController extends Controller
             $activeTokens->update(['expires_at' => now()]);
         }
 
-        $tokenResult = $user->createToken('auth_token');
-        $token = $tokenResult->plainTextToken;
-        $accessToken = $tokenResult->accessToken;
+        $tokenResult    = $user->createToken('auth_token');
+        $token          = $tokenResult->plainTextToken;
+        $accessToken    = $tokenResult->accessToken;
         $accessToken->expires_at = now()->addHours(24);
         $accessToken->save();
 
@@ -538,11 +537,7 @@ class AuthController extends Controller
     public function logout(Request $request): JsonResponse
     {
         $user = $request->user();
-
-        CompanyUser::query()
-            ->where('user_id', $user->id)
-            ->update(['status' => 0]);
-
+        CompanyUser::query()->where('user_id', $user->id)->update(['status' => 0]);
         $user->currentAccessToken()->delete();
 
         return response()->json(['message' => 'Logged out successfully.']);
@@ -564,7 +559,6 @@ class AuthController extends Controller
 
         $otp = rand(100000, 999999);
         Cache::put('otp_' . $request->email, $otp, now()->addMinutes(10));
-
         Mail::raw("Your password reset OTP is: $otp", function ($message) use ($request) {
             $message->to($request->email)->subject('Password Reset OTP');
         });

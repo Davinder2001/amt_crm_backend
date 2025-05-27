@@ -34,7 +34,7 @@ use App\Http\Controllers\Api\{
     PackageController,
     BusinessCategoryController,
     AddNewCompanyController,
-    CustomTableColumnController,
+    TableColumnController,
     PaymentAndBillingController
 };
 
@@ -414,16 +414,7 @@ Route::prefix('v1')->group(function () {
         Route::post('import-inline', [ItemsController::class, 'importInline']);
 
 
-
-        // Table management API's
-        Route::prefix('tables')->controller(CustomTableColumnController::class)->group(function () {
-            Route::post('/store', 'storeManagedTable');
-            Route::get('/list', 'listManagedTables');
-            Route::delete('/{id}', 'deleteManagedTable');
-            Route::post('/meta/store', 'storeMetaField');
-            Route::get('/meta/{managedTableId}', 'listMetaFields');
-            Route::delete('/meta/{id}', 'deleteMetaField');
-        });
+        Route::post('/table/store', [TableColumnController::class, 'store']);
 
         Route::get('billings', [PaymentAndBillingController::class, 'adminBilling']);
     });
