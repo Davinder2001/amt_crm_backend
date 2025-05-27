@@ -35,58 +35,59 @@ class ItemsController extends Controller
     // }
 
 
-  public function index(): JsonResponse
-{
-    $activeCompanyId = SelectedCompanyService::getSelectedCompanyOrFail()->company->id;
-    $userId = Auth::id();
-    $tableName = 'items';
+    public function index(): JsonResponse
+    {
+        $activeCompanyId = SelectedCompanyService::getSelectedCompanyOrFail()->company->id;
+        $userId = Auth::id();
+        $tableName = 'items';
 
-    $table = TableManagement::where('company_id', $activeCompanyId)
-        ->where('user_id', $userId)
-        ->where('table_name', $tableName)
-        ->first();
+        $table = TableManagement::where('company_id', $activeCompanyId)
+            ->where('user_id', $userId)
+            ->where('table_name', $tableName)
+            ->first();
 
-    if (!$table) {
-        return response()->json(['message' => 'No column configuration found.'], 404);
+        if (!$table) {
+            return response()->json(['message' => 'No column configuration found.'], 404);
+        }
+
+        // Step 1: Get selected column names
+        $columns = TableMeta::where('table_id', $table->id)
+            ->where('value', true)
+            ->pluck('col_name')
+            ->toArray();
+
+        // Step 2: Always include 'id' and 'name'
+        if (!in_array('id', $columns)) {
+            $columns[] = 'id';
+        }
+
+        if (!in_array('name', $columns)) {
+            $columns[] = 'name';
+        }
+
+        // Step 3: Build relationships
+        $relations = [];
+
+        if (in_array('variants', $columns)) {
+            $relations[] = 'variants.attributeValues.attribute';
+            $columns = array_filter($columns, fn($col) => $col !== 'variants');
+        }
+
+        if (in_array('taxes', $columns)) {
+            $relations[] = 'taxes';
+            $columns = array_filter($columns, fn($col) => $col !== 'taxes');
+        }
+
+        if (in_array('categories', $columns)) {
+            $relations[] = 'categories';
+            $columns = array_filter($columns, fn($col) => $col !== 'categories');
+        }
+
+        // Step 4: Query items
+        $items = Item::select($columns)->with($relations)->get();
+
+        return response()->json($items);
     }
-
-    // Get selected column names
-    $columns = TableMeta::where('table_id', $table->id)
-        ->where('value', true)
-        ->pluck('col_name')
-        ->toArray();
-
-    // Always include 'name'
-    if (!in_array('name', $columns)) {
-        $columns[] = 'name';
-    }
-
-    // Always include 'id' for edit/delete/view routing
-    if (!in_array('id', $columns)) {
-        array_unshift($columns, 'id');
-    }
-
-    $relations = [];
-
-    if (in_array('variants', $columns)) {
-        $relations[] = 'variants.attributeValues.attribute';
-        $columns = array_filter($columns, fn($col) => $col !== 'variants');
-    }
-
-    if (in_array('taxes', $columns)) {
-        $relations[] = 'taxes';
-        $columns = array_filter($columns, fn($col) => $col !== 'taxes');
-    }
-
-    if (in_array('categories', $columns)) {
-        $relations[] = 'categories';
-        $columns = array_filter($columns, fn($col) => $col !== 'categories');
-    }
-
-    $items = Item::select($columns)->with($relations)->get();
-
-    return response()->json($items);
-}
 
 
 
