@@ -35,39 +35,40 @@ class ItemsController extends Controller
     // }
 
 
-    public function index(): JsonResponse
-    {
-        $activeCompanyId = SelectedCompanyService::getSelectedCompanyOrFail()->company->id;
-        $userId = Auth::id();
-        $tableName = 'items';
+  public function index(): JsonResponse
+{
+    $activeCompanyId = SelectedCompanyService::getSelectedCompanyOrFail()->company->id;
+    $userId = Auth::id();
+    $tableName = 'items';
 
-        $table = TableManagement::where('company_id', $activeCompanyId)
-            ->where('user_id', $userId)
-            ->where('table_name', $tableName)
-            ->first();
+    $table = TableManagement::where('company_id', $activeCompanyId)
+        ->where('user_id', $userId)
+        ->where('table_name', $tableName)
+        ->first();
 
-        if (!$table) {
-            return response()->json(['message' => 'No column configuration found.'], 404);
-        }
+    // Default fallback columns
+    $defaultColumns = ['id', 'name'];
+    $columns = $defaultColumns;
+    $relations = [];
 
-        // Step 1: Get selected column names
-        $columns = TableMeta::where('table_id', $table->id)
+    if ($table) {
+        $metaColumns = TableMeta::where('table_id', $table->id)
             ->where('value', true)
             ->pluck('col_name')
             ->toArray();
 
-        // Step 2: Always include 'id' and 'name'
-        if (!in_array('id', $columns)) {
-            $columns[] = 'id';
+        // Always include 'id' and 'name'
+        if (!in_array('id', $metaColumns)) {
+            $metaColumns[] = 'id';
         }
 
-        if (!in_array('name', $columns)) {
-            $columns[] = 'name';
+        if (!in_array('name', $metaColumns)) {
+            $metaColumns[] = 'name';
         }
 
-        // Step 3: Build relationships
-        $relations = [];
+        $columns = $metaColumns;
 
+        // Setup relations only if they were selected
         if (in_array('variants', $columns)) {
             $relations[] = 'variants.attributeValues.attribute';
             $columns = array_filter($columns, fn($col) => $col !== 'variants');
@@ -82,12 +83,12 @@ class ItemsController extends Controller
             $relations[] = 'categories';
             $columns = array_filter($columns, fn($col) => $col !== 'categories');
         }
-
-        // Step 4: Query items
-        $items = Item::select($columns)->with($relations)->get();
-
-        return response()->json($items);
     }
+
+    $items = Item::select($columns)->with($relations)->get();
+
+    return response()->json($items);
+}
 
 
 
