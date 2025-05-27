@@ -35,60 +35,50 @@ class ItemsController extends Controller
     // }
 
 
-  public function index(): JsonResponse
-{
-    $activeCompanyId = SelectedCompanyService::getSelectedCompanyOrFail()->company->id;
-    $userId = Auth::id();
-    $tableName = 'items';
+    public function index(): JsonResponse
+    {
+        $activeCompanyId = SelectedCompanyService::getSelectedCompanyOrFail()->company->id;
+        $userId          = Auth::id();
+        $tableName       = 'items';
+        $table           = TableManagement::where('company_id', $activeCompanyId)->where('user_id', $userId)->where('table_name', $tableName)->first();
+        $defaultColumns  = ['id', 'name'];
+        $columns         = $defaultColumns;
+        $relations       = [];
 
-    $table = TableManagement::where('company_id', $activeCompanyId)
-        ->where('user_id', $userId)
-        ->where('table_name', $tableName)
-        ->first();
+        if ($table) {
 
-    // Default fallback columns
-    $defaultColumns = ['id', 'name'];
-    $columns = $defaultColumns;
-    $relations = [];
+            $metaColumns = TableMeta::where('table_id', $table->id)->where('value', true)->pluck('col_name')->toArray();
 
-    if ($table) {
-        $metaColumns = TableMeta::where('table_id', $table->id)
-            ->where('value', true)
-            ->pluck('col_name')
-            ->toArray();
+            if (!in_array('id', $metaColumns)) {
+                $metaColumns[] = 'id';
+            }
 
-        // Always include 'id' and 'name'
-        if (!in_array('id', $metaColumns)) {
-            $metaColumns[] = 'id';
+            if (!in_array('name', $metaColumns)) {
+                $metaColumns[] = 'name';
+            }
+
+            $columns = $metaColumns;
+
+            if (in_array('variants', $columns)) {
+                $relations[] = 'variants.attributeValues.attribute';
+                $columns     = array_filter($columns, fn($col) => $col !== 'variants');
+            }
+
+            if (in_array('taxes', $columns)) {
+                $relations[] = 'taxes';
+                $columns     = array_filter($columns, fn($col) => $col !== 'taxes');
+            }
+
+            if (in_array('categories', $columns)) {
+                $relations[] = 'categories';
+                $columns     = array_filter($columns, fn($col) => $col !== 'categories');
+            }
         }
 
-        if (!in_array('name', $metaColumns)) {
-            $metaColumns[] = 'name';
-        }
+        $items = Item::select($columns)->with($relations)->get();
 
-        $columns = $metaColumns;
-
-        // Setup relations only if they were selected
-        if (in_array('variants', $columns)) {
-            $relations[] = 'variants.attributeValues.attribute';
-            $columns = array_filter($columns, fn($col) => $col !== 'variants');
-        }
-
-        if (in_array('taxes', $columns)) {
-            $relations[] = 'taxes';
-            $columns = array_filter($columns, fn($col) => $col !== 'taxes');
-        }
-
-        if (in_array('categories', $columns)) {
-            $relations[] = 'categories';
-            $columns = array_filter($columns, fn($col) => $col !== 'categories');
-        }
+        return response()->json($items);
     }
-
-    $items = Item::select($columns)->with($relations)->get();
-
-    return response()->json($items);
-}
 
 
 

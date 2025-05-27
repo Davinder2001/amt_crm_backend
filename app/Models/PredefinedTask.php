@@ -22,9 +22,9 @@ class PredefinedTask extends Model
     ];
 
     protected $casts = [
-        'recurrence_days' => 'array',
+        'recurrence_days'       => 'array',
         'recurrence_start_date' => 'date',
-        'recurrence_end_date' => 'date',
+        'recurrence_end_date'   => 'date',
     ];
 
     /**

@@ -32,7 +32,7 @@ class TableColumnController extends Controller
         DB::beginTransaction();
 
         try {
-            
+
             $activeCompanyId    = SelectedCompanyService::getSelectedCompanyOrFail();
             $userId             = Auth::id();
 
@@ -61,16 +61,11 @@ class TableColumnController extends Controller
                     $trueCols[] = $colName;
                 } else {
 
-                    TableMeta::where('table_id', $table->id)
-                        ->where('col_name', $colName)
-                        ->delete();
+                    TableMeta::where('table_id', $table->id)->where('col_name', $colName)->delete();
                 }
             }
 
-            TableMeta::where('table_id', $table->id)
-                ->whereNotIn('col_name', $trueCols)
-                ->delete();
-
+            TableMeta::where('table_id', $table->id)->whereNotIn('col_name', $trueCols)->delete();
             DB::commit();
 
             return response()->json([

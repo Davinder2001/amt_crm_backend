@@ -76,10 +76,23 @@ class PredefinedTaskController extends Controller
         ], 201);
     }
 
-    public function show(PredefinedTask $predefinedTask)
+    public function show($id)
     {
-        return $predefinedTask;
+        $task = PredefinedTask::find($id);
+
+        if (!$task) {
+            return response()->json([
+                'message' => 'Task not found.'
+            ], 404);
+        }
+
+        return response()->json([
+            'message' => 'Recurring task fetched successfully.',
+            'task'    => $task
+        ]);
     }
+
+
 
     public function update(Request $request, PredefinedTask $predefinedTask)
     {
