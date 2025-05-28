@@ -30,11 +30,11 @@ use App\Http\Controllers\Api\{
     NotificationController,
     MessageController,
     QuotationController,
-    PhonePeController,
     PackageController,
     BusinessCategoryController,
     AddNewCompanyController,
     TableColumnController,
+    AdminAndCompanyRegisterController,
     PaymentAndBillingController
 };
 
@@ -46,6 +46,17 @@ Route::prefix('v1')->group(function () {
 
     // Guest API's
     Route::middleware(['api'])->group(function () {
+
+        Route::post('/send-admin-otp', [AdminAndCompanyRegisterController::class, 'sendOtp']);
+        Route::post('/register-admin', [AdminAndCompanyRegisterController::class, 'register']);
+
+
+
+
+
+
+
+
         Route::post('login', [AuthController::class, 'login']);
         Route::post('c-login', [AuthController::class, 'companyLogin']);
         Route::post('register', [AuthController::class, 'register']);
@@ -70,6 +81,17 @@ Route::prefix('v1')->group(function () {
 
     // Protected Routes
     Route::middleware(['auth:sanctum', 'setActiveCompany'])->group(function () {
+
+        // Add company new apis
+        Route::prefix('/add-company')->group(function () {
+            Route::post('/pay', [AdminAndCompanyRegisterController::class, 'addNewCompanyPay']);
+            Route::post('/{id}', [AdminAndCompanyRegisterController::class, 'createCompany']);
+        });
+
+
+
+
+
 
 
         //Super Admin Routes API's
@@ -201,7 +223,7 @@ Route::prefix('v1')->group(function () {
                 Route::get('downloadSlip/{id}', [SalaryController::class, 'downloadPdfSlip']);
             });
         });
-        
+
         Route::post('change-emp-status/{id}', [EmployeeController::class, 'changeEmpStatus']);
 
 
@@ -394,7 +416,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/pay', [AddNewCompanyController::class, 'paymentInitiate']);
             Route::post('/{id}', [AddNewCompanyController::class, 'store']);
         });
-        
+
         Route::post('upgrade-package', [AddNewCompanyController::class, 'upgradePackage']);
         Route::get('company-details', [CompanyController::class, 'companyDetails']);
 
@@ -415,6 +437,8 @@ Route::prefix('v1')->group(function () {
 
 
         Route::post('/table/store', [TableColumnController::class, 'store']);
+        Route::post('/table-listed/store', [TableColumnController::class, 'storeTable']);
+        Route::post('/table-column/store', [TableColumnController::class, 'storeColumn']);
 
         Route::get('billings', [PaymentAndBillingController::class, 'adminBilling']);
     });

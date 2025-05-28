@@ -68,7 +68,10 @@ class StoreVendorController extends Controller
     public function show($id): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $vendor = StoreVendor::find($id);
+
+        $vendor = StoreVendor::with(['items' => function ($query) use ($selectedCompany) {
+            $query->where('company_id', $selectedCompany->company_id);
+        }])->find($id);
 
         if (!$vendor) {
             return response()->json(['message' => 'Vendor not found.'], 404);
@@ -78,8 +81,31 @@ class StoreVendorController extends Controller
             return response()->json(['message' => 'Unauthorized.'], 403);
         }
 
-        return response()->json($vendor);
+        // Step 1: Group items by purchase_date
+        $groupedByDate = $vendor->items->groupBy(function ($item) {
+            return optional($item->purchase_date)->format('Y-m-d') ?? 'Unknown Date';
+        });
+
+        // Step 2: Within each date group, group by invoice_no
+        $nestedGrouped = $groupedByDate->map(function ($itemsByDate) {
+            return $itemsByDate->groupBy(function ($item) {
+                return $item->invoice_no ?? 'No Invoice';
+            });
+        });
+
+        return response()->json([
+            'vendor' => [
+                'id'      => $vendor->id,
+                'name'    => $vendor->vendor_name,
+                'number'  => $vendor->vendor_number,
+                'email'   => $vendor->vendor_email,
+                'address' => $vendor->vendor_address,
+                'items_by_date' => $nestedGrouped,
+            ],
+        ]);
     }
+
+
 
     /* /
      * Update the specified resource in storage.
@@ -125,16 +151,22 @@ class StoreVendorController extends Controller
         $vendor             = StoreVendor::find($id);
 
         if (!$vendor) {
-            return response()->json(['message' => 'Vendor not found.'], 404);
+            return response()->json([
+                'message' => 'Vendor not found.'
+            ], 404);
         }
 
         if ($vendor->company_id !== $selectedCompany->company_id) {
-            return response()->json(['message' => 'Unauthorized.'], 403);
+            return response()->json([
+                'message' => 'Unauthorized.'
+            ], 403);
         }
 
         $vendor->delete();
 
-        return response()->json(['message' => 'Vendor deleted successfully.']);
+        return response()->json([
+            'message' => 'Vendor deleted successfully.'
+        ]);
     }
 
     /**
@@ -144,7 +176,7 @@ class StoreVendorController extends Controller
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
         return response()->json([
-            'message' => 'Cpmpany retrive successfully.',
+            'message'           => 'Cpmpany retrive successfully.',
             'selected company'  => $selectedCompany,
         ], 201);
     }

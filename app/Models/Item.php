@@ -17,6 +17,7 @@ class Item extends Model
         'company_id',
         'name',
         'quantity_count',
+        'invoice_no',
         'measurement',
         'purchase_date',
         'date_of_manufacture',
@@ -24,6 +25,7 @@ class Item extends Model
         'brand_name',
         'replacement',
         'vendor_name',
+        'vendor_id',
         'availability_stock',
         'images',
         'cost_price',
@@ -50,7 +52,7 @@ class Item extends Model
      */
     public function categories()
     {
-        return $this->belongsToMany( Category::class, 'category_item', 'store_item_id', 'category_id');
+        return $this->belongsToMany(Category::class, 'category_item', 'store_item_id', 'category_id');
     }
 
     /**
@@ -74,6 +76,12 @@ class Item extends Model
      */
     public function taxes()
     {
-        return $this->belongsToMany( Tax::class, 'item_tax', 'store_item_id', 'tax_id')->withTimestamps();
+        return $this->belongsToMany(Tax::class, 'item_tax', 'store_item_id', 'tax_id')->withTimestamps();
+    }
+
+
+    public function vendor()
+    {
+        return $this->belongsTo(StoreVendor::class, 'vendor_id');
     }
 }

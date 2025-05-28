@@ -15,8 +15,11 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('company_id');
             $table->unsignedBigInteger('user_id');
+            $table->unsignedBigInteger('tables_listed_id');
             $table->string('table_name');
             $table->timestamps();
+
+            $table->foreign('tables_listed_id')->references('id')->on('tables_listed')->onDelete('cascade');
         });
     }
 

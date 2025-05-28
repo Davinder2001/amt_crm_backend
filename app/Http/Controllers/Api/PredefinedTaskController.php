@@ -15,8 +15,7 @@ class PredefinedTaskController extends Controller
 {
     public function index()
     {
-        $allTasks = PredefinedTask::all();
-        return $allTasks;
+        return PredefinedTask::all();
     }
 
     public function store(Request $request)
@@ -32,48 +31,23 @@ class PredefinedTaskController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation failed.',
-                'errors'  => $validator->errors(),
-            ], 422);
+            return response()->json(['message' => 'Validation failed.', 'errors' => $validator->errors()], 422);
         }
 
-        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $authUser        = $request->user();
-        $data            = $validator->validated();
-        $assignedUser    = User::findOrFail($data['assigned_to']);
-        $assignedRole    = $assignedUser->getRoleNames()->first();
+        $data           = $validator->validated();
+        $authUser       = $request->user();
+        $company        = SelectedCompanyService::getSelectedCompanyOrFail();
+        $assignedUser   = User::findOrFail($data['assigned_to']);
 
-        $recurrenceDays = null;
+        $data['assigned_by']    = $authUser->id;
+        $data['company_id']     = $company->company_id;
+        $data['assigned_role']  = $assignedUser->getRoleNames()->first();
+        $data['recurrence_days'] = $this->calculateRecurrenceDays($data['recurrence_start_date'], $data['recurrence_end_date']);
+        $data['notify']         = $data['notify'] ?? false;
 
-        if (!empty($data['recurrence_start_date']) && !empty($data['recurrence_end_date'])) {
-            $start  = Carbon::parse($data['recurrence_start_date']);
-            $end    = Carbon::parse($data['recurrence_end_date']);
-            $period = CarbonPeriod::create($start, $end);
+        $task = PredefinedTask::create($data);
 
-            $recurrenceDays = collect($period)->map(function ($date) {
-                return $date->format('l');
-            })->unique()->values()->toArray();
-        }
-
-        $task = PredefinedTask::create([
-            'name'                  => $data['name'],
-            'description'           => $data['description'] ?? null,
-            'assigned_by'           => $authUser->id,
-            'assigned_to'           => $data['assigned_to'],
-            'company_id'            => $selectedCompany->company_id,
-            'assigned_role'         => $assignedRole,
-            'recurrence_type'       => $data['recurrence_type'],
-            'recurrence_days'       => $recurrenceDays,
-            'recurrence_start_date' => $data['recurrence_start_date'],
-            'recurrence_end_date'   => $data['recurrence_end_date'] ?? null,
-            'notify'                => $data['notify'] ?? false,
-        ]);
-
-        return response()->json([
-            'message' => 'Recurring task template created.',
-            'task'    => $task,
-        ], 201);
+        return response()->json(['message' => 'Recurring task template created.', 'task' => $task], 201);
     }
 
     public function show($id)
@@ -81,18 +55,11 @@ class PredefinedTaskController extends Controller
         $task = PredefinedTask::find($id);
 
         if (!$task) {
-            return response()->json([
-                'message' => 'Task not found.'
-            ], 404);
+            return response()->json(['message' => 'Task not found.'], 404);
         }
 
-        return response()->json([
-            'message' => 'Recurring task fetched successfully.',
-            'task'    => $task
-        ]);
+        return response()->json(['message' => 'Recurring task fetched successfully.', 'task' => $task]);
     }
-
-
 
     public function update(Request $request, PredefinedTask $predefinedTask)
     {
@@ -110,10 +77,7 @@ class PredefinedTaskController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation failed.',
-                'errors'  => $validator->errors(),
-            ], 422);
+            return response()->json(['message' => 'Validation failed.', 'errors' => $validator->errors()], 422);
         }
 
         $data = $validator->validated();
@@ -124,26 +88,29 @@ class PredefinedTaskController extends Controller
         }
 
         if (!empty($data['recurrence_start_date']) && !empty($data['recurrence_end_date'])) {
-            $start = Carbon::parse($data['recurrence_start_date']);
-            $end   = Carbon::parse($data['recurrence_end_date']);
-            $period = CarbonPeriod::create($start, $end);
-
-            $data['recurrence_days'] = collect($period)->map(function ($date) {
-                return $date->format('l');
-            })->unique()->values()->toArray();
+            $data['recurrence_days'] = $this->calculateRecurrenceDays($data['recurrence_start_date'], $data['recurrence_end_date']);
         }
 
-        $predefinedTask->update(array_merge($predefinedTask->toArray(), $data));
+        $predefinedTask->update($data);
 
-        return response()->json([
-            'message' => 'Recurring task updated.',
-            'task'    => $predefinedTask,
-        ]);
+        return response()->json(['message' => 'Recurring task updated.', 'task' => $predefinedTask]);
     }
 
     public function destroy(PredefinedTask $predefinedTask)
     {
         $predefinedTask->delete();
         return response()->json(['message' => 'Recurring task deleted.']);
+    }
+
+    /**
+     * Helper to calculate unique days between two dates.
+     */
+    private function calculateRecurrenceDays($startDate, $endDate)
+    {
+        if (!$startDate || !$endDate) return null;
+
+        $period = CarbonPeriod::create(Carbon::parse($startDate), Carbon::parse($endDate));
+
+        return collect($period)->map(fn ($date) => $date->format('l'))->unique()->values()->toArray();
     }
 }

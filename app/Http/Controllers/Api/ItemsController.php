@@ -412,12 +412,17 @@ class ItemsController extends Controller
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
 
         $validator = Validator::make($request->all(), [
-            'invoice_no'   => 'required|string|max:255',
-            'vendor_name'  => 'required|string|max:255',
-            'vendor_no'    => 'required|string|max:255',
-            'bill_photo'   => 'nullable',
-            'items'        => 'required|json',
-            'tax_id'       => 'nullable|integer|exists:taxes,id',
+            'invoice_no'            => 'required|string|max:255',
+            'vendor_name'           => 'required|string|max:255',
+            'vendor_no'             => 'required|string|max:255',
+            'vendor_email'          => 'nullable|string|email|max:255',
+            'vendor_address'        => 'nullable|string|max:255',
+            'bill_photo'            => 'nullable|file|image|max:2048',
+            'items'                 => 'required|string', // as JSON string
+            'tax_id'                => 'nullable|integer|exists:taxes,id',
+            'payment_method'        => 'nullable|string|max:255',
+            'credit_payment_type'   => 'nullable|string|max:255',
+            'partial_amount'        => 'nullable|integer|min:0',
         ]);
 
         if ($validator->fails()) {
@@ -427,19 +432,42 @@ class ItemsController extends Controller
             ], 422);
         }
 
-        $data   = $validator->validated();
+        $data = $validator->validated();
 
-        $vendor = StoreVendor::firstOrCreate(
-            [
-                'vendor_name' => $data['vendor_name'],
-                'company_id'  => $selectedCompany->company_id,
-            ],
+        // Decode items JSON
+        $items = json_decode($data['items'], true);
 
-            [
-                'vendor_no'   => $data['vendor_no'],
-            ]
-        );
+        if (!is_array($items)) {
+            return response()->json([
+                'message' => 'The items field must be a valid JSON array.',
+            ], 422);
+        }
 
+        // Vendor create or find
+        $vendor = StoreVendor::where('vendor_number', $data['vendor_no'])
+            ->where('company_id', $selectedCompany->company_id)
+            ->first();
+
+        if ($vendor) {
+            // Update the existing vendor's other details
+            $vendor->update([
+                'vendor_name'    => $data['vendor_name'],
+                'vendor_email'   => $data['vendor_email'] ?? null,
+                'vendor_address' => $data['vendor_address'] ?? null,
+            ]);
+        } else {
+            // Create a new vendor
+            $vendor = StoreVendor::create([
+                'vendor_name'    => $data['vendor_name'],
+                'vendor_number'  => $data['vendor_no'],
+                'vendor_email'   => $data['vendor_email'] ?? null,
+                'vendor_address' => $data['vendor_address'] ?? null,
+                'company_id'     => $selectedCompany->company_id,
+            ]);
+        }
+
+
+        // Handle bill photo
         $imagePath = null;
         if ($request->hasFile('bill_photo')) {
             $image      = $request->file('bill_photo');
@@ -448,9 +476,7 @@ class ItemsController extends Controller
             $imagePath  = 'uploads/bills/' . $filename;
         }
 
-        $items          = json_decode($data['items'], true);
-        $taxPercentage  = null;
-
+        $taxPercentage = null;
         if (!empty($data['tax_id'])) {
             $tax = Tax::find($data['tax_id']);
             if ($tax) {
@@ -458,37 +484,34 @@ class ItemsController extends Controller
             }
         }
 
-
         $itemCostsWithTax = array_map(function ($item) use ($taxPercentage) {
-            $price          = (float) $item['price'];
-            $costWithTax    = $price + ($price * $taxPercentage / 100);
-            return round($costWithTax, 2);
+            $price = (float) $item['price'];
+            return round($price + ($taxPercentage ? $price * $taxPercentage / 100 : 0), 2);
         }, $items);
-
 
         $uncategorizedCategory = Category::firstOrCreate([
             'company_id' => $selectedCompany->company_id,
             'name'       => 'Uncategorized',
         ]);
 
-
         foreach ($items as $index => $itemData) {
-
             $item = Item::create([
-                'company_id'         => $selectedCompany->company_id,
-                'item_code'          => Item::where('company_id', $selectedCompany->company_id)->max('item_code') + 1 ?? 1,
-                'name'               => $itemData['name'],
-                'quantity_count'     => $itemData['quantity'],
-                'cost_price'         => $itemCostsWithTax[$index],
-                'measurement'        => null,
-                'purchase_date'      => now(),
+                'company_id'          => $selectedCompany->company_id,
+                'item_code'           => Item::where('company_id', $selectedCompany->company_id)->max('item_code') + 1 ?? 1,
+                'name'                => $itemData['name'],
+                'quantity_count'      => $itemData['quantity'],
+                'invoice_no'          => $data['invoice_no'],
+                'cost_price'          => $itemCostsWithTax[$index],
+                'measurement'         => null,
+                'purchase_date'       => now(),
                 'date_of_manufacture' => now(),
-                'brand_name'         => $data['vendor_name'],
-                'replacement'        => null,
-                'category'           => null,
-                'vendor_name'        => $data['vendor_name'],
-                'availability_stock' => $itemData['quantity'],
-                'images'             => $imagePath ? json_encode([$imagePath]) : null,
+                'brand_name'          => $data['vendor_name'],
+                'replacement'         => null,
+                'category'            => null,
+                'vendor_name'         => $data['vendor_name'],
+                'vendor_id'           => $vendor->id ?? null,
+                'availability_stock'  => $itemData['quantity'],
+                'images'              => $imagePath ? json_encode([$imagePath]) : null,
             ]);
 
             DB::table('category_item')->insert([
@@ -512,6 +535,7 @@ class ItemsController extends Controller
             'count'   => count($items),
         ]);
     }
+
 
     /**
      * Get the item category tree.
@@ -541,6 +565,7 @@ class ItemsController extends Controller
                 'brand_name',
                 'replacement',
                 'vendor_name',
+                'vendor_id',
                 'availability_stock',
                 'cost_price',
                 'selling_price'
@@ -575,6 +600,7 @@ class ItemsController extends Controller
                 $item->brand_name,
                 $item->replacement,
                 $item->vendor_name,
+                $item->vendor_id ?? null,
                 $item->availability_stock,
                 $item->cost_price,
                 $item->selling_price,
@@ -635,9 +661,10 @@ class ItemsController extends Controller
                     'brand_name'            => $row[7],
                     'replacement'           => $row[8],
                     'vendor_name'           => $row[9],
-                    'availability_stock'    => $row[10],
-                    'cost_price'            => $row[11],
-                    'selling_price'         => $row[12],
+                    'vendor_id'             => $row[10] ?? null,
+                    'availability_stock'    => $row[11],
+                    'cost_price'            => $row[12],
+                    'selling_price'         => $row[13],
                     'company_id'            => $companyId,
                 ]);
             }

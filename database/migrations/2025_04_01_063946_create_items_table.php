@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('company_id')->constrained('companies')->onDelete('cascade');
             $table->string('item_code');
-            $table->string('name'); 
+            $table->string('name');
             $table->integer('quantity_count');
             $table->string('measurement')->nullable();
             $table->date('purchase_date')->nullable();
@@ -25,6 +25,12 @@ return new class extends Migration
             $table->string('replacement')->nullable();
             $table->string('category')->nullable();
             $table->string('vendor_name')->nullable();
+            $table->string('invoice_no')->nullable();
+
+            // Corrected vendor_id with foreign key
+            $table->unsignedBigInteger('vendor_id')->nullable();
+            $table->foreign('vendor_id')->references('id')->on('store_vendors')->onDelete('set null');
+
             $table->integer('availability_stock')->default(0);
             $table->json('images')->nullable();
             $table->boolean('catalog')->default(false);
@@ -35,6 +41,7 @@ return new class extends Migration
             $table->timestamps();
         });
     }
+
 
     /**
      * Reverse the migrations.

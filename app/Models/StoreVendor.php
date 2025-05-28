@@ -30,6 +30,11 @@ class StoreVendor extends Model
         return $this->belongsTo(Company::class);
     }
 
+    public function items()
+    {
+        return $this->hasMany(Item::class, 'vendor_id');
+    }
+
 
     protected static function booted()
     {
