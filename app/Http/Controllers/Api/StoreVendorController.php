@@ -69,9 +69,12 @@ class StoreVendorController extends Controller
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
 
-        $vendor = StoreVendor::with(['items' => function ($query) use ($selectedCompany) {
-            $query->where('company_id', $selectedCompany->company_id);
-        }])->find($id);
+        $vendor = StoreVendor::with([
+            'invoices.paymentHistories',
+            'items' => function ($query) use ($selectedCompany) {
+                $query->where('company_id', $selectedCompany->company_id);
+            }
+        ])->find($id);
 
         if (!$vendor) {
             return response()->json(['message' => 'Vendor not found.'], 404);
@@ -81,66 +84,94 @@ class StoreVendorController extends Controller
             return response()->json(['message' => 'Unauthorized.'], 403);
         }
 
-        // Step 1: Group items by purchase_date
+        // Group items by purchase_date, then invoice_id
         $groupedByDate = $vendor->items->groupBy(function ($item) {
             return optional($item->purchase_date)->format('Y-m-d') ?? 'Unknown Date';
         });
 
-        // Step 2: Within each date group, group by invoice_no
         $nestedGrouped = $groupedByDate->map(function ($itemsByDate) {
             return $itemsByDate->groupBy(function ($item) {
-                return $item->invoice_no ?? 'No Invoice';
+                return $item->vendor_invoice_id ?? 'No Invoice';
             });
         });
 
         return response()->json([
             'vendor' => [
-                'id'      => $vendor->id,
-                'name'    => $vendor->vendor_name,
-                'number'  => $vendor->vendor_number,
-                'email'   => $vendor->vendor_email,
-                'address' => $vendor->vendor_address,
+                'id'            => $vendor->id,
+                'name'          => $vendor->vendor_name,
+                'number'        => $vendor->vendor_number,
+                'email'         => $vendor->vendor_email,
+                'address'       => $vendor->vendor_address,
                 'items_by_date' => $nestedGrouped,
-            ],
+                'invoices'      => $vendor->invoices->map(function ($invoice) {
+                    return [
+                        'id'               => $invoice->id,
+                        'invoice_no'       => $invoice->invoice_no,
+                        'invoice_date'     => $invoice->invoice_date,
+                        'payment_history'  => $invoice->paymentHistories->map(function ($history) {
+                            return [
+                                'id'                  => $history->id,
+                                'payment_method'      => $history->payment_method,
+                                'credit_payment_type' => $history->credit_payment_type,
+                                'partial_amount'      => $history->partial_amount,
+                                'amount_paid'         => $history->amount_paid,
+                                'payment_date'        => $history->payment_date,
+                                'note'                => $history->note,
+                            ];
+                        }),
+                    ];
+                }),
+            ]
         ]);
     }
+
 
 
 
     /* /
      * Update the specified resource in storage.
      */
-    public function update(Request $request, $id): JsonResponse
-    {
-        $selectedCompany    = SelectedCompanyService::getSelectedCompanyOrFail();
-        $vendor             = StoreVendor::find($id);
+   public function update(Request $request, $id): JsonResponse
+{
+    $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+    $vendor = StoreVendor::find($id);
 
-        if (!$vendor) {
-            return response()->json(['message' => 'Vendor not found.'], 404);
-        }
-
-        if ($vendor->company_id !== $selectedCompany->company_id) {
-            return response()->json(['message' => 'Unauthorized.'], 403);
-        }
-
-        $validator = Validator::make($request->all(), [
-            'vendor_name' => 'sometimes|required|string|max:255',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation errors.',
-                'errors'  => $validator->errors(),
-            ], 422);
-        }
-
-        $vendor->update($validator->validated());
-
-        return response()->json([
-            'message' => 'Vendor updated successfully.',
-            'vendor'  => $vendor,
-        ]);
+    if (!$vendor) {
+        return response()->json(['message' => 'Vendor not found.'], 404);
     }
+
+    if ($vendor->company_id !== $selectedCompany->company_id) {
+        return response()->json(['message' => 'Unauthorized.'], 403);
+    }
+
+    $validator = Validator::make($request->all(), [
+        'vendor_name'      => 'required|string|max:255',
+        'vendor_number'    => 'required|string|max:255',
+        'vendor_email'     => 'nullable|string|max:255',
+        'vendor_address'   => 'nullable|string|max:255',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'message' => 'Validation errors.',
+            'errors'  => $validator->errors(),
+        ], 422);
+    }
+
+    $data = $validator->validated();
+
+    $vendor->update([
+        'vendor_name'    => $data['vendor_name'],
+        'vendor_number'  => $data['vendor_number'],
+        'vendor_email'   => $data['vendor_email'] ?? 'NA',
+        'vendor_address' => $data['vendor_address'] ?? 'NA',
+    ]);
+
+    return response()->json([
+        'message' => 'Vendor updated successfully.',
+        'vendor'  => $vendor,
+    ]);
+}
 
     /**
      * Remove the specified resource from storage.

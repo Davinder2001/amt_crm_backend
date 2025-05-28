@@ -8,6 +8,8 @@ use Illuminate\Http\JsonResponse;
 use App\Models\Tax;
 use App\Models\Package;
 use App\Models\ItemTax;
+use App\Models\VendorInvoice;
+use App\Models\VendorPaymentHistory;
 use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -418,7 +420,7 @@ class ItemsController extends Controller
             'vendor_email'          => 'nullable|string|email|max:255',
             'vendor_address'        => 'nullable|string|max:255',
             'bill_photo'            => 'nullable|file|image|max:2048',
-            'items'                 => 'required|string', // as JSON string
+            'items'                 => 'required|string',
             'tax_id'                => 'nullable|integer|exists:taxes,id',
             'payment_method'        => 'nullable|string|max:255',
             'credit_payment_type'   => 'nullable|string|max:255',
@@ -432,10 +434,8 @@ class ItemsController extends Controller
             ], 422);
         }
 
-        $data = $validator->validated();
-
-        // Decode items JSON
-        $items = json_decode($data['items'], true);
+        $data   = $validator->validated();
+        $items  = json_decode($data['items'], true);
 
         if (!is_array($items)) {
             return response()->json([
@@ -443,46 +443,43 @@ class ItemsController extends Controller
             ], 422);
         }
 
-        // Vendor create or find
-        $vendor = StoreVendor::where('vendor_number', $data['vendor_no'])
-            ->where('company_id', $selectedCompany->company_id)
-            ->first();
-
-        if ($vendor) {
-            // Update the existing vendor's other details
-            $vendor->update([
+        $vendor = StoreVendor::firstOrCreate(
+            [
+                'vendor_number' => $data['vendor_no'],
+                'company_id'    => $selectedCompany->company_id,
+            ],
+            [
                 'vendor_name'    => $data['vendor_name'],
                 'vendor_email'   => $data['vendor_email'] ?? null,
                 'vendor_address' => $data['vendor_address'] ?? null,
-            ]);
-        } else {
-            // Create a new vendor
-            $vendor = StoreVendor::create([
-                'vendor_name'    => $data['vendor_name'],
-                'vendor_number'  => $data['vendor_no'],
-                'vendor_email'   => $data['vendor_email'] ?? null,
-                'vendor_address' => $data['vendor_address'] ?? null,
-                'company_id'     => $selectedCompany->company_id,
-            ]);
-        }
+            ]
+        );
 
+        $invoice = VendorInvoice::create([
+            'vendor_id'   => $vendor->id,
+            'invoice_no'  => $data['invoice_no'],
+            'invoice_date'=> now(),
+        ]);
 
-        // Handle bill photo
+        VendorPaymentHistory::create([
+            'vendor_invoice_id'     => $invoice->id,
+            'payment_method'        => $data['payment_method'] ?? null,
+            'credit_payment_type'   => $data['credit_payment_type'] ?? null,
+            'partial_amount'        => $data['partial_amount'] ?? null,
+            'amount_paid'           => $data['partial_amount'] ?? 0,
+            'payment_date'          => now(),
+            'note'                  => $data['credit_payment_type'] === 'partial' ? 'Partial payment' : 'Full payment',
+        ]);
+
         $imagePath = null;
         if ($request->hasFile('bill_photo')) {
-            $image      = $request->file('bill_photo');
-            $filename   = uniqid('bill_') . '.' . $image->getClientOriginalExtension();
+            $image = $request->file('bill_photo');
+            $filename = uniqid('bill_') . '.' . $image->getClientOriginalExtension();
             $image->move(public_path('uploads/bills'), $filename);
-            $imagePath  = 'uploads/bills/' . $filename;
+            $imagePath = 'uploads/bills/' . $filename;
         }
 
-        $taxPercentage = null;
-        if (!empty($data['tax_id'])) {
-            $tax = Tax::find($data['tax_id']);
-            if ($tax) {
-                $taxPercentage = $tax->rate;
-            }
-        }
+        $taxPercentage = optional(Tax::find($data['tax_id']))->rate;
 
         $itemCostsWithTax = array_map(function ($item) use ($taxPercentage) {
             $price = (float) $item['price'];
@@ -500,7 +497,7 @@ class ItemsController extends Controller
                 'item_code'           => Item::where('company_id', $selectedCompany->company_id)->max('item_code') + 1 ?? 1,
                 'name'                => $itemData['name'],
                 'quantity_count'      => $itemData['quantity'],
-                'invoice_no'          => $data['invoice_no'],
+                'invoice_id'          => $invoice->id,
                 'cost_price'          => $itemCostsWithTax[$index],
                 'measurement'         => null,
                 'purchase_date'       => now(),
@@ -509,7 +506,7 @@ class ItemsController extends Controller
                 'replacement'         => null,
                 'category'            => null,
                 'vendor_name'         => $data['vendor_name'],
-                'vendor_id'           => $vendor->id ?? null,
+                'vendor_id'           => $vendor->id,
                 'availability_stock'  => $itemData['quantity'],
                 'images'              => $imagePath ? json_encode([$imagePath]) : null,
             ]);
@@ -530,9 +527,10 @@ class ItemsController extends Controller
         }
 
         return response()->json([
-            'message' => 'Bulk items stored successfully.',
-            'vendor'  => $vendor->vendor_name,
-            'count'   => count($items),
+            'message'    => 'Bulk items, invoice, and payment history stored successfully.',
+            'invoice_id' => $invoice->id,
+            'vendor'     => $vendor->vendor_name,
+            'count'      => count($items),
         ]);
     }
 

@@ -25,9 +25,11 @@ return new class extends Migration
             $table->string('replacement')->nullable();
             $table->string('category')->nullable();
             $table->string('vendor_name')->nullable();
-            $table->string('invoice_no')->nullable();
 
-            // Corrected vendor_id with foreign key
+            // Use invoice_id instead of invoice_no
+            $table->unsignedBigInteger('invoice_id')->nullable();
+            $table->foreign('invoice_id')->references('id')->on('vendor_invoices')->onDelete('set null');
+
             $table->unsignedBigInteger('vendor_id')->nullable();
             $table->foreign('vendor_id')->references('id')->on('store_vendors')->onDelete('set null');
 

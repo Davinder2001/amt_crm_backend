@@ -35,6 +35,11 @@ class StoreVendor extends Model
         return $this->hasMany(Item::class, 'vendor_id');
     }
 
+    public function invoices()
+    {
+        return $this->hasMany(VendorInvoice::class, 'vendor_id');
+    }
+
 
     protected static function booted()
     {
