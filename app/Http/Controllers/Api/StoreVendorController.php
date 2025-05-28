@@ -109,11 +109,11 @@ class StoreVendorController extends Controller
 
     /* /
      * Update the specified resource in storage.
-     */
+      */
     public function update(Request $request, $id): JsonResponse
     {
-        $selectedCompany    = SelectedCompanyService::getSelectedCompanyOrFail();
-        $vendor             = StoreVendor::find($id);
+        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+        $vendor = StoreVendor::find($id);
 
         if (!$vendor) {
             return response()->json(['message' => 'Vendor not found.'], 404);
@@ -124,7 +124,10 @@ class StoreVendorController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'vendor_name' => 'sometimes|required|string|max:255',
+            'vendor_name'      => 'required|string|max:255',
+            'vendor_number'    => 'required|string|max:255',
+            'vendor_email'     => 'nullable|string|max:255',
+            'vendor_address'   => 'nullable|string|max:255',
         ]);
 
         if ($validator->fails()) {
@@ -134,13 +137,21 @@ class StoreVendorController extends Controller
             ], 422);
         }
 
-        $vendor->update($validator->validated());
+        $data = $validator->validated();
+
+        $vendor->update([
+            'vendor_name'    => $data['vendor_name'],
+            'vendor_number'  => $data['vendor_number'],
+            'vendor_email'   => $data['vendor_email'] ?? 'NA',
+            'vendor_address' => $data['vendor_address'] ?? 'NA',
+        ]);
 
         return response()->json([
             'message' => 'Vendor updated successfully.',
             'vendor'  => $vendor,
         ]);
     }
+
 
     /**
      * Remove the specified resource from storage.
