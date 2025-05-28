@@ -39,6 +39,7 @@ return new class extends Migration
             $table->string('panNo')->nullable();
             $table->string('upiId')->nullable();
             $table->string('addressProof')->nullable();
+            $table->string('id_proof_type')->nullable();
             $table->string('profilePicture')->nullable();
             $table->timestamps();
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');

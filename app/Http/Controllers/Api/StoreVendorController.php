@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Models\Item;
 use App\Models\StoreVendor;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -190,5 +191,61 @@ class StoreVendorController extends Controller
             'message'           => 'Cpmpany retrive successfully.',
             'selected company'  => $selectedCompany,
         ], 201);
+    }
+
+    /**
+     * Get the credit there
+     */
+    public function vendorCredit($id)
+    {
+        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+        $vendor          = StoreVendor::with(['invoices.paymentHistories'])->find($id);
+
+        if (!$vendor) {
+            return response()->json(['message' => 'Vendor not found.'], 404);
+        }
+
+        if ($vendor->company_id !== $selectedCompany->company_id) {
+            return response()->json(['message' => 'Unauthorized.'], 403);
+        }
+
+        $creditData = [];
+
+        foreach ($vendor->invoices as $invoice) {
+            $items = Item::where('vendor_id', $vendor->id)
+                    ->where('vendor_invoice_id', $invoice->id)
+                    ->where('company_id', $selectedCompany->company_id)
+                    ->get();
+
+            $totalInvoiceAmount = $items->sum('cost_price');
+            $totalPaid          = $invoice->paymentHistories->sum('amount_paid');
+            $totalDue           = $totalInvoiceAmount - $totalPaid;
+
+            $creditData[] = [
+                'invoice_id'       => $invoice->id,
+                'invoice_no'       => $invoice->invoice_no,
+                'invoice_date'     => $invoice->invoice_date,
+                'total_amount'     => round($totalInvoiceAmount, 2),
+                'total_paid'       => round($totalPaid, 2),
+                'total_due'        => round($totalDue, 2),
+                'payment_history'  => $invoice->paymentHistories->map(function ($history) {
+                    return [
+                        'id'                 => $history->id,
+                        'payment_method'     => $history->payment_method,
+                        'credit_payment_type' => $history->credit_payment_type,
+                        'partial_amount'     => $history->partial_amount,
+                        'amount_paid'        => $history->amount_paid,
+                        'payment_date'       => $history->payment_date,
+                        'note'               => $history->note,
+                    ];
+                }),
+            ];
+        }
+
+        return response()->json([
+            'vendor_id'   => $vendor->id,
+            'vendor_name' => $vendor->vendor_name,
+            'credit_data' => $creditData,
+        ]);
     }
 }

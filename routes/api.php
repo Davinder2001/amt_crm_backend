@@ -287,6 +287,7 @@ Route::prefix('v1')->group(function () {
             Route::get('vendors', [StoreVendorController::class, 'index']);
             Route::post('vendors', [StoreVendorController::class, 'store']);
             Route::get('vendors/{id}', [StoreVendorController::class, 'show']);
+            Route::get('vendors/credit/{id}', [StoreVendorController::class, 'vendorCredit']);
             Route::put('vendors/{id}', [StoreVendorController::class, 'update']);
             Route::delete('vendors/{id}', [StoreVendorController::class, 'destroy']);
         });

@@ -36,6 +36,7 @@ class EmployeeDetail extends Model
         'panNo',
         'upiId',
         'addressProof',
+        'id_proof_type',
         'profilePicture',
     ];
 
