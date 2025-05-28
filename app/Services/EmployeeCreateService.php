@@ -87,7 +87,6 @@ class EmployeeCreateService
             'panNo'                     => $data['panNo'] ?? null,
             'upiId'                     => $data['upiId'] ?? null,
             'addressProof'              => $data['addressProof'] ?? null,
-            'id_proof_type'              => $data['id_proof_type'] ?? null,
             'profilePicture'            => $data['profilePicture'] ?? null,
 
             
