@@ -199,7 +199,6 @@ class EmployeeController extends Controller
                 'panNo'                     => 'sometimes|string|size:10',
                 'upiId'                     => 'sometimes|string|min:8|max:50',
                 'addressProof'              => 'sometimes|string|min:5|max:50',
-                'id_proof_type'              => 'sometimes|string|min:5|max:50',
                 'profilePicture'            => 'sometimes|string|max:255',
             ]);
 

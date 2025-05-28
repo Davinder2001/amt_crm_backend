@@ -71,7 +71,7 @@ class EmployeeCreateService
             'dob'                       => $data['dob'] ?? null,
             'religion'                  => $data['religion'] ?? null,
             'maritalStatus'             => $data['maritalStatus'] ?? null,
-            'id_proof_type'             => $data['id_proof_type'] ?? null,
+            'id_proof_type'             => $data['idProofType'] ?? null,
             'id_proof_value'            => $data['idProofValue'] ?? null,
             'emergencyContact'          => $data['emergencyContact'] ?? null,
             'emergencyContactRelation'  => $data['emergencyContactRelation'] ?? null,
