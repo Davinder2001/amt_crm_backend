@@ -23,6 +23,8 @@ class Invoice extends Model
         'service_charge_final',
         'discount_amount',
         'discount_percentage',
+        'delivery_address',
+        'delivery_pincode',
         'delivery_charge',
         'final_amount',
         'payment_method',

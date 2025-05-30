@@ -27,6 +27,8 @@ class CreateInvoicesTable extends Migration
 
             $table->decimal('discount_amount', 10, 2)->default(0);
             $table->decimal('discount_percentage', 5, 2)->default(0);
+            $table->string('delivery_address')->nullable();
+            $table->string('delivery_pincode')->nullable();
             $table->decimal('delivery_charge', 5, 2)->default(0);
             $table->decimal('final_amount', 10, 2);
 
