@@ -236,7 +236,7 @@ class AdminAndCompanyRegisterController extends Controller
         }
 
         $callbackUrl = "http://localhost:8000/api/v1/add-new-company/{$merchantOrderId}";
-        $redirectUrl = "http://localhost:3000/confirm-company-payment/?orderId={$merchantOrderId}";
+        $redirectUrl = "http://localhost:3000/confirm-payment/?orderId={$merchantOrderId}";
 
         $checkoutPayload = [
             "merchantOrderId" => $merchantOrderId,
