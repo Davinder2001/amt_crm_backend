@@ -65,14 +65,16 @@ class CustomerController extends Controller
             return response()->json(['message' => 'Customer not found'], 404);
         }
 
-        // Load customer histories with invoice details
+        // Load invoice history
         $history = CustomerHistory::where('customer_id', $customer->id)
             ->orderByDesc('purchase_date')
             ->get();
 
+        // Attach history to the customer object
+        $customer->invoices = $history;
+
         return response()->json([
-            'customer' => $customer,
-            'invoices' => $history
+            'customer' => $customer
         ]);
     }
 
