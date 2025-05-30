@@ -59,18 +59,13 @@ class CustomerController extends Controller
     public function show($id)
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $customer = Customer::where('company_id', $selectedCompany->id)->find($id);
+        $customer        = Customer::where('company_id', $selectedCompany->id)->find($id);
 
         if (!$customer) {
             return response()->json(['message' => 'Customer not found'], 404);
         }
 
-        // Load invoice history
-        $history = CustomerHistory::where('customer_id', $customer->id)
-            ->orderByDesc('purchase_date')
-            ->get();
-
-        // Attach history to the customer object
+        $history = CustomerHistory::where('customer_id', $customer->id)->orderByDesc('purchase_date')->get();
         $customer->invoices = $history;
 
         return response()->json([

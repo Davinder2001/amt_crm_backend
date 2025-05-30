@@ -275,11 +275,19 @@ class InvoicesController extends Controller
             if (isset($data['delivery_charge']) && is_numeric($data['delivery_charge'])) {
                 $finalAmount += $data['delivery_charge'];
             }
-
             $customer = Customer::firstOrCreate(
-                ['number'   => $data['number'], 'company_id' => $selectedCompany->company_id],
-                ['name'     => $data['client_name'], 'email' => $data['email'] ?? null]
+                [
+                    'number'     => $data['number'],
+                    'company_id' => $selectedCompany->company_id
+                ],
+                [
+                    'name'       => $data['client_name'],
+                    'email'      => $data['email'] ?? null,
+                    'address'    => $data['address'] ?? null,
+                    'pincode'    => $data['pincode'] ?? null,
+                ]
             );
+
 
 
             $companyCode =  $selectedCompany->company->company_id;
@@ -363,7 +371,7 @@ class InvoicesController extends Controller
                 'items'         => $historyItems,
                 'invoice_id'    => $inv->id,
                 'purchase_date' => $data['invoice_date'],
-                'details'       => 'Invoice #' . $inv->invoice_number,
+                'invoice_no'    => $inv->invoice_number,
                 'subtotal'      => $subtotal,
             ]);
 

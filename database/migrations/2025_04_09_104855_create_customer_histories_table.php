@@ -13,7 +13,7 @@ return new class extends Migration {
             $table->json('items'); 
             $table->unsignedBigInteger('invoice_id');
             $table->date('purchase_date');
-            $table->text('details')->nullable();
+            $table->string('invoice_no')->nullable();
             $table->decimal('subtotal', 10, 2); 
 
             $table->timestamps();

@@ -14,7 +14,7 @@ class CustomerHistory extends Model
         'items',
         'invoice_id',
         'purchase_date',
-        'details',
+        'invoice_no',
         'subtotal',
     ];
 
