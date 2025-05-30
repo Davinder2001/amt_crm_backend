@@ -31,9 +31,9 @@ class PackageController extends Controller
             'items_number'              => 'required|integer|min:0',
             'daily_tasks_number'        => 'required|integer|min:0',
             'invoices_number'           => 'required|integer|min:0',
-            'price'                     => 'required|numeric|min:0',
+            'monthly_price'             => 'required|numeric|min:0',
+            'annual_price'              => 'required|numeric|min:0',
             'business_category_ids'     => 'required|array',
-            'package_type'              => 'required|string|max:255',
             'business_category_ids.*'   => 'integer|exists:business_categories,id',
         ]);
 
@@ -52,8 +52,8 @@ class PackageController extends Controller
             'items_number'          => $data['items_number'],
             'daily_tasks_number'    => $data['daily_tasks_number'],
             'invoices_number'       => $data['invoices_number'],
-            'package_type'          => $data['package_type'],
-            'price'                 => $data['price'],
+            'monthly_price'         => $data['monthly_price'],
+            'annual_price'          => $data['annual_price'],
         ]);
 
         $package->businessCategories()->sync($data['business_category_ids']);
@@ -88,9 +88,9 @@ class PackageController extends Controller
             'items_number'              => 'sometimes|integer|min:0',
             'daily_tasks_number'        => 'sometimes|integer|min:0',
             'invoices_number'           => 'sometimes|integer|min:0',
-            'price'                     => 'sometimes|numeric|min:0',
+            'monthly_price'             => 'sometimes|numeric|min:0',
+            'annual_price'              => 'sometimes|numeric|min:0',
             'business_category_ids'     => 'sometimes|array',
-            'package_type'                      => 'sometimes|string|max:255',
             'business_category_ids.*'   => 'integer|exists:business_categories,id',
         ]);
 

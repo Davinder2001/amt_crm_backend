@@ -59,7 +59,8 @@ class AddNewCompanyController extends Controller
 
         $merchantOrderId    = 'ORDER_' . uniqid();
         $package            = Package::find($data['package_id']);
-        $amount             = 100 * $package->price;
+        // $amount             = 100 * $package->price;
+        $amount             = 10000;
 
         $oauthResponse = Http::asForm()->post(env('PHONEPE_OAUTH_URL'), [
             'client_id'      => env('PHONEPE_CLIENT_ID'),
@@ -76,8 +77,8 @@ class AddNewCompanyController extends Controller
             ], 500);
         }
 
-        $activeCompanyId = SelectedCompanyService::getSelectedCompanyOrFail();
-        $companySlug     = $activeCompanyId->company->company_slug;
+        // $activeCompanyId = SelectedCompanyService::getSelectedCompanyOrFail();
+        // $companySlug     = $activeCompanyId->company->company_slug;
 
 
 
@@ -99,7 +100,7 @@ class AddNewCompanyController extends Controller
         }
 
         $callbackUrl = "http://localhost:8000/api/v1/add-new-company/{$merchantOrderId}";
-        $redirectUrl = "{$baseUrl}/$companySlug/confirm-company-payment/?orderId={$merchantOrderId}";
+        $redirectUrl = "http://localhost:3000/confirm-company-payment/?orderId={$merchantOrderId}";
 
         $checkoutPayload = [
             "merchantOrderId" => $merchantOrderId,

@@ -26,11 +26,10 @@ class EmployeeCreateService
      */
     public function createEmployee(array $data)
     {
-        // dd($data);
         $existingUser = User::where('number', $data['number'])
-        ->whereIn('user_type', ['employee', 'admin'])
-        ->where('user_status', 'active')
-        ->first();
+                        ->whereIn('user_type', ['employee', 'admin'])
+                        ->where('user_status', 'active')
+                        ->first();
     
         if ($existingUser) {
             throw ValidationException::withMessages([
@@ -125,14 +124,13 @@ class EmployeeCreateService
             $employee->syncRoles($data['role']);
         }
 
-        $employeeDetail = EmployeeDetail::firstOrNew(['user_id' => $employee->id]);
-        $previousSalary = $employeeDetail->salary;
-
+        $employeeDetail               = EmployeeDetail::firstOrNew(['user_id' => $employee->id]);
+        $previousSalary               = $employeeDetail->salary;
         $employeeDetail->salary       = $data['salary'] ?? $employeeDetail->salary;
         $employeeDetail->dateOfHire   = $data['dateOfHire'] ?? $employeeDetail->dateOfHire;
         $employeeDetail->joiningDate  = $data['joiningDate'] ?? $employeeDetail->joiningDate;
         $employeeDetail->shiftTimings = $data['shiftTimings'] ?? $employeeDetail->shiftTimings;
-        $employeeDetail->address = $data['address'] ?? $employeeDetail->address;
+        $employeeDetail->address      = $data['address'] ?? $employeeDetail->address;
         $employeeDetail->save();
 
         if (isset($data['salary']) && $data['salary'] != $previousSalary) {
