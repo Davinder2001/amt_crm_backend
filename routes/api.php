@@ -49,7 +49,7 @@ Route::prefix('v1')->group(function () {
 
         Route::post('/send-admin-otp', [AdminAndCompanyRegisterController::class, 'sendOtp']);
         Route::post('/register-admin', [AdminAndCompanyRegisterController::class, 'register']);
-        Route::post('/create-company/{id}', [AdminAndCompanyRegisterController::class, 'createCompany']);
+        // Route::post('/create-company/{id}', [AdminAndCompanyRegisterController::class, 'createCompany']);
 
 
 

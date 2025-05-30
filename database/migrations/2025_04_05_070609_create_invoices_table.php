@@ -27,6 +27,7 @@ class CreateInvoicesTable extends Migration
 
             $table->decimal('discount_amount', 10, 2)->default(0);
             $table->decimal('discount_percentage', 5, 2)->default(0);
+            $table->decimal('delivery_charge', 5, 2)->default(0);
             $table->decimal('final_amount', 10, 2);
 
             $table->enum('payment_method', ['cash', 'online', 'card', 'credit'])->nullable();

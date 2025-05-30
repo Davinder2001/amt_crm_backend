@@ -28,8 +28,8 @@ class InvoicesController extends Controller
     public function index()
     {
         $invoices   = Invoice::with(['items', 'credit'])
-                    ->where('company_id', SelectedCompanyService::getSelectedCompanyOrFail()
-                    ->company->id)->latest()->get();
+            ->where('company_id', SelectedCompanyService::getSelectedCompanyOrFail()
+                ->company->id)->latest()->get();
 
         return response()->json([
             'status'   => true,
@@ -272,6 +272,10 @@ class InvoicesController extends Controller
                 $finalAmount        = round($subtotal);
             }
 
+            if (isset($data['delivery_charge']) && is_numeric($data['delivery_charge'])) {
+                $finalAmount += $data['delivery_charge'];
+            }
+
             $customer = Customer::firstOrCreate(
                 ['number'   => $data['number'], 'company_id' => $selectedCompany->company_id],
                 ['name'     => $data['client_name'], 'email' => $data['email'] ?? null]
@@ -303,6 +307,7 @@ class InvoicesController extends Controller
                 'service_charge_final'      => $finalServiceCharge,
                 'discount_amount'           => $discountAmount ?? 0,
                 'discount_percentage'       => $discountPercentage ?? 0,
+                'delivery_charge'            => $data['delivery_charge'] ?? 0,
                 'final_amount'              => $finalAmount,
                 'payment_method'            => $data['payment_method'],
                 'issued_by'                 => $issuedById,
