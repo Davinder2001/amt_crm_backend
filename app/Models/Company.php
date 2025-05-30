@@ -19,6 +19,7 @@ class Company extends Model
         'admin_id',
         'company_slug',
         'package_id',
+        'subscription_type',
         'business_category',
         'order_id',
         'transation_id',

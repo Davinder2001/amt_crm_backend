@@ -102,7 +102,7 @@ class PackageController extends Controller
         }
 
         $package = Package::findOrFail($id);
-        $data = $validator->validated();
+        $data    = $validator->validated();
         $package->update($data);
 
         if (isset($data['business_category_ids'])) {

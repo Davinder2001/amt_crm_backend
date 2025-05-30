@@ -148,6 +148,7 @@ class AddNewCompanyController extends Controller
             'company_logo'          => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'package_id'            => 'required|exists:packages,id',
             'business_category_id'  => 'required|exists:business_categories,id',
+            'subscription_type'     => 'required|string',
             'business_address'      => 'nullable|string',
             'pin_code'              => 'nullable|string|max:10',
             'business_proof_type'   => 'nullable|string|max:255',
@@ -210,8 +211,7 @@ class AddNewCompanyController extends Controller
         $transactionId      = $paymentCheck['orderId'];
         $userId             = Auth::id();
         $transactionAmount  = $paymentCheck['amount'] / 100;
-
-        $orderIdExists = Payment::where('order_id', $orderId)->exists();
+        $orderIdExists      = Payment::where('order_id', $orderId)->exists();
 
 
         if (!$orderIdExists) {
@@ -279,7 +279,8 @@ class AddNewCompanyController extends Controller
             'company_name'          => $data['company_name'],
             'company_logo'          => $logoPath,
             'package_id'            => $data['package_id'],
-            'business_category'     => $data['business_category_id'],
+            'subscription_type'     => $data['subscription_type'],
+            'business_category'     => $data[''],
             'company_slug'          => $slug,
             'payment_status'        => 'completed',
             'order_id'              => $orderId,

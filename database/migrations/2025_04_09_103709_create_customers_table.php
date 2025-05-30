@@ -13,8 +13,8 @@ return new class extends Migration {
             $table->string('name');
             $table->string('number');
             $table->string('email')->nullable();
-            $table->string('address')->nullable();     // ✅ Added
-            $table->string('pincode', 10)->nullable(); // ✅ Added
+            $table->string('address')->nullable();
+            $table->string('pincode', 10)->nullable();
             $table->timestamps();
 
             $table->foreign('company_id')->references('id')->on('companies')->onDelete('cascade');
