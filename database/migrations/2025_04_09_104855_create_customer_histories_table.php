@@ -11,12 +11,14 @@ return new class extends Migration {
             $table->id();
             $table->unsignedBigInteger('customer_id');
             $table->json('items'); 
+            $table->unsignedBigInteger('invoice_id');
             $table->date('purchase_date');
             $table->text('details')->nullable();
             $table->decimal('subtotal', 10, 2); 
 
             $table->timestamps();
 
+            $table->foreign('invoice_id')->references('id')->on('invoices')->onDelete('cascade');
             $table->foreign('customer_id')->references('id')->on('customers')->onDelete('cascade');
         });
     }

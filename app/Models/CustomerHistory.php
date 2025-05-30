@@ -12,6 +12,7 @@ class CustomerHistory extends Model
     protected $fillable = [
         'customer_id',
         'items',
+        'invoice_id',
         'purchase_date',
         'details',
         'subtotal',
@@ -28,5 +29,10 @@ class CustomerHistory extends Model
     public function customer()
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function invoice()
+    {
+        return $this->belongsTo(Invoice::class, 'details', 'invoice_number');
     }
 }

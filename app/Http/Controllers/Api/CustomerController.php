@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Models\CustomerHistory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Services\SelectedCompanyService;
@@ -31,7 +32,7 @@ class CustomerController extends Controller
 
         $validator = Validator::make($request->all(), [
             'name'  => 'required|string|max:255',
-            'number'=> 'required|string|max:255',
+            'number' => 'required|string|max:255',
             'email' => 'nullable|email|max:255',
         ]);
 
@@ -57,15 +58,24 @@ class CustomerController extends Controller
      */
     public function show($id)
     {
-        $selectedCompany    = SelectedCompanyService::getSelectedCompanyOrFail();
-        $customer           = Customer::where('company_id', $selectedCompany->id)->find($id);
+        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+        $customer = Customer::where('company_id', $selectedCompany->id)->find($id);
 
         if (!$customer) {
             return response()->json(['message' => 'Customer not found'], 404);
         }
 
-        return response()->json(['customer' => $customer]);
+        // Load customer histories with invoice details
+        $history = CustomerHistory::where('customer_id', $customer->id)
+            ->orderByDesc('purchase_date')
+            ->get();
+
+        return response()->json([
+            'customer' => $customer,
+            'invoices' => $history
+        ]);
     }
+
 
     /**
      * Update the specified resource in storage.
@@ -81,7 +91,7 @@ class CustomerController extends Controller
 
         $validator = Validator::make($request->all(), [
             'name'  => 'sometimes|required|string|max:255',
-            'number'=> 'sometimes|required|string|max:255',
+            'number' => 'sometimes|required|string|max:255',
             'email' => 'nullable|email|max:255',
         ]);
 

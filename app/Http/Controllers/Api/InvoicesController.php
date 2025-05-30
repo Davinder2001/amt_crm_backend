@@ -361,6 +361,7 @@ class InvoicesController extends Controller
             CustomerHistory::create([
                 'customer_id'   => $customer->id,
                 'items'         => $historyItems,
+                'invoice_id'    => $inv->id,
                 'purchase_date' => $data['invoice_date'],
                 'details'       => 'Invoice #' . $inv->invoice_number,
                 'subtotal'      => $subtotal,
