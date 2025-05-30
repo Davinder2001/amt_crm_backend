@@ -275,6 +275,7 @@ class InvoicesController extends Controller
             if (isset($data['delivery_charge']) && is_numeric($data['delivery_charge'])) {
                 $finalAmount += $data['delivery_charge'];
             }
+
             $customer = Customer::firstOrCreate(
                 [
                     'number'     => $data['number'],
@@ -497,7 +498,7 @@ class InvoicesController extends Controller
                                 ],
                                 "body_2" => [
                                     "type"  => "text",
-                                    "value" => '₹' . number_format($invoice->total_amount, 2)
+                                    "value" => '₹' . number_format($invoice->final_amount, 2)
                                 ]
                             ]
                         ]
