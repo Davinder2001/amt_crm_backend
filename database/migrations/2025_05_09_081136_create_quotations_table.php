@@ -21,6 +21,7 @@ return new class extends Migration
             $table->decimal('tax_amount', 10, 2)->nullable();
             $table->decimal('service_charges', 10, 2)->nullable();
             $table->decimal('total', 10, 2);
+            $table->decimal('sub_total', 10, 2);
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('company_id')->constrained()->onDelete('cascade');
             $table->string('company_name');

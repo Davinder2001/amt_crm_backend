@@ -69,6 +69,7 @@ class QuotationController extends Controller
             'company_name'     => $company->company->company_name,
             'customer_name'    => $data['customer_name'],
             'customer_number'  => $data['customer_number'],
+            'sub_total'        => $subtotal,
             'customer_email'   => $data['customer_email'] ?? null,
             'items'            => $data['items'],
             'tax_percent'      => $taxPercent,

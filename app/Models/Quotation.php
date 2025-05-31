@@ -15,6 +15,7 @@ class Quotation extends Model
         'tax_percent',
         'tax_amount',
         'service_charges',
+        'sub_total',
         'total',
         'user_id',
         'company_id',

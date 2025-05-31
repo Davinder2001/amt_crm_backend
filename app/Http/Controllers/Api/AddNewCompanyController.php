@@ -272,9 +272,9 @@ class AddNewCompanyController extends Controller
         }
 
         $subscriptionDate = now()->setTimezone('Asia/Kolkata')->toDateTimeString();
-        $companyId  = CompanyIdService::generateNewCompanyId();
+        $companyId        = CompanyIdService::generateNewCompanyId();
         
-        $company    = Company::create([
+        $company = Company::create([
             'company_id'            => $companyId,
             'company_name'          => $data['company_name'],
             'company_logo'          => $logoPath,
