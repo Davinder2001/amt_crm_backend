@@ -409,6 +409,7 @@ Route::prefix('v1')->group(function () {
         // Qutation API's
         Route::prefix('quotations')->group(function () {
             Route::get('/', [QuotationController::class, 'index']);
+            Route::get('/{id}', [QuotationController::class, 'show']);
             Route::post('/', [QuotationController::class, 'store']);
             Route::get('/{id}/pdf', [QuotationController::class, 'generatePdf']);
         });

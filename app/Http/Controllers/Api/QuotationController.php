@@ -17,6 +17,20 @@ class QuotationController extends Controller
         return response()->json($quotations);
     }
 
+
+    public function show($id)
+    {
+        $quotation = Quotation::find($id);
+
+        if (!$quotation) {
+            return response()->json(['message' => 'Quotation not found.'], 404);
+        }
+
+        return response()->json($quotation);
+    }
+
+
+
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
