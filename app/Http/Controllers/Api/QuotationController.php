@@ -30,7 +30,6 @@ class QuotationController extends Controller
     }
 
 
-
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -63,6 +62,12 @@ class QuotationController extends Controller
         $serviceCharges = $data['service_charges'] ?? 0;
         $total          = $subtotal + $taxAmount + $serviceCharges;
 
+        // ROUND values to 2 decimal places
+        $subtotal       = round($subtotal, 2);
+        $taxAmount      = round($taxAmount, 2);
+        $serviceCharges = round($serviceCharges, 2);
+        $total          = round($total, 2);
+
         $quotation = Quotation::create([
             'user_id'          => $user->id,
             'company_id'       => $company->company->id,
@@ -83,6 +88,7 @@ class QuotationController extends Controller
             'quotation' => $quotation,
         ]);
     }
+
 
     public function generatePdf($id)
     {

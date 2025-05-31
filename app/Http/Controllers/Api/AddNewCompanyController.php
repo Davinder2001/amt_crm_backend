@@ -166,6 +166,7 @@ class AddNewCompanyController extends Controller
         }
 
         $data            = $validator->validated();
+        // dd($data);
         $recoadedPayment = Company::where('order_id', $orderId)->where('payment_recoad_status', 'recorded')->first();
 
         if ($recoadedPayment) {
@@ -280,7 +281,7 @@ class AddNewCompanyController extends Controller
             'company_logo'          => $logoPath,
             'package_id'            => $data['package_id'],
             'subscription_type'     => $data['subscription_type'],
-            'business_category'     => $data[''],
+            'business_category'     => $data['business_category_id'],
             'company_slug'          => $slug,
             'payment_status'        => 'completed',
             'order_id'              => $orderId,

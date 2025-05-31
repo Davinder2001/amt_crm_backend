@@ -70,36 +70,39 @@
         @endif
     </div>
 
-    <table>
-        <thead>
+  <table>
+    <thead>
+        <tr>
+            <th>Sr No</th> <!-- Added Sr No header -->
+            <th>Item</th>
+            <th>Qty</th>
+            <th>Price (₹)</th>
+            <th>Total (₹)</th>
+        </tr>
+    </thead>
+    <tbody>
+        @php $subtotal = 0; @endphp
+        @foreach ($quotation->items as $index => $item)
+            @php
+                $lineTotal = $item['quantity'] * $item['price'];
+                $subtotal += $lineTotal;
+            @endphp
             <tr>
-                <th>Item</th>
-                <th>Qty</th>
-                <th>Price (₹)</th>
-                <th>Total (₹)</th>
+                <td>{{ $index + 1 }}</td> <!-- Sr No using $index + 1 -->
+                <td>{{ $item['name'] }}</td>
+                <td>{{ $item['quantity'] }}</td>
+                <td>{{ number_format($item['price'], 2) }}</td>
+                <td>{{ number_format($lineTotal, 2) }}</td>
             </tr>
-        </thead>
-        <tbody>
-            @php $subtotal = 0; @endphp
-            @foreach ($quotation->items as $item)
-                @php
-                    $lineTotal = $item['quantity'] * $item['price'];
-                    $subtotal += $lineTotal;
-                @endphp
-                <tr>
-                    <td>{{ $item['name'] }}</td>
-                    <td>{{ $item['quantity'] }}</td>
-                    <td>{{ number_format($item['price'], 2) }}</td>
-                    <td>{{ number_format($lineTotal, 2) }}</td>
-                </tr>
-            @endforeach
-        </tbody>
-    </table>
+        @endforeach
+    </tbody>
+</table>
+
 
     <table class="totals">
         <tr>
             <td class="right" colspan="3"><strong>Subtotal:</strong></td>
-            <td class="right">₹{{ number_format($subtotal, 2) }}</td>
+            <td class="right">₹{{ number_format($quotation->sub_total, 2) }}</td>
         </tr>
         <tr>
             <td class="right" colspan="3"><strong>Tax ({{ $quotation->tax_percent }}%):</strong></td>

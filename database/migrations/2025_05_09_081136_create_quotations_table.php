@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('customer_number');
             $table->string('customer_email')->nullable();
             $table->json('items');
-            $table->decimal('tax_percent', 5, 2)->nullable();
+            $table->decimal('tax_percent', 10, 2)->nullable();
             $table->decimal('tax_amount', 10, 2)->nullable();
             $table->decimal('service_charges', 10, 2)->nullable();
             $table->decimal('total', 10, 2);
