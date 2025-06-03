@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 use App\Models\Item;
 use App\Models\Category;
 use App\Models\StoreVendor;
@@ -16,12 +15,30 @@ class ItemSeeder extends Seeder
             ['id' => 2, 'company_name' => 'Demo Admin Company One'],
             ['id' => 3, 'company_name' => 'Demo Admin Company Two'],
             ['id' => 4, 'company_name' => 'Demo Admin Company Three'],
-            ['id' => 5, 'company_name' => 'Demo Admin Company Three'],
-            ['id' => 6, 'company_name' => 'Demo Admin Company Three'],
+            ['id' => 5, 'company_name' => 'Demo Admin Company Four'],
+            ['id' => 6, 'company_name' => 'Demo Admin Company Five'],
+        ];
+
+        $baseCategories = [
+            'Electronics'     => ['Mobiles', 'Laptops', 'Cameras'],
+            'Clothing'        => ['Men', 'Women', 'Kids'],
+            'Home Appliances' => ['Refrigerators', 'Washing Machines', 'Microwaves'],
+        ];
+
+        $sampleProducts = [
+            'Mobiles'          => ['iPhone 13', 'Samsung Galaxy S21', 'Redmi Note 12'],
+            'Laptops'          => ['Dell XPS 13', 'MacBook Air', 'HP Pavilion'],
+            'Cameras'          => ['Canon EOS 90D', 'Nikon Z6', 'Sony Alpha A7'],
+            'Men'              => ['Men T-Shirt', 'Men Jeans', 'Men Jacket'],
+            'Women'            => ['Women Kurti', 'Women Jeans', 'Women Top'],
+            'Kids'             => ['Kids Shirt', 'Kids Shoes', 'Kids Toys'],
+            'Refrigerators'    => ['LG Double Door', 'Samsung Smart Fridge', 'Whirlpool Single Door'],
+            'Washing Machines' => ['IFB Front Load', 'Bosch Top Load', 'Samsung Washer'],
+            'Microwaves'       => ['IFB Microwave', 'LG Grill Microwave', 'Samsung Convection Oven'],
         ];
 
         foreach ($companies as $company) {
-            // 1. Create Vendors
+
             $vendorNames = [];
             for ($v = 1; $v <= 3; $v++) {
                 $vendor = StoreVendor::create([
@@ -31,56 +48,65 @@ class ItemSeeder extends Seeder
                 $vendorNames[] = $vendor->vendor_name;
             }
 
-            // 2. Create Categories & Nested Categories
-            $allCategories = collect();
-            for ($c = 1; $c <= 3; $c++) {
-                $parent = Category::create([
+            $categoryMap = [];
+            foreach ($baseCategories as $parent => $subs) {
+                $parentCat = Category::create([
                     'company_id' => $company['id'],
-                    'name'       => "Category {$c} for {$company['company_name']}",
+                    'name'       => $parent,
                     'parent_id'  => null,
                 ]);
-                $allCategories->push($parent);
-
-                // two children for each parent
-                for ($n = 1; $n <= 2; $n++) {
-                    $child = Category::create([
+                foreach ($subs as $sub) {
+                    $childCat = Category::create([
                         'company_id' => $company['id'],
-                        'name'       => "Category {$c}.{$n} for {$company['company_name']}",
-                        'parent_id'  => $parent->id,
+                        'name'       => $sub,
+                        'parent_id'  => $parentCat->id,
                     ]);
-                    $allCategories->push($child);
+                    $categoryMap[$sub] = $childCat->id;
                 }
             }
 
-            // 3. Seed Items and attach to random categories
-            for ($i = 1; $i <= 10; $i++) {
-                $item = Item::create([
-                    'company_id'          => $company['id'],
-                    'item_code'           => $i,
-                    'name'                => "Item {$i} for {$company['company_name']}",
-                    'quantity_count'      => rand(50, 500),
-                    'measurement'         => 'kg',
-                    'purchase_date'       => now()->subDays(rand(1, 30)),
-                    'date_of_manufacture' => now()->subMonths(1),
-                    'date_of_expiry'      => now()->addMonths(6),
-                    'brand_name'          => 'Brand ' . chr(64 + $i),
-                    'replacement'         => 'Replace after 6 months',
-                    'vendor_name'         => $vendorNames[array_rand($vendorNames)],
-                    'availability_stock'  => rand(10, 100),
-                    'cost_price'          => rand(100, 500),
-                    'selling_price'       => rand(600, 900),
-                    'images'              => json_encode([]),
-                    'catalog'             => false,
-                    'online_visibility'   => true,
-                ]);
+            $itemIndex = 1;
+            foreach ($sampleProducts as $subCategory => $productNames) {
+                if (!isset($categoryMap[$subCategory])) {
+                    continue;
+                }
 
-                // attach 1–2 random categories
-                $randomCats = $allCategories
-                    ->random(rand(1, 2))
-                    ->pluck('id')
-                    ->toArray();
+                foreach ($productNames as $productName) {
+                    if ($itemIndex > 25) break;
 
-                $item->categories()->attach($randomCats);
+                    $item = Item::create([
+                        'company_id'          => $company['id'],
+                        'item_code'           => $itemIndex,
+                        'name'                => $productName,
+                        'quantity_count'      => rand(50, 200),
+                        'measurement'         => 'pcs',
+                        'purchase_date'       => now()->subDays(rand(1, 30)),
+                        'date_of_manufacture' => now()->subMonths(1),
+                        'date_of_expiry'      => now()->addMonths(12),
+                        'brand_name'          => 'Brand ' . chr(64 + rand(1, 26)),
+                        'replacement'         => 'Replace after 1 year',
+                        'vendor_name'         => $vendorNames[array_rand($vendorNames)],
+                        'availability_stock'  => rand(10, 100),
+                        'cost_price'          => rand(100, 800),
+                        'selling_price'       => rand(900, 1500),
+                        'images'              => json_encode([]),
+                        'catalog'             => false,
+                        'online_visibility'   => true,
+                    ]);
+
+                    $attachIds = [$categoryMap[$subCategory]];
+
+                    $otherCategories = array_diff_key($categoryMap, [$subCategory => true]);
+                    if (!empty($otherCategories) && rand(0, 1)) {
+                        $randomOtherKey = array_rand($otherCategories);
+                        $attachIds[] = $categoryMap[$randomOtherKey];
+                    }
+
+                    $item->categories()->attach($attachIds);
+                    $itemIndex++;
+                }
+
+                if ($itemIndex > 25) break;
             }
         }
     }
