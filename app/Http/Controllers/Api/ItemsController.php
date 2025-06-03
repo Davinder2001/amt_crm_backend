@@ -280,6 +280,8 @@ class ItemsController extends Controller
             'selling_price'             => 'nullable|numeric|min:0',
             'availability_stock'        => 'nullable|integer',
             'images.*'                  => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
+            'removed_images'            => 'nullable|array',
+            'removed_images.*'          => 'string',
             'variants'                  => 'nullable|array',
             'variants.*.price'          => 'required_with:variants|numeric|min:0',
             'variants.*.regular_price'  => 'nullable|numeric|min:0',
@@ -324,6 +326,29 @@ class ItemsController extends Controller
             }
         }
 
+        // Remove images from disk & from image array
+        if (!empty($data['removed_images'])) {
+            foreach ($data['removed_images'] as $removedUrl) {
+                // Strip domain from URL to get file path
+                $relativePath = str_replace(asset(''), '', $removedUrl);
+                $filePath = public_path($relativePath);
+
+                // Delete the file if it exists
+                if (file_exists($filePath)) {
+                    @unlink($filePath);
+                }
+
+                // Remove from imageLinks
+                $imageLinks = array_filter($imageLinks, function ($url) use ($removedUrl) {
+                    return $url !== $removedUrl;
+                });
+            }
+
+            // Re-index the array
+            $imageLinks = array_values($imageLinks);
+        }
+
+
         $data['images'] = $imageLinks;
 
         if (empty($item->item_code)) {
@@ -340,6 +365,7 @@ class ItemsController extends Controller
             $featured->move(public_path('uploads/items'), $filename);
             $data['featured_image'] = asset('uploads/items/' . $filename);
         }
+
 
 
         $item->update($data);
