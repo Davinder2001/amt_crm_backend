@@ -20,6 +20,7 @@ class Item extends Model
         'invoice_no',
         'measurement',
         'purchase_date',
+        'featured_image',
         'date_of_manufacture',
         'date_of_expiry',
         'brand_name',

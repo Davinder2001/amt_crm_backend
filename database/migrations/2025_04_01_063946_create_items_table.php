@@ -25,7 +25,8 @@ return new class extends Migration
             $table->string('replacement')->nullable();
             $table->string('category')->nullable();
             $table->string('vendor_name')->nullable();
-
+            $table->string('featured_image')->nullable();
+            
             // Use invoice_id instead of invoice_no
             $table->unsignedBigInteger('invoice_id')->nullable();
             $table->foreign('invoice_id')->references('id')->on('vendor_invoices')->onDelete('set null');

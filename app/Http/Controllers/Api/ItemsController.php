@@ -95,6 +95,7 @@ class ItemsController extends Controller
         $validator = Validator::make($request->all(), [
             'name'                      => 'required|string|max:255',
             'quantity_count'            => 'required|integer',
+            'featured_image'            => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
             'measurement'               => 'nullable|string',
             'purchase_date'             => 'nullable|date',
             'date_of_manufacture'       => 'required|date',
@@ -168,6 +169,17 @@ class ItemsController extends Controller
                 }
             }
             $data['images'] = $imageLinks;
+
+
+            $featuredImageLink = null;
+            if ($request->hasFile('featured_image')) {
+                $featured = $request->file('featured_image');
+                $filename = uniqid('featured_') . '.' . $featured->getClientOriginalExtension();
+                $featured->move(public_path('uploads/items'), $filename);
+                $featuredImageLink = asset('uploads/items/' . $filename);
+            }
+            $data['featured_image'] = $featuredImageLink;
+
             $item           = Item::create($data);
 
             if (!empty($data['variants'])) {
@@ -255,6 +267,7 @@ class ItemsController extends Controller
             'name'                      => 'nullable|string|max:255',
             'quantity_count'            => 'nullable|integer',
             'measurement'               => 'nullable|string',
+            'featured_image'            => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
             'purchase_date'             => 'nullable|date',
             'date_of_manufacture'       => 'nullable|date',
             'date_of_expiry'            => 'nullable|date',
@@ -319,6 +332,15 @@ class ItemsController extends Controller
                 ->value('max_code');
             $data['item_code'] = $lastItemCode ? $lastItemCode + 1 : 1;
         }
+
+        // Handle featured image update
+        if ($request->hasFile('featured_image')) {
+            $featured = $request->file('featured_image');
+            $filename = uniqid('featured_') . '.' . $featured->getClientOriginalExtension();
+            $featured->move(public_path('uploads/items'), $filename);
+            $data['featured_image'] = asset('uploads/items/' . $filename);
+        }
+
 
         $item->update($data);
         $item->variants()->delete();
@@ -458,7 +480,7 @@ class ItemsController extends Controller
         $invoice = VendorInvoice::create([
             'vendor_id'   => $vendor->id,
             'invoice_no'  => $data['invoice_no'],
-            'invoice_date'=> now(),
+            'invoice_date' => now(),
         ]);
 
         VendorPaymentHistory::create([

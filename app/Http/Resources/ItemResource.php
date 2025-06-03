@@ -104,6 +104,7 @@ class ItemResource extends JsonResource
             'date_of_expiry'      => optional($this->date_of_expiry)->format('Y-m-d'),
             'brand_name'          => $this->brand_name,
             'replacement'         => $this->replacement,
+            'featured_image'      => $this->featured_image,
 
             'categories' => $this->whenLoaded('categories', function () {
                 return $this->categories->map(fn($category) => [
