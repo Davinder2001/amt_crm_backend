@@ -23,7 +23,9 @@ class QuotationController extends Controller
         $quotation = Quotation::find($id);
 
         if (!$quotation) {
-            return response()->json(['message' => 'Quotation not found.'], 404);
+            return response()->json([
+                'message' => 'Quotation not found.'
+            ], 404);
         }
 
         return response()->json($quotation);
