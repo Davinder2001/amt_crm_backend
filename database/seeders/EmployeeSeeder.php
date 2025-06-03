@@ -18,6 +18,8 @@ class EmployeeSeeder extends Seeder
             'AMTCOM0000002',
             'AMTCOM0000003',
             'AMTCOM0000004',
+            'AMTCOM0000005',
+            'AMTCOM0000006',
         ];
 
         $employeeCounter = 1;
@@ -36,7 +38,8 @@ class EmployeeSeeder extends Seeder
             ]);
 
             for ($i = 1; $i <= 2; $i++) {
-                $employeeNumber = '800000000' . $employeeCounter;
+                // Generate exactly 10-digit mobile number starting with 8
+                $employeeNumber = '8' . str_pad((string)$employeeCounter, 9, '0', STR_PAD_LEFT);
 
                 $employee = User::create([
                     'name'      => "Employee $employeeCounter",

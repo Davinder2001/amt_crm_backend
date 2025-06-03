@@ -16,6 +16,8 @@ class ItemSeeder extends Seeder
             ['id' => 2, 'company_name' => 'Demo Admin Company One'],
             ['id' => 3, 'company_name' => 'Demo Admin Company Two'],
             ['id' => 4, 'company_name' => 'Demo Admin Company Three'],
+            ['id' => 5, 'company_name' => 'Demo Admin Company Three'],
+            ['id' => 6, 'company_name' => 'Demo Admin Company Three'],
         ];
 
         foreach ($companies as $company) {

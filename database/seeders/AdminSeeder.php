@@ -34,6 +34,18 @@ class AdminSeeder extends Seeder
                 'company_slug' => 'demo-admin-company-three',
                 'package_name' => 'Premium',
             ],
+            [
+                'company_id'   => 'AMTCOM0000005',
+                'company_name' => 'Demo Admin Company Four',
+                'company_slug' => 'demo-admin-company-four',
+                'package_name' => 'Basic',
+            ],
+            [
+                'company_id'   => 'AMTCOM0000006',
+                'company_name' => 'Demo Admin Company Five',
+                'company_slug' => 'demo-admin-company-five',
+                'package_name' => 'Standard',
+            ],
         ];
 
         $admins = [
@@ -58,15 +70,25 @@ class AdminSeeder extends Seeder
                 'uid'      => 'AMT0000000004',
                 'password' => Hash::make('password3'),
             ],
+            [
+                'name'     => 'Admin Four',
+                'email'    => 'admin4@example.com',
+                'number'   => '9000000004',
+                'uid'      => 'AMT0000000005',
+                'password' => Hash::make('password4'),
+            ],
+            [
+                'name'     => 'Admin Five',
+                'email'    => 'admin5@example.com',
+                'number'   => '9000000005',
+                'uid'      => 'AMT0000000006',
+                'password' => Hash::make('password5'),
+            ],
         ];
 
         foreach ($companies as $index => $companyData) {
-            // Get the package by name
             $package = Package::where('name', $companyData['package_name'])->first();
-
-            // Get the related business category from pivot OR use relation
-            $businessCategory = $package->businessCategories()->first(); // only works if many-to-many
-            // OR if using foreign key directly: $package->businessCategory
+            $businessCategory = $package->businessCategories()->first();
 
             $company = Company::firstOrCreate(
                 ['company_id' => $companyData['company_id']],
