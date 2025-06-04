@@ -228,8 +228,10 @@ class CompanyController extends Controller
     {
         $company = SelectedCompanyService::getSelectedCompanyOrFail();
 
+        $accounts = CompanyAccount::where('company_id', $company->id)->get();
+
         return response()->json([
-            'accounts' => $company->accounts,
+            'accounts' => $accounts,
         ]);
     }
 
