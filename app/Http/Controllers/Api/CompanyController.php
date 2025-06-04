@@ -343,8 +343,9 @@ class CompanyController extends Controller
      */
     public function deleteCompanyAccount($id)
     {
-        $company = SelectedCompanyService::getSelectedCompanyOrFail();
-        $account = $company->accounts()->where('id', $id)->firstOrFail();
+        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+        $company         = Company::findOrFail($selectedCompany->company_id); 
+        $account         = CompanyAccount::where('company_id', $company->id)->where('id', $id)->firstOrFail();
 
         $account->delete();
 
