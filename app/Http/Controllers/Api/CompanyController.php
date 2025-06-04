@@ -221,6 +221,9 @@ class CompanyController extends Controller
         ]);
     }
 
+    /**
+     * Get all accounts for the selected company.
+     */
     public function getCompanyAccounts()
     {
         $company = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -230,14 +233,16 @@ class CompanyController extends Controller
         ]);
     }
 
+    /**
+     * Add a new account to the selected company.
+     */
     public function addAccountsInCompany(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'accounts' => 'required|array',
-            'accounts.*.bank_name' => 'required|string|max:255',
-            'accounts.*.account_number' => 'required|string|max:30',
-            'accounts.*.ifsc_code' => 'required|string|max:20',
-            'accounts.*.type' => 'required|in:current,savings',
+            'bank_name'      => 'required|string|max:255',
+            'account_number' => 'required|string|max:30',
+            'ifsc_code'      => 'required|string|max:20',
+            'type'           => 'required|in:current,savings',
         ]);
 
         if ($validator->fails()) {
@@ -248,27 +253,30 @@ class CompanyController extends Controller
         }
 
         $company = SelectedCompanyService::getSelectedCompanyOrFail();
-        $accounts = [];
+        $validated = $validator->validated();
 
-        foreach ($validator->validated()['accounts'] as $accountData) {
-            $accounts[] = new CompanyAccount(array_merge($accountData, [
-                'company_id' => $company->id
-            ]));
-        }
+        $account = new CompanyAccount([
+            'company_id'     => $company->id,
+            'bank_name'      => $validated['bank_name'],
+            'account_number' => $validated['account_number'],
+            'ifsc_code'      => $validated['ifsc_code'],
+            'type'           => $validated['type'],
+        ]);
 
-        $company->accounts()->saveMany($accounts);
+        $account->save();
 
         return response()->json([
-            'message' => 'Accounts added successfully',
+            'message' => 'Account added successfully',
+            'account' => $account,
         ], 201);
     }
 
-
-
+    /**
+     * Get a single company account by ID.
+     */
     public function getSingleCompanyAccount($id)
     {
         $company = SelectedCompanyService::getSelectedCompanyOrFail();
-
         $account = $company->accounts()->where('id', $id)->first();
 
         if (!$account) {
@@ -282,14 +290,16 @@ class CompanyController extends Controller
         ]);
     }
 
-
+    /**
+     * Update an existing company account.
+     */
     public function updateCompanyAccount(Request $request, $id)
     {
         $validator = Validator::make($request->all(), [
-            'bank_name' => 'sometimes|required|string|max:255',
+            'bank_name'      => 'sometimes|required|string|max:255',
             'account_number' => 'sometimes|required|string|max:30',
-            'ifsc_code' => 'sometimes|required|string|max:20',
-            'type' => 'sometimes|required|in:current,savings',
+            'ifsc_code'      => 'sometimes|required|string|max:20',
+            'type'           => 'sometimes|required|in:current,savings',
         ]);
 
         if ($validator->fails()) {
@@ -301,8 +311,22 @@ class CompanyController extends Controller
 
         $company = SelectedCompanyService::getSelectedCompanyOrFail();
         $account = $company->accounts()->where('id', $id)->firstOrFail();
+        $validated = $validator->validated();
 
-        $account->update($validator->validated());
+        if (isset($validated['bank_name'])) {
+            $account->bank_name = $validated['bank_name'];
+        }
+        if (isset($validated['account_number'])) {
+            $account->account_number = $validated['account_number'];
+        }
+        if (isset($validated['ifsc_code'])) {
+            $account->ifsc_code = $validated['ifsc_code'];
+        }
+        if (isset($validated['type'])) {
+            $account->type = $validated['type'];
+        }
+
+        $account->save();
 
         return response()->json([
             'message' => 'Account updated successfully',
@@ -310,6 +334,9 @@ class CompanyController extends Controller
         ]);
     }
 
+    /**
+     * Delete a company account.
+     */
     public function deleteCompanyAccount($id)
     {
         $company = SelectedCompanyService::getSelectedCompanyOrFail();

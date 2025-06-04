@@ -49,10 +49,6 @@ Route::prefix('v1')->group(function () {
 
         Route::post('/send-admin-otp', [AdminAndCompanyRegisterController::class, 'sendOtp']);
         Route::post('/register-admin', [AdminAndCompanyRegisterController::class, 'register']);
-        // Route::post('/create-company/{id}', [AdminAndCompanyRegisterController::class, 'createCompany']);
-
-
-
 
 
 
@@ -64,11 +60,6 @@ Route::prefix('v1')->group(function () {
         Route::post('email-verification', [AuthController::class, 'mailVerification']);
         Route::post('verify-otp', [AuthController::class, 'verifyRegisterOtp']);
 
-
-        Route::post('/admin-register', [AuthController::class, 'adminRegisterInitiate']);
-        // Route::post('/admin-register-confirm/{id}', [AuthController::class, 'adminRegisterConfirm']);
-        Route::post('/send-wp-otp', [AuthController::class, 'sendWpOtp']);
-        Route::post('/verify-wp-otp', [AuthController::class, 'veriWpfyOtp']);
 
 
         Route::post('password/forgot', [AuthController::class, 'sendResetOtp']);
@@ -88,9 +79,6 @@ Route::prefix('v1')->group(function () {
             Route::post('/pay', [AdminAndCompanyRegisterController::class, 'addNewCompanyPay']);
             Route::post('/{id}', [AdminAndCompanyRegisterController::class, 'createCompany']);
         });
-
-
-
 
 
 
