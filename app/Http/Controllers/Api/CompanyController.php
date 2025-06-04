@@ -311,8 +311,9 @@ class CompanyController extends Controller
             ], 422);
         }
 
-        $company = SelectedCompanyService::getSelectedCompanyOrFail();
-        $account = $company->accounts()->where('id', $id)->firstOrFail();
+        $company = SelectedCompanyService::getSelectedCompanyOrFail(); // must return Company
+        $account = CompanyAccount::where('company_id', $company->id)->where('id', $id)->firstOrFail();
+
         $validated = $validator->validated();
 
         if (isset($validated['bank_name'])) {
@@ -335,6 +336,7 @@ class CompanyController extends Controller
             'account' => $account,
         ]);
     }
+
 
     /**
      * Delete a company account.
