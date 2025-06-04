@@ -71,5 +71,8 @@ class Company extends Model
     {
         return $this->belongsTo(Package::class);
     }
-    
+    public function accounts()
+    {
+        return $this->hasMany(CompanyAccount::class);
+    }
 }

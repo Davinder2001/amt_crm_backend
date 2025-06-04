@@ -235,6 +235,12 @@ Route::prefix('v1')->group(function () {
             Route::get('{id}', [CompanyController::class, 'show'])->middleware('permission:view company');
             Route::put('{id}', [CompanyController::class, 'update'])->middleware('permission:update company');
             Route::delete('{id}', [CompanyController::class, 'destroy'])->middleware('permission:delete company');
+
+
+            Route::post('/', [CompanyController::class, 'addAccountsInCompany']);
+            Route::get('/', [CompanyController::class, 'getCompanyAccounts']);
+            Route::put('/{id}', [CompanyController::class, 'updateCompanyAccount']);
+            Route::delete('/{id}', [CompanyController::class, 'deleteCompanyAccount']);
         });
 
         // Selected Companies API's

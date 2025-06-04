@@ -194,186 +194,186 @@ class AuthController extends Controller
     /**
      * Initiate admin registration and generate PhonePe payment link
      */
-    public function adminRegisterInitiate(AdminRegisterRequest $request): JsonResponse
-    {
-        $validator = Validator::make($request->all(), [
-            'email'     => 'required|email',
-            'number'    => 'required|string|max:15',
-            'packageId' => 'required|string|max:15',
-        ]);
+    // public function adminRegisterInitiate(AdminRegisterRequest $request): JsonResponse
+    // {
+    //     $validator = Validator::make($request->all(), [
+    //         'email'     => 'required|email',
+    //         'number'    => 'required|string|max:15',
+    //         'packageId' => 'required|string|max:15',
+    //     ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation errors',
-                'errors'  => $validator->errors()
-            ], 422);
-        }
+    //     if ($validator->fails()) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Validation errors',
+    //             'errors'  => $validator->errors()
+    //         ], 422);
+    //     }
 
-        $name = $validator->validated()['packageId'];
+    //     $name = $validator->validated()['packageId'];
 
-        if (Company::where('company_name', $name)->exists()) {
-            throw ValidationException::withMessages([
-                'company_name' => ['Company slug already exists. Please choose a different company name.']
-            ]);
-        }
+    //     if (Company::where('company_name', $name)->exists()) {
+    //         throw ValidationException::withMessages([
+    //             'company_name' => ['Company slug already exists. Please choose a different company name.']
+    //         ]);
+    //     }
 
-        if (User::where('number', $validator->validated()['number'])->exists()) {
-            throw ValidationException::withMessages([
-                'number' => ['User already exists. Please login and upgrade the package.']
-            ]);
-        }
+    //     if (User::where('number', $validator->validated()['number'])->exists()) {
+    //         throw ValidationException::withMessages([
+    //             'number' => ['User already exists. Please login and upgrade the package.']
+    //         ]);
+    //     }
 
-        $packageId       = $validator->validated()['packageId'];
-        $package         = Package::where('id', $packageId)->first();
-        $merchantOrderId = 'ORDER_' . uniqid();
-        $amount          = 100 * $package->price;
+    //     $packageId       = $validator->validated()['packageId'];
+    //     $package         = Package::where('id', $packageId)->first();
+    //     $merchantOrderId = 'ORDER_' . uniqid();
+    //     $amount          = 100 * $package->price;
 
-        $oauthResponse = Http::asForm()->post(env('PHONEPE_OAUTH_URL'), [
-            'client_id'      => env('PHONEPE_CLIENT_ID'),
-            'client_version' => env('PHONEPE_CLIENT_VERSION'),
-            'client_secret'  => env('PHONEPE_CLIENT_SECRET'),
-            'grant_type'     => env('PHONEPE_GRANT_TYPE'),
-        ]);
+    //     $oauthResponse = Http::asForm()->post(env('PHONEPE_OAUTH_URL'), [
+    //         'client_id'      => env('PHONEPE_CLIENT_ID'),
+    //         'client_version' => env('PHONEPE_CLIENT_VERSION'),
+    //         'client_secret'  => env('PHONEPE_CLIENT_SECRET'),
+    //         'grant_type'     => env('PHONEPE_GRANT_TYPE'),
+    //     ]);
 
-        if (!$oauthResponse->ok() || !$oauthResponse->json('access_token')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to get PhonePe access token',
-                'details' => $oauthResponse->json()
-            ], 500);
-        }
+    //     if (!$oauthResponse->ok() || !$oauthResponse->json('access_token')) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Failed to get PhonePe access token',
+    //             'details' => $oauthResponse->json()
+    //         ], 500);
+    //     }
 
-        $accessToken    = $oauthResponse->json('access_token');
-        $host           = request()->getHost();
+    //     $accessToken    = $oauthResponse->json('access_token');
+    //     $host           = request()->getHost();
 
-        if (str_contains($host, 'localhost')) {
-            $baseUrl = env('PHONEPE_CALLBACK_BASE_URL');
-            $callbackUrl = env('PHONEPE_CALLBACK_BASE_URL');
-        } elseif (str_contains($host, 'amt.sparkweb.co.in')) {
-            $baseUrl = env('PHONEPE_CALLBACK_BASE_URL_PROD');
-            $callbackUrl = env('PHONEPE_CALLBACK_BASE_URL_PROD');
-        } else {
-            $baseUrl = env('PHONEPE_CALLBACK_BASE_URL_PROD');
-            $callbackUrl = env('PHONEPE_CALLBACK_BASE_URL_PROD');
-        }
+    //     if (str_contains($host, 'localhost')) {
+    //         $baseUrl = env('PHONEPE_CALLBACK_BASE_URL');
+    //         $callbackUrl = env('PHONEPE_CALLBACK_BASE_URL');
+    //     } elseif (str_contains($host, 'amt.sparkweb.co.in')) {
+    //         $baseUrl = env('PHONEPE_CALLBACK_BASE_URL_PROD');
+    //         $callbackUrl = env('PHONEPE_CALLBACK_BASE_URL_PROD');
+    //     } else {
+    //         $baseUrl = env('PHONEPE_CALLBACK_BASE_URL_PROD');
+    //         $callbackUrl = env('PHONEPE_CALLBACK_BASE_URL_PROD');
+    //     }
 
-        $callbackUrl    = "{$baseUrl}?orderId={$merchantOrderId}";
-        $redirectUrl    = "{$baseUrl}?orderId={$merchantOrderId}";
+    //     $callbackUrl    = "{$baseUrl}?orderId={$merchantOrderId}";
+    //     $redirectUrl    = "{$baseUrl}?orderId={$merchantOrderId}";
 
-        $checkoutPayload = [
-            "merchantOrderId" => $merchantOrderId,
-            "amount"          => $amount,
-            "paymentFlow"     => [
-                "type" => "PG_CHECKOUT",
-                "merchantUrls" => [
-                    "redirectUrl" => $redirectUrl,
-                    "callbackUrl" => $callbackUrl
-                ]
-            ]
-        ];
+    //     $checkoutPayload = [
+    //         "merchantOrderId" => $merchantOrderId,
+    //         "amount"          => $amount,
+    //         "paymentFlow"     => [
+    //             "type" => "PG_CHECKOUT",
+    //             "merchantUrls" => [
+    //                 "redirectUrl" => $redirectUrl,
+    //                 "callbackUrl" => $callbackUrl
+    //             ]
+    //         ]
+    //     ];
 
-        $checkoutResponse = Http::withHeaders([
-            'Authorization' => 'O-Bearer ' . $accessToken,
-            'Content-Type'  => 'application/json',
-        ])->post(env('PHONEPE_CHECKOUT_URL'), $checkoutPayload);
+    //     $checkoutResponse = Http::withHeaders([
+    //         'Authorization' => 'O-Bearer ' . $accessToken,
+    //         'Content-Type'  => 'application/json',
+    //     ])->post(env('PHONEPE_CHECKOUT_URL'), $checkoutPayload);
 
-        $responseData   = $checkoutResponse->json();
-        $paymentUrl     = $responseData['redirectUrl'] ?? $responseData['data']['redirectUrl'] ?? null;
+    //     $responseData   = $checkoutResponse->json();
+    //     $paymentUrl     = $responseData['redirectUrl'] ?? $responseData['data']['redirectUrl'] ?? null;
 
-        if (!$checkoutResponse->ok() || !$paymentUrl) {
-            return response()->json([
-                'success'   => false,
-                'message'   => 'Failed to initialize payment',
-                'response'  => $responseData
-            ], 500);
-        }
+    //     if (!$checkoutResponse->ok() || !$paymentUrl) {
+    //         return response()->json([
+    //             'success'   => false,
+    //             'message'   => 'Failed to initialize payment',
+    //             'response'  => $responseData
+    //         ], 500);
+    //     }
 
-        return response()->json([
-            'success'          => true,
-            'merchantOrderId'  => $merchantOrderId,
-            'redirect_url'     => $paymentUrl
-        ]);
-    }
+    //     return response()->json([
+    //         'success'          => true,
+    //         'merchantOrderId'  => $merchantOrderId,
+    //         'redirect_url'     => $paymentUrl
+    //     ]);
+    // }
 
     /**
      * Confirm registration after PhonePe payment
      */
-    public function adminRegisterConfirm(AdminRegisterRequest $request, $id): JsonResponse
-    {
-        $orderId = $id;
+    // public function adminRegisterConfirm(AdminRegisterRequest $request, $id): JsonResponse
+    // {
+    //     $orderId = $id;
 
-        if (!$orderId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Missing order ID.'
-            ], 400);
-        }
+    //     if (!$orderId) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Missing order ID.'
+    //         ], 400);
+    //     }
 
-        $oauthResponse = Http::asForm()->post(env('PHONEPE_OAUTH_URL'), [
-            'client_id'      => env('PHONEPE_CLIENT_ID'),
-            'client_version' => env('PHONEPE_CLIENT_VERSION'),
-            'client_secret'  => env('PHONEPE_CLIENT_SECRET'),
-            'grant_type'     => env('PHONEPE_GRANT_TYPE'),
-        ]);
+    //     $oauthResponse = Http::asForm()->post(env('PHONEPE_OAUTH_URL'), [
+    //         'client_id'      => env('PHONEPE_CLIENT_ID'),
+    //         'client_version' => env('PHONEPE_CLIENT_VERSION'),
+    //         'client_secret'  => env('PHONEPE_CLIENT_SECRET'),
+    //         'grant_type'     => env('PHONEPE_GRANT_TYPE'),
+    //     ]);
 
-        $accessToken = $oauthResponse->json('access_token');
+    //     $accessToken = $oauthResponse->json('access_token');
 
-        if (!$accessToken) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Missing authorization token.'
-            ], 401);
-        }
+    //     if (!$accessToken) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Missing authorization token.'
+    //         ], 401);
+    //     }
 
-        $statusResponse = Http::withHeaders([
-            'Authorization' => 'O-Bearer ' . $accessToken,
-            'Content-Type'  => 'application/json',
-        ])->get(env('PHONEPE_STATUS_URL') . "/{$orderId}/status");
+    //     $statusResponse = Http::withHeaders([
+    //         'Authorization' => 'O-Bearer ' . $accessToken,
+    //         'Content-Type'  => 'application/json',
+    //     ])->get(env('PHONEPE_STATUS_URL') . "/{$orderId}/status");
 
 
-        if (!$statusResponse->ok()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to check payment status.',
-                'details' => $statusResponse->json()
-            ], 500);
-        }
+    //     if (!$statusResponse->ok()) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Failed to check payment status.',
+    //             'details' => $statusResponse->json()
+    //         ], 500);
+    //     }
 
-        $status = strtoupper($statusResponse->json('state'));
+    //     $status = strtoupper($statusResponse->json('state'));
 
-        if ($status !== 'COMPLETED') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Payment was not successful.',
-                'payment_status' => $status
-            ], 402);
-        }
+    //     if ($status !== 'COMPLETED') {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Payment was not successful.',
+    //             'payment_status' => $status
+    //         ], 402);
+    //     }
 
-        try {
-            $formData   = $request->all();
-            $result     = $this->registrationService->register($formData, $statusResponse,  $orderId);
+    //     try {
+    //         $formData   = $request->all();
+    //         $result     = $this->registrationService->register($formData, $statusResponse,  $orderId);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Admin registered successfully after payment.',
-                'user'    => new UserResource($result['user']->load('roles')),
-                'company' => $result['company'],
-            ], 201);
-        } catch (ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed.',
-                'errors'  => $e->errors()
-            ], 422);
-        } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'An unexpected error occurred.',
-                'error'   => $e->getMessage()
-            ], 500);
-        }
-    }
+    //         return response()->json([
+    //             'success' => true,
+    //             'message' => 'Admin registered successfully after payment.',
+    //             'user'    => new UserResource($result['user']->load('roles')),
+    //             'company' => $result['company'],
+    //         ], 201);
+    //     } catch (ValidationException $e) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Validation failed.',
+    //             'errors'  => $e->errors()
+    //         ], 422);
+    //     } catch (\Throwable $e) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'An unexpected error occurred.',
+    //             'error'   => $e->getMessage()
+    //         ], 500);
+    //     }
+    // }
 
     /**
      * Send OTP for email verification.

@@ -59,8 +59,13 @@ class AddNewCompanyController extends Controller
 
         $merchantOrderId    = 'ORDER_' . uniqid();
         $package            = Package::find($data['package_id']);
-        // $amount             = 100 * $package->price;
-        $amount             = 10000;
+        $supType = $data['subscription_type'] ?? 'monthly';
+
+        if ($supType === 'annual') {
+            $amount = 100 * $package->annual_price;
+        } else {
+            $amount = 100 * $package->monthly_price;
+        }
 
         $oauthResponse = Http::asForm()->post(env('PHONEPE_OAUTH_URL'), [
             'client_id'      => env('PHONEPE_CLIENT_ID'),
@@ -274,7 +279,7 @@ class AddNewCompanyController extends Controller
 
         $subscriptionDate = now()->setTimezone('Asia/Kolkata')->toDateTimeString();
         $companyId        = CompanyIdService::generateNewCompanyId();
-        
+
         $company = Company::create([
             'company_id'            => $companyId,
             'company_name'          => $data['company_name'],

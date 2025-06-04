@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Package;
 use App\Models\Company;
+use App\Models\CompanyAccount;
 use App\Services\SelectedCompanyService;
 use App\Models\CompanyUser;
 use App\Models\BusinessCategory;
@@ -202,6 +203,9 @@ class CompanyController extends Controller
         ]);
     }
 
+    /**
+     * Get the details of the selected company, including its package and related packages.
+     */
     public function companyDetails()
     {
         $selectedCompany    = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -214,6 +218,87 @@ class CompanyController extends Controller
             'company'            => $company,
             'subscribed_package' => $subscribedPackage,
             'related_packages'   => $relatedPackages,
+        ]);
+    }
+
+    public function getCompanyAccounts()
+    {
+        $company = SelectedCompanyService::getSelectedCompanyOrFail();
+
+        return response()->json([
+            'accounts' => $company->accounts,
+        ]);
+    }
+
+    public function addAccountsInCompany(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'accounts' => 'required|array',
+            'accounts.*.bank_name' => 'required|string|max:255',
+            'accounts.*.account_number' => 'required|string|max:30',
+            'accounts.*.ifsc_code' => 'required|string|max:20',
+            'accounts.*.type' => 'required|in:current,savings',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'validation_error',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $company = SelectedCompanyService::getSelectedCompanyOrFail();
+        $accounts = [];
+
+        foreach ($validator->validated()['accounts'] as $accountData) {
+            $accounts[] = new CompanyAccount(array_merge($accountData, [
+                'company_id' => $company->id
+            ]));
+        }
+
+        $company->accounts()->saveMany($accounts);
+
+        return response()->json([
+            'message' => 'Accounts added successfully',
+        ], 201);
+    }
+
+    public function updateCompanyAccount(Request $request, $id)
+    {
+        $validator = Validator::make($request->all(), [
+            'bank_name' => 'sometimes|required|string|max:255',
+            'account_number' => 'sometimes|required|string|max:30',
+            'ifsc_code' => 'sometimes|required|string|max:20',
+            'type' => 'sometimes|required|in:current,savings',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'validation_error',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $company = SelectedCompanyService::getSelectedCompanyOrFail();
+        $account = $company->accounts()->where('id', $id)->firstOrFail();
+
+        $account->update($validator->validated());
+
+        return response()->json([
+            'message' => 'Account updated successfully',
+            'account' => $account,
+        ]);
+    }
+
+    public function deleteCompanyAccount($id)
+    {
+        $company = SelectedCompanyService::getSelectedCompanyOrFail();
+        $account = $company->accounts()->where('id', $id)->firstOrFail();
+
+        $account->delete();
+
+        return response()->json([
+            'message' => 'Account deleted successfully',
         ]);
     }
 }
