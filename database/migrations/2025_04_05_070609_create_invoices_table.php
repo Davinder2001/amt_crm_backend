@@ -16,21 +16,24 @@ class CreateInvoicesTable extends Migration
             $table->string('client_phone')->nullable();
             $table->string('client_email')->nullable();
             $table->date('invoice_date');
-            $table->decimal('total_amount', 10, 2);
-            $table->decimal('sub_total', 10, 2);
+
+            // Use double for unlimited numeric size
+            $table->double('total_amount');
+            $table->double('sub_total');
 
             // Service charge fields
-            $table->decimal('service_charge_amount', 10, 2)->default(0);
-            $table->decimal('service_charge_percent', 5, 2)->default(0);
-            $table->decimal('service_charge_gst', 10, 2)->default(0);
-            $table->decimal('service_charge_final', 10, 2)->default(0);
+            $table->double('service_charge_amount')->default(0);
+            $table->double('service_charge_percent')->default(0);
+            $table->double('service_charge_gst')->default(0);
+            $table->double('service_charge_final')->default(0);
 
-            $table->decimal('discount_amount', 10, 2)->default(0);
-            $table->decimal('discount_percentage', 5, 2)->default(0);
+            $table->double('discount_amount')->default(0);
+            $table->double('discount_percentage')->default(0);
+
             $table->string('delivery_address')->nullable();
             $table->string('delivery_pincode')->nullable();
-            $table->decimal('delivery_charge', 5, 2)->default(0);
-            $table->decimal('final_amount', 10, 2);
+            $table->double('delivery_charge')->default(0);
+            $table->double('final_amount');
 
             $table->enum('payment_method', ['cash', 'online', 'card', 'credit', 'self'])->nullable();
             $table->foreignId('issued_by')->constrained('users')->onDelete('cascade');

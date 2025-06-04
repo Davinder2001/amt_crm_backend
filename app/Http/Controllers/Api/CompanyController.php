@@ -263,6 +263,26 @@ class CompanyController extends Controller
         ], 201);
     }
 
+
+
+    public function getSingleCompanyAccount($id)
+    {
+        $company = SelectedCompanyService::getSelectedCompanyOrFail();
+
+        $account = $company->accounts()->where('id', $id)->first();
+
+        if (!$account) {
+            return response()->json([
+                'message' => 'Account not found.',
+            ], 404);
+        }
+
+        return response()->json([
+            'account' => $account,
+        ]);
+    }
+
+
     public function updateCompanyAccount(Request $request, $id)
     {
         $validator = Validator::make($request->all(), [
