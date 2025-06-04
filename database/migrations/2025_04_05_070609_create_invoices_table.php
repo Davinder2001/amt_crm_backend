@@ -32,7 +32,7 @@ class CreateInvoicesTable extends Migration
             $table->decimal('delivery_charge', 5, 2)->default(0);
             $table->decimal('final_amount', 10, 2);
 
-            $table->enum('payment_method', ['cash', 'online', 'card', 'credit'])->nullable();
+            $table->enum('payment_method', ['cash', 'online', 'card', 'credit', 'self'])->nullable();
             $table->foreignId('issued_by')->constrained('users')->onDelete('cascade');
             $table->string('issued_by_name')->nullable();
             $table->longText('pdf_base64')->nullable();
