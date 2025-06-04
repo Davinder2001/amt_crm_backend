@@ -237,14 +237,21 @@ Route::prefix('v1')->group(function () {
             Route::delete('{id}', [CompanyController::class, 'destroy'])->middleware('permission:delete company');
 
 
-            Route::post('/account', [CompanyController::class, 'addAccountsInCompany']);
-            Route::get('/accounts', [CompanyController::class, 'getCompanyAccounts']);
-            Route::put('/account/{id}', [CompanyController::class, 'updateCompanyAccount']);
-            Route::get('/account/{id}', [CompanyController::class, 'getSingleCompanyAccount']);
-            Route::delete('/account/{id}', [CompanyController::class, 'deleteCompanyAccount']);
         });
 
+        
+        
+        Route::post('company/account', [CompanyController::class, 'addAccountsInCompany']);
+        Route::get('company/accounts', [CompanyController::class, 'getCompanyAccounts']);
+        Route::get('company/account/{id}', [CompanyController::class, 'getSingleCompanyAccount']);
+        Route::put('company/account/{id}', [CompanyController::class, 'updateCompanyAccount']);
+        Route::delete('company/account/{id}', [CompanyController::class, 'deleteCompanyAccount']);
+        
+        
+        
         // Selected Companies API's
+
+        
         Route::get('selectedCompanies', [CompanyController::class, 'getSelectedCompanies']);
         Route::post('selectedCompanies/{id}', [CompanyController::class, 'selectedCompanies']);
 
