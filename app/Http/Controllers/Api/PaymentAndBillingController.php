@@ -85,7 +85,7 @@ class PaymentAndBillingController extends Controller
             ], 400);
         }
 
-        $payment->refund = 'refund_processed';
+        $payment->refund = 'refund processed';
         $payment->refund_reason = $data['reason'];
         $payment->save();
 
@@ -96,7 +96,7 @@ class PaymentAndBillingController extends Controller
         ]);
     }
 
-    
+
     public function getRefundRequests(Request $request)
     {
         $query = Payment::query();
@@ -133,7 +133,7 @@ class PaymentAndBillingController extends Controller
             ], 404);
         }
 
-        if ($payment->refund !== 'refund_processed') {
+        if ($payment->refund !== 'refund processed') {
             return response()->json([
                 'success' => false,
                 'message' => 'Only processed refund requests can be approved.',
@@ -141,7 +141,7 @@ class PaymentAndBillingController extends Controller
             ], 400);
         }
 
-        $payment->refund = 'refund_approved';
+        $payment->refund = 'refund approved';
         $payment->save();
 
         return response()->json([
@@ -207,7 +207,7 @@ class PaymentAndBillingController extends Controller
             ], 404);
         }
 
-        if ($payment->refund !== 'refund_processed') {
+        if ($payment->refund !== 'refund processed') {
             return response()->json([
                 'success' => false,
                 'message' => 'Refund cannot be declined in current state.',
@@ -215,7 +215,7 @@ class PaymentAndBillingController extends Controller
             ], 400);
         }
 
-        $payment->refund = 'refund_declined';
+        $payment->refund = 'refund declined';
         $payment->decline_reason = $request->input('reason');
         $payment->save();
 
