@@ -84,8 +84,15 @@ Route::prefix('v1')->group(function () {
 
 
 
-        //Super Admin Routes API's
         Route::middleware(['check.superadmin'])->group(function () {
+            //Super Admin Routes API's
+
+            Route::get('/payments/refunds', [PaymentAndBillingController::class, 'getRefundRequests']);
+            Route::post('/payments/refund-approve/{transaction_id}', [PaymentAndBillingController::class, 'approveRefundRequest']);
+            Route::post('/payments/refund-complete/{transaction_id}', [PaymentAndBillingController::class, 'markRefunded']);
+            Route::post('/payments/refund-decline/{transaction_id}', [PaymentAndBillingController::class, 'declineRefundRequest']);
+
+
             Route::get('/companies/pending', [CompanyController::class, 'getPendingCompanies']);
             Route::post('/companies/{id}/payment-status', [CompanyController::class, 'paymentStatus']);
             Route::post('/companies/{id}/verification-status', [CompanyController::class, 'verificationStatus']);
@@ -460,8 +467,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/table-listed/store', [TableColumnController::class, 'storeTable']);
         Route::post('/table-column/store', [TableColumnController::class, 'storeColumn']);
 
-        
-        
+
+
         Route::prefix('payments')->group(function () {
             Route::get('/', [PaymentAndBillingController::class, 'adminBilling']);
             Route::post('/refund-request/{transaction_id}', [PaymentAndBillingController::class, 'refundRequest']);

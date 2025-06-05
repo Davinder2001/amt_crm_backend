@@ -95,4 +95,134 @@ class PaymentAndBillingController extends Controller
             'data'    => $payment,
         ]);
     }
+
+    public function getRefundRequests(Request $request)
+    {
+        $query = Payment::query();
+
+        // Optional: filter by refund status
+        if ($request->has('status')) {
+            $query->where('refund', $request->input('status'));
+        } else {
+            // Only show payments that have any refund status (not null)
+            $query->whereNotNull('refund');
+        }
+
+        // Optional: filter by user
+        if ($request->has('user_id')) {
+            $query->where('user_id', $request->input('user_id'));
+        }
+
+        $refunds = $query->orderByDesc('created_at')->get();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Refund requests fetched successfully.',
+            'data'    => $refunds,
+        ]);
+    }
+
+
+
+    public function approveRefundRequest($transactionId)
+    {
+        $payment = Payment::where('transaction_id', $transactionId)->first();
+
+        if (!$payment) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment not found for the given transaction ID.',
+            ], 404);
+        }
+
+        if ($payment->refund !== 'refund_processed') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Only processed refund requests can be approved.',
+                'current_refund_status' => $payment->refund,
+            ], 400);
+        }
+
+        $payment->refund = 'refund_approved';
+        $payment->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Refund request approved successfully.',
+            'data'    => $payment,
+        ]);
+    }
+    public function markRefunded($transactionId)
+    {
+        $payment = Payment::where('transaction_id', $transactionId)->first();
+
+        if (!$payment) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment not found for the given transaction ID.',
+            ], 404);
+        }
+
+        if ($payment->refund !== 'refund_approved') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Only approved refund requests can be marked as refunded.',
+                'current_refund_status' => $payment->refund,
+            ], 400);
+        }
+
+        $payment->refund = 'refunded';
+        $payment->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Refund marked as completed.',
+            'data'    => $payment,
+        ]);
+    }
+
+
+
+
+    public function declineRefundRequest(Request $request, $transactionId)
+    {
+        $validator = Validator::make($request->all(), [
+            'reason' => 'required|string|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        $payment = Payment::where('transaction_id', $transactionId)->first();
+
+        if (!$payment) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment not found for the given transaction ID.',
+            ], 404);
+        }
+
+        if ($payment->refund !== 'refund_processed') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Refund cannot be declined in current state.',
+                'current_refund_status' => $payment->refund,
+            ], 400);
+        }
+
+        $payment->refund = 'refund_declined';
+        $payment->decline_reason = $request->input('reason');
+        $payment->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Refund request declined successfully.',
+            'data'    => $payment,
+        ]);
+    }
 }

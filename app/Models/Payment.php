@@ -11,9 +11,9 @@ class Payment extends Model
     use HasFactory;
 
     protected $table = 'payments';
-    
+
     protected $fillable = [
-        'user_id', 
+        'user_id',
         'order_id',
         'transaction_id',
         'payment_status',
@@ -25,5 +25,6 @@ class Payment extends Model
         'payment_time',
         'refund',
         'refund_reason',
+        'decline_reason',
     ];
 }
