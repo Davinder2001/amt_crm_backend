@@ -96,19 +96,17 @@ class PaymentAndBillingController extends Controller
         ]);
     }
 
+    
     public function getRefundRequests(Request $request)
     {
         $query = Payment::query();
 
-        // Optional: filter by refund status
         if ($request->has('status')) {
             $query->where('refund', $request->input('status'));
         } else {
-            // Only show payments that have any refund status (not null)
             $query->whereNotNull('refund');
         }
 
-        // Optional: filter by user
         if ($request->has('user_id')) {
             $query->where('user_id', $request->input('user_id'));
         }
@@ -152,6 +150,8 @@ class PaymentAndBillingController extends Controller
             'data'    => $payment,
         ]);
     }
+
+
     public function markRefunded($transactionId)
     {
         $payment = Payment::where('transaction_id', $transactionId)->first();

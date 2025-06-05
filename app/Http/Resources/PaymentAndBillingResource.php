@@ -26,6 +26,9 @@ class PaymentAndBillingResource extends JsonResource
             'transaction_amount'  => $this->transaction_amount,
             'payment_date'        => $this->payment_date,
             'payment_time'        => $this->payment_time,
+            'refund'              => $this->refund,
+            'refund_reason'       => $this->refund_reason,
+            'decline_reason'      => $this->decline_reason,
         ];
     }
 }

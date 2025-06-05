@@ -81,15 +81,9 @@ class AddNewCompanyController extends Controller
             ], 500);
         }
 
-        // $activeCompanyId = SelectedCompanyService::getSelectedCompanyOrFail();
-        // $companySlug     = $activeCompanyId->company->company_slug;
-
-
-
-
 
         $accessToken = $oauthResponse->json('access_token');
-        $host = request()->getHost(); // returns domain like 'localhost' or 'amt.sparkweb.co.in'
+        $host = request()->getHost();
 
         if (str_contains($host, 'localhost')) {
             $baseUrl = env('PHONEPE_CALLBACK_BASE_URL_COMPANY');
