@@ -15,7 +15,6 @@ use App\Models\Company;
 use App\Models\Payment;
 use App\Models\CompanyUser;
 use App\Models\Package;
-use App\Services\SelectedCompanyService;
 use App\Services\CompanyIdService;
 
 class AddNewCompanyController extends Controller
@@ -325,17 +324,5 @@ class AddNewCompanyController extends Controller
             'message' => 'Company created successfully after successful payment.',
             'company' => $company,
         ], 201);
-    }
-
-
-    public function upgradePackage(Request $request)
-    {
-        // dd($id);
-        $activeCompany      = SelectedCompanyService::getSelectedCompanyOrFail();
-        $packageId          = $activeCompany->company->package_id;
-        $activeCompanyId    = $activeCompany->company->id;
-        $businessId         = $activeCompany->company->business_category;
-        $canSubscribe       = Package::where('business_category_id', $businessId)->exists();
-        dd($canSubscribe);
     }
 }

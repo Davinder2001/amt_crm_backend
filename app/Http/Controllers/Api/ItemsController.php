@@ -30,57 +30,57 @@ class ItemsController extends Controller
     /**
      * Display a listing of the resource.
      */
-    // public function index(): JsonResponse
-    // {
-    //     $items = Item::with(['variants.attributeValues.attribute', 'taxes', 'categories'])->get();
-    //     return response()->json(ItemResource::collection($items));
-    // }
-
-
     public function index(): JsonResponse
     {
-        $activeCompanyId = SelectedCompanyService::getSelectedCompanyOrFail()->company->id;
-        $userId          = Auth::id();
-        $tableName       = 'items';
-        $table           = TableManagement::where('company_id', $activeCompanyId)->where('user_id', $userId)->where('table_name', $tableName)->first();
-        $defaultColumns  = ['id', 'name'];
-        $columns         = $defaultColumns;
-        $relations       = [];
-
-        if ($table) {
-
-            $metaColumns = TableMeta::where('table_id', $table->id)->where('value', true)->pluck('col_name')->toArray();
-
-            if (!in_array('id', $metaColumns)) {
-                $metaColumns[] = 'id';
-            }
-
-            if (!in_array('name', $metaColumns)) {
-                $metaColumns[] = 'name';
-            }
-
-            $columns = $metaColumns;
-
-            if (in_array('variants', $columns)) {
-                $relations[] = 'variants.attributeValues.attribute';
-                $columns     = array_filter($columns, fn($col) => $col !== 'variants');
-            }
-
-            if (in_array('taxes', $columns)) {
-                $relations[] = 'taxes';
-                $columns     = array_filter($columns, fn($col) => $col !== 'taxes');
-            }
-
-            if (in_array('categories', $columns)) {
-                $relations[] = 'categories';
-                $columns     = array_filter($columns, fn($col) => $col !== 'categories');
-            }
-        }
-
-        $items = Item::select($columns)->with($relations)->get();
-
-        return response()->json($items);
+        $items = Item::with(['variants.attributeValues.attribute', 'taxes', 'categories'])->get();
+        return response()->json(ItemResource::collection($items));
     }
+
+
+    // public function index(): JsonResponse
+    // {
+    //     $activeCompanyId = SelectedCompanyService::getSelectedCompanyOrFail()->company->id;
+    //     $userId          = Auth::id();
+    //     $tableName       = 'items';
+    //     $table           = TableManagement::where('company_id', $activeCompanyId)->where('user_id', $userId)->where('table_name', $tableName)->first();
+    //     $defaultColumns  = ['id', 'name'];
+    //     $columns         = $defaultColumns;
+    //     $relations       = [];
+
+    //     if ($table) {
+
+    //         $metaColumns = TableMeta::where('table_id', $table->id)->where('value', true)->pluck('col_name')->toArray();
+
+    //         if (!in_array('id', $metaColumns)) {
+    //             $metaColumns[] = 'id';
+    //         }
+
+    //         if (!in_array('name', $metaColumns)) {
+    //             $metaColumns[] = 'name';
+    //         }
+
+    //         $columns = $metaColumns;
+
+    //         if (in_array('variants', $columns)) {
+    //             $relations[] = 'variants.attributeValues.attribute';
+    //             $columns     = array_filter($columns, fn($col) => $col !== 'variants');
+    //         }
+
+    //         if (in_array('taxes', $columns)) {
+    //             $relations[] = 'taxes';
+    //             $columns     = array_filter($columns, fn($col) => $col !== 'taxes');
+    //         }
+
+    //         if (in_array('categories', $columns)) {
+    //             $relations[] = 'categories';
+    //             $columns     = array_filter($columns, fn($col) => $col !== 'categories');
+    //         }
+    //     }
+
+    //     $items = Item::select($columns)->with($relations)->get();
+
+    //     return response()->json($items);
+    // }
 
 
 
@@ -161,6 +161,7 @@ class ItemsController extends Controller
             }
 
             $imageLinks = [];
+
             if ($request->hasFile('images')) {
                 foreach ($request->file('images') as $image) {
                     $filename = uniqid('item_') . '.' . $image->getClientOriginalExtension();
@@ -168,8 +169,8 @@ class ItemsController extends Controller
                     $imageLinks[] = asset('uploads/items/' . $filename);
                 }
             }
-            $data['images'] = $imageLinks;
 
+            $data['images'] = $imageLinks;
 
             $featuredImageLink = null;
             if ($request->hasFile('featured_image')) {
@@ -178,6 +179,7 @@ class ItemsController extends Controller
                 $featured->move(public_path('uploads/items'), $filename);
                 $featuredImageLink = asset('uploads/items/' . $filename);
             }
+
             $data['featured_image'] = $featuredImageLink;
 
             $item           = Item::create($data);
@@ -326,28 +328,23 @@ class ItemsController extends Controller
             }
         }
 
-        // Remove images from disk & from image array
         if (!empty($data['removed_images'])) {
             foreach ($data['removed_images'] as $removedUrl) {
-                // Strip domain from URL to get file path
+
                 $relativePath = str_replace(asset(''), '', $removedUrl);
                 $filePath = public_path($relativePath);
 
-                // Delete the file if it exists
                 if (file_exists($filePath)) {
                     @unlink($filePath);
                 }
 
-                // Remove from imageLinks
                 $imageLinks = array_filter($imageLinks, function ($url) use ($removedUrl) {
                     return $url !== $removedUrl;
                 });
             }
 
-            // Re-index the array
             $imageLinks = array_values($imageLinks);
         }
-
 
         $data['images'] = $imageLinks;
 
@@ -358,14 +355,12 @@ class ItemsController extends Controller
             $data['item_code'] = $lastItemCode ? $lastItemCode + 1 : 1;
         }
 
-        // Handle featured image update
         if ($request->hasFile('featured_image')) {
             $featured = $request->file('featured_image');
             $filename = uniqid('featured_') . '.' . $featured->getClientOriginalExtension();
             $featured->move(public_path('uploads/items'), $filename);
             $data['featured_image'] = asset('uploads/items/' . $filename);
         }
-
 
 
         $item->update($data);

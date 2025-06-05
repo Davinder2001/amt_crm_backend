@@ -438,7 +438,6 @@ Route::prefix('v1')->group(function () {
             Route::post('/{id}', [AddNewCompanyController::class, 'store']);
         });
 
-        Route::post('upgrade-package', [AddNewCompanyController::class, 'upgradePackage']);
         Route::get('company-details', [CompanyController::class, 'companyDetails']);
 
         Route::prefix('pricing-packages')->group(function () {
@@ -461,6 +460,12 @@ Route::prefix('v1')->group(function () {
         Route::post('/table-listed/store', [TableColumnController::class, 'storeTable']);
         Route::post('/table-column/store', [TableColumnController::class, 'storeColumn']);
 
-        Route::get('billings', [PaymentAndBillingController::class, 'adminBilling']);
+        
+        
+        Route::prefix('payments')->group(function () {
+            Route::get('/', [PaymentAndBillingController::class, 'adminBilling']);
+            Route::post('/refund-request/{transaction_id}', [PaymentAndBillingController::class, 'refundRequest']);
+            Route::post('/upgrade-package', [PaymentAndBillingController::class, 'upgradePackage']);
+        });
     });
 });

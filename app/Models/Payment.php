@@ -23,5 +23,7 @@ class Payment extends Model
         'transaction_amount',
         'payment_date',
         'payment_time',
+        'refund',
+        'refund_reason',
     ];
 }

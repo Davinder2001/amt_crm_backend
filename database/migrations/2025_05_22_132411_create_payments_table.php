@@ -19,6 +19,8 @@ return new class extends Migration {
             $table->string('transaction_amount')->nullable();
             $table->string('payment_date');
             $table->string('payment_time');
+            $table->enum('refund', ['refunded', 'refund_processed', 'refund_declined'])->nullable();
+            $table->text('refund_reason')->nullable();
             $table->timestamps();
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
         });
