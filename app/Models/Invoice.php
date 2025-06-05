@@ -31,6 +31,7 @@ class Invoice extends Model
         'issued_by',
         'issued_by_name',
         'pdf_path',
+        'credit_note',
         'company_id',
         'sent_on_whatsapp',
     ];

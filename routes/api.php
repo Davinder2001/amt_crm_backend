@@ -35,6 +35,7 @@ use App\Http\Controllers\Api\{
     AddNewCompanyController,
     TableColumnController,
     AdminAndCompanyRegisterController,
+    LeavesAndHolidayController,
     PaymentAndBillingController
 };
 
@@ -232,6 +233,21 @@ Route::prefix('v1')->group(function () {
             Route::get('account/{id}', [CompanyController::class, 'getSingleCompanyAccount']);
             Route::put('account/{id}', [CompanyController::class, 'updateCompanyAccount']);
             Route::delete('account/{id}', [CompanyController::class, 'deleteCompanyAccount']);
+
+
+
+
+            // LEAVES
+            Route::get('leaves', [LeavesAndHolidayController::class, 'getLeaves']);
+            Route::post('leaves', [LeavesAndHolidayController::class, 'createLeave']);
+            Route::put('leaves/{id}', [LeavesAndHolidayController::class, 'updateLeave']);
+            Route::delete('leaves/{id}', [LeavesAndHolidayController::class, 'deleteLeave']);
+
+            // HOLIDAYS
+            Route::get('holidays', [LeavesAndHolidayController::class, 'getHolidays']);
+            Route::post('holidays', [LeavesAndHolidayController::class, 'createHoliday']);
+            Route::put('holidays/{id}', [LeavesAndHolidayController::class, 'updateHoliday']);
+            Route::delete('holidays/{id}', [LeavesAndHolidayController::class, 'deleteHoliday']);
         });
 
 

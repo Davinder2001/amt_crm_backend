@@ -156,6 +156,7 @@ class InvoicesController extends Controller
             'payment_method'         => 'required|string',
             'creditPaymentType'      => 'nullable|in:partial,full',
             'partialAmount'          => 'nullable|numeric|min:0',
+            'credit_note'                => 'nullable|string',
 
             'item_type'              => 'nullable|string',
             'delivery_charge'        => 'nullable|numeric|min:0',
@@ -321,6 +322,7 @@ class InvoicesController extends Controller
                 'delivery_pincode'          => $data['pincode'] ?? null,
                 'final_amount'              => $finalAmount,
                 'payment_method'            => $data['payment_method'],
+                'payment_method'            => $data['credit_note'],
                 'issued_by'                 => $issuedById,
                 'issued_by_name'            => $issuedByName,
                 'company_id'                => $selectedCompany->company_id,
