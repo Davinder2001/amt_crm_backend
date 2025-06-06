@@ -27,4 +27,9 @@ class Payment extends Model
         'refund_reason',
         'decline_reason',
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }

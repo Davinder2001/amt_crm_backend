@@ -7,6 +7,8 @@ use App\Models\Payment;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
+use App\Models\User;
+use App\Notifications\SystemNotification;
 use App\Services\SelectedCompanyService;
 use Illuminate\Support\Facades\Validator;
 
@@ -14,6 +16,10 @@ use App\Http\Resources\PaymentAndBillingResource;
 
 class PaymentAndBillingController extends Controller
 {
+    /**
+     * Get the billing information for the currently authenticated user.
+     *
+     */
     public function adminBilling()
     {
         $userId = Auth::id();
@@ -27,8 +33,10 @@ class PaymentAndBillingController extends Controller
     }
 
 
-
-
+    /**
+     * Upgrade the package for the currently selected company.
+     *
+     */
     public function upgradePackage(Request $request)
     {
         // dd($id);
@@ -40,8 +48,10 @@ class PaymentAndBillingController extends Controller
         dd($canSubscribe);
     }
 
-
-
+    /**
+     * Request a refund for a payment by transaction ID.
+     *
+     */
     public function refundRequest(Request $request, $transaction_id)
     {
         $validator = Validator::make($request->all(), [
@@ -57,9 +67,16 @@ class PaymentAndBillingController extends Controller
         }
 
         $data = $validator->validated();
+        $superAdmins = User::withoutGlobalScopes()->role('super-admin')->get();
+
+        if (!$superAdmins) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No super admins found to notify.',
+            ], 404);
+        };
 
         $payment = Payment::where('transaction_id', $transaction_id)->first();
-
 
         if (!$payment) {
             return response()->json([
@@ -76,7 +93,6 @@ class PaymentAndBillingController extends Controller
             ], 400);
         }
 
-
         if (!is_null($payment->refund)) {
             return response()->json([
                 'success' => false,
@@ -85,9 +101,18 @@ class PaymentAndBillingController extends Controller
             ], 400);
         }
 
-        $payment->refund = 'refund processed';
+        $payment->refund = 'request processed';
         $payment->refund_reason = $data['reason'];
         $payment->save();
+
+        foreach ($superAdmins as $admin) {
+            $admin->notify(new SystemNotification(
+                'Refund Request Submitted',
+                "A refund request was submitted for transaction #{$transaction_id}.",
+                'warning',
+                url("/admin/refunds/{$payment->id}")
+            ));
+        }
 
         return response()->json([
             'success' => true,
@@ -97,6 +122,10 @@ class PaymentAndBillingController extends Controller
     }
 
 
+    /**
+     * Get all refund requests with optional filters.
+     *
+     */
     public function getRefundRequests(Request $request)
     {
         $query = Payment::query();
@@ -120,10 +149,13 @@ class PaymentAndBillingController extends Controller
         ]);
     }
 
-
-
+    /**
+     * Approve a refund request by transaction ID.
+     *
+     */
     public function approveRefundRequest($transactionId)
     {
+
         $payment = Payment::where('transaction_id', $transactionId)->first();
 
         if (!$payment) {
@@ -133,7 +165,7 @@ class PaymentAndBillingController extends Controller
             ], 404);
         }
 
-        if ($payment->refund !== 'refund processed') {
+        if ($payment->refund !== 'request processed') {
             return response()->json([
                 'success' => false,
                 'message' => 'Only processed refund requests can be approved.',
@@ -144,6 +176,15 @@ class PaymentAndBillingController extends Controller
         $payment->refund = 'refund approved';
         $payment->save();
 
+        if ($payment->user) {
+            $payment->user->notify(new SystemNotification(
+                'Refund Approved',
+                "Your refund request for transaction #{$transactionId} has been approved.",
+                'success',
+                url("/user/payments/{$payment->id}")
+            ));
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Refund request approved successfully.',
@@ -152,6 +193,10 @@ class PaymentAndBillingController extends Controller
     }
 
 
+    /**
+     * Mark a refund as completed.
+     *
+     */
     public function markRefunded($transactionId)
     {
         $payment = Payment::where('transaction_id', $transactionId)->first();
@@ -163,7 +208,7 @@ class PaymentAndBillingController extends Controller
             ], 404);
         }
 
-        if ($payment->refund !== 'refund_approved') {
+        if ($payment->refund !== 'refund approved') {
             return response()->json([
                 'success' => false,
                 'message' => 'Only approved refund requests can be marked as refunded.',
@@ -174,6 +219,15 @@ class PaymentAndBillingController extends Controller
         $payment->refund = 'refunded';
         $payment->save();
 
+        if ($payment->user) {
+            $payment->user->notify(new SystemNotification(
+                'Refund Completed',
+                "Your refund for transaction #{$transactionId} has been successfully processed.",
+                'success',
+                url("/user/payments/{$payment->id}")
+            ));
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Refund marked as completed.',
@@ -181,9 +235,10 @@ class PaymentAndBillingController extends Controller
         ]);
     }
 
-
-
-
+    /**
+     * Decline a refund request.
+     *
+     */
     public function declineRefundRequest(Request $request, $transactionId)
     {
         $validator = Validator::make($request->all(), [
@@ -207,7 +262,7 @@ class PaymentAndBillingController extends Controller
             ], 404);
         }
 
-        if ($payment->refund !== 'refund processed') {
+        if ($payment->refund !== 'request processed') {
             return response()->json([
                 'success' => false,
                 'message' => 'Refund cannot be declined in current state.',
@@ -218,6 +273,15 @@ class PaymentAndBillingController extends Controller
         $payment->refund = 'refund declined';
         $payment->decline_reason = $request->input('reason');
         $payment->save();
+
+        if ($payment->user) {
+            $payment->user->notify(new SystemNotification(
+                'Refund Declined',
+                "Your refund request for transaction #{$transactionId} has been declined. Reason: " . $request->input('reason'),
+                'error',
+                url("/user/payments/{$payment->id}")
+            ));
+        }
 
         return response()->json([
             'success' => true,
