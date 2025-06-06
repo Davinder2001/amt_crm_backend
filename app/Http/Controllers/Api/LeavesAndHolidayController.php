@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Models\Leave;
 use App\Models\Holiday;
+use Carbon\Carbon;
 use App\Http\Resources\LeaveResource;
 use App\Http\Resources\HolidayResource;
 use App\Services\SelectedCompanyService;
@@ -106,25 +107,71 @@ class LeavesAndHolidayController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'type' => 'required|in:monthly,weekly,general',
+            'day'  => 'required|date',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $company = SelectedCompanyService::getSelectedCompanyOrFail();
+        $company         = SelectedCompanyService::getSelectedCompanyOrFail();
+        $validated       = $validator->validated();
+        $createdHolidays = [];
 
-        $holiday = Holiday::create([
-            'company_id' => $company->company->id,
-            'name'       => $request->input('name'),
-            'type'       => $request->input('type'),
-        ]);
+        $year = now()->year;
+        $name = $validated['name'];
+        $type = $validated['type'];
+        $day  = Carbon::parse($validated['day']);
+
+        if ($type === 'weekly') {
+
+            $weekday = $day->dayOfWeek;
+            $start   = Carbon::create($year, 1, 1);
+            $end     = Carbon::create($year, 12, 31);
+
+            while ($start->lte($end)) {
+                if ($start->dayOfWeek === $weekday) {
+                    $createdHolidays[] = Holiday::create([
+                        'company_id' => $company->company->id,
+                        'name'       => $name,
+                        'type'       => $type,
+                        'day'        => $start->copy()->toDateString(),
+                    ]);
+                }
+                $start->addDay();
+            }
+        } elseif ($type === 'monthly') {
+            $dayOfMonth = $day->day;
+
+            for ($month = 1; $month <= 12; $month++) {
+                try {
+                    $date = Carbon::create($year, $month, $dayOfMonth);
+                    $createdHolidays[] = Holiday::create([
+                        'company_id' => $company->company->id,
+                        'name'       => $name,
+                        'type'       => $type,
+                        'day'        => $date->toDateString(),
+                    ]);
+                } catch (\Exception $e) {
+                    continue;
+                }
+            }
+        } else {
+
+            $createdHolidays[] = Holiday::create([
+                'company_id' => $company->company->id,
+                'name'       => $name,
+                'type'       => $type,
+                'day'        => $day->toDateString(),
+            ]);
+        }
 
         return response()->json([
-            'message' => 'Holiday created successfully.',
-            'data'    => new HolidayResource($holiday),
+            'message' => 'Holiday(s) created successfully.',
+            'data'    => HolidayResource::collection($createdHolidays),
         ]);
     }
+
 
     public function updateHoliday(Request $request, $id)
     {
@@ -133,22 +180,77 @@ class LeavesAndHolidayController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'sometimes|required|string|max:255',
             'type' => 'sometimes|required|in:monthly,weekly,general',
+            'day'  => 'sometimes|required|date',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $holiday->update([
-            'name' => $request->input('name', $holiday->name),
-            'type' => $request->input('type', $holiday->type),
-        ]);
+        $validated = $validator->validated();
+        $companyId = $holiday->company_id;
+        $name      = $validated['name'] ?? $holiday->name;
+        $type      = $validated['type'] ?? $holiday->type;
+        $day       = isset($validated['day']) ? Carbon::parse($validated['day']) : Carbon::parse($holiday->day);
+
+        $createdHolidays = [];
+
+        if (in_array($type, ['weekly', 'monthly'])) {
+           
+            Holiday::where('company_id', $companyId)->where('type', $holiday->type)->where('name', $holiday->name)->delete();
+
+            $year = now()->year;
+
+            if ($type === 'weekly') {
+                $weekday = $day->dayOfWeek;
+
+                $start = Carbon::create($year, 1, 1);
+                $end   = Carbon::create($year, 12, 31);
+
+                while ($start->lte($end)) {
+                    if ($start->dayOfWeek === $weekday) {
+                        $createdHolidays[] = Holiday::create([
+                            'company_id' => $companyId,
+                            'name'       => $name,
+                            'type'       => $type,
+                            'day'        => $start->copy()->toDateString(),
+                        ]);
+                    }
+                    $start->addDay();
+                }
+            } elseif ($type === 'monthly') {
+                $dayOfMonth = $day->day;
+
+                for ($month = 1; $month <= 12; $month++) {
+                    try {
+                        $date = Carbon::create($year, $month, $dayOfMonth);
+                        $createdHolidays[] = Holiday::create([
+                            'company_id' => $companyId,
+                            'name'       => $name,
+                            'type'       => $type,
+                            'day'        => $date->toDateString(),
+                        ]);
+                    } catch (\Exception $e) {
+                        continue;
+                    }
+                }
+            }
+        } else {
+            $holiday->update([
+                'name' => $name,
+                'type' => $type,
+                'day'  => $day->toDateString(),
+            ]);
+
+            $createdHolidays[] = $holiday;
+        }
 
         return response()->json([
             'message' => 'Holiday updated successfully.',
-            'data'    => new HolidayResource($holiday),
+            'data'    => HolidayResource::collection($createdHolidays),
         ]);
     }
+
 
     public function deleteHoliday($id)
     {
@@ -156,5 +258,23 @@ class LeavesAndHolidayController extends Controller
         $holiday->delete();
 
         return response()->json(['message' => 'Holiday deleted successfully.']);
+    }
+
+    public function bulkDeleteHolidays(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer|exists:holidays,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $deletedCount = Holiday::whereIn('id', $request->ids)->delete();
+
+        return response()->json([
+            'message' => "$deletedCount holiday(s) deleted successfully.",
+        ]);
     }
 }

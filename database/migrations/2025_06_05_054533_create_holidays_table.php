@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('holidays', function (Blueprint $table) {
             $table->id();
             $table->string('name');
+            $table->date('day');
             $table->enum('type', ['monthly', 'weekly', 'general']);
             $table->foreignId('company_id')->constrained('companies')->onDelete('cascade');
             $table->timestamps();

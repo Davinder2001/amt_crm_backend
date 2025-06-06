@@ -7,6 +7,7 @@ use App\Models\Payment;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 use App\Models\User;
 use App\Notifications\SystemNotification;
 use App\Services\SelectedCompanyService;
@@ -67,6 +68,7 @@ class PaymentAndBillingController extends Controller
         }
 
         $data = $validator->validated();
+
         $superAdmins = User::withoutGlobalScopes()->role('super-admin')->get();
 
         if (!$superAdmins) {
@@ -93,6 +95,7 @@ class PaymentAndBillingController extends Controller
             ], 400);
         }
 
+
         if (!is_null($payment->refund)) {
             return response()->json([
                 'success' => false,
@@ -100,6 +103,22 @@ class PaymentAndBillingController extends Controller
                 'refund_status' => $payment->refund,
             ], 400);
         }
+
+        $paymentDateTime = Carbon::parse("{$payment->payment_date} {$payment->payment_time}");
+
+        $now = now();
+        $diffInDays = $paymentDateTime->diffInDays($now);
+
+
+        if ($diffInDays > 15) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Refund requests can only be made within 15 days of payment.',
+                'payment_date' => $payment->payment_date,
+                'payment_time' => $payment->payment_time,
+            ], 400);
+        }
+
 
         $payment->refund = 'request processed';
         $payment->refund_reason = $data['reason'];
