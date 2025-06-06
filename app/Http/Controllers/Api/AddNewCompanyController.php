@@ -12,9 +12,11 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Role;
 use App\Models\Company;
+use App\Models\Tax;
 use App\Models\Payment;
 use App\Models\CompanyUser;
 use App\Models\Package;
+use App\Models\Shift;
 use App\Services\CompanyIdService;
 
 class AddNewCompanyController extends Controller
@@ -164,7 +166,6 @@ class AddNewCompanyController extends Controller
         }
 
         $data            = $validator->validated();
-        // dd($data);
         $recoadedPayment = Company::where('order_id', $orderId)->where('payment_recoad_status', 'recorded')->first();
 
         if ($recoadedPayment) {
@@ -281,7 +282,7 @@ class AddNewCompanyController extends Controller
             'subscription_type'     => $data['subscription_type'],
             'business_category'     => $data['business_category_id'],
             'company_slug'          => $slug,
-            'payment_status'        => 'completed',
+            'payment_status'        => $status ,
             'order_id'              => $orderId,
             'transation_id'         => $statusResponse['orderId'],
             'payment_recoad_status' => 'recorded',
@@ -304,14 +305,38 @@ class AddNewCompanyController extends Controller
             'user_type'  => 'admin'
         ]);
 
-        $role = Role::firstOrCreate([
-            'name'       => 'admin',
-            'guard_name' => 'web',
+        Tax::create([
             'company_id' => $company->id,
+            'name'       => 'GST',
+            'rate'       => 18,
+        ]);
+
+        Shift::create([
+            'company_id'     => $company->id,
+            'shift_name'     => 'General Shift',
+            'start_time'     => '09:00:00',
+            'end_time'       => '18:00:00',
+            'weekly_off_day' => 'Sunday',
         ]);
 
 
-        $user->assignRole($role);
+        $roles = ['admin', 'employee', 'hr', 'supervisor', 'sales'];
+
+        foreach ($roles as $roleName) {
+            Role::firstOrCreate([
+                'name'       => $roleName,
+                'guard_name' => 'web',
+                'company_id' => $company->id,
+            ]);
+        }
+
+        $adminRole = Role::where([
+            'name'       => 'admin',
+            'guard_name' => 'web',
+            'company_id' => $company->id,
+        ])->first();
+
+        $user->assignRole($adminRole);
 
         return response()->json([
             'success' => true,

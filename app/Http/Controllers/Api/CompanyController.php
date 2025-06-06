@@ -226,9 +226,8 @@ class CompanyController extends Controller
      */
     public function getCompanyAccounts()
     {
-        $company = SelectedCompanyService::getSelectedCompanyOrFail();
-
-        $accounts = CompanyAccount::where('company_id', $company->id)->get();
+        $company  = SelectedCompanyService::getSelectedCompanyOrFail();
+        $accounts = CompanyAccount::where('company_id', $company->company->id)->get();
 
         return response()->json([
             'accounts' => $accounts,
@@ -258,7 +257,7 @@ class CompanyController extends Controller
         $validated = $validator->validated();
 
         $account = new CompanyAccount([
-            'company_id'     => $company->id,
+            'company_id'     => $company->company->id,
             'bank_name'      => $validated['bank_name'],
             'account_number' => $validated['account_number'],
             'ifsc_code'      => $validated['ifsc_code'],
@@ -312,7 +311,7 @@ class CompanyController extends Controller
         }
 
         $company = SelectedCompanyService::getSelectedCompanyOrFail(); // must return Company
-        $account = CompanyAccount::where('company_id', $company->id)->where('id', $id)->firstOrFail();
+        $account = CompanyAccount::where('company_id', $company->company->id)->where('id', $id)->firstOrFail();
 
         $validated = $validator->validated();
 
@@ -344,8 +343,8 @@ class CompanyController extends Controller
     public function deleteCompanyAccount($id)
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $company         = Company::findOrFail($selectedCompany->company_id); 
-        $account         = CompanyAccount::where('company_id', $company->id)->where('id', $id)->firstOrFail();
+        $company         = Company::findOrFail($selectedCompany->company->id); 
+        $account         = CompanyAccount::where('company_id', $company->company->id)->where('id', $id)->firstOrFail();
 
         $account->delete();
 
