@@ -37,8 +37,8 @@ class RoleController extends Controller
             'permissions'   => 'nullable|array',
             'permissions.*' => 'string|exists:permissions,name',
         ]);
-        
-            $roleExists = Role::where('name', $request->name)
+
+        $roleExists = Role::where('name', $request->name)
             ->where('company_id', $request->company_id)
             ->exists();
 
@@ -57,7 +57,7 @@ class RoleController extends Controller
 
 
         $company = SelectedCompanyService::getCompanyIdOrFail();
-    
+
         $data               = $validator->validated();
         $data['guard_name'] = $data['guard_name'] ?? 'web';
         $data['company_id'] = $company;
@@ -86,7 +86,6 @@ class RoleController extends Controller
             'message' => 'Roles retrieved successfully.',
             'roles'   => $role,
         ], 200);
-        
     }
 
     /**
@@ -94,7 +93,7 @@ class RoleController extends Controller
      */
     public function update(Request $request, Role $role)
     {
-        
+
         $validator = Validator::make($request->all(), [
             'name'          => 'required|string|unique:roles,name,' . $role->id,
             'guard_name'    => 'nullable|string',
@@ -126,21 +125,29 @@ class RoleController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Role $role)
+    public function destroy($id)
     {
+        $role = Role::find($id);
+
+        if (!$role) {
+            return response()->json([
+                'message' => 'Role not found.',
+            ], 404);
+        }
+
         if (strtolower($role->name) === 'admin') {
             return response()->json([
                 'message' => 'The Admin role cannot be deleted.',
             ], 403);
         }
-    
+
         $role->delete();
-    
+
         return response()->json([
             'message' => 'Role deleted successfully.',
         ], 200);
     }
-    
+
     /**
      * Get the company ID of the authenticated user or fail if not found.
      */
@@ -155,6 +162,6 @@ class RoleController extends Controller
             ], 422));
         }
 
-        return $company->company_id; 
+        return $company->company_id;
     }
 }

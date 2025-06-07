@@ -121,4 +121,24 @@ class ShiftsController extends Controller
             'message' => 'Shift updated successfully.'
         ], 200);
     }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy($id)
+    {
+        $shift = Shift::find($id);
+
+        if (!$shift) {
+            return response()->json([
+                'message' => 'Shift not found.'
+            ], 404);
+        }
+
+        $shift->delete();
+
+        return response()->json([
+            'message' => 'Shift deleted successfully.'
+        ], 200);
+    }
 }

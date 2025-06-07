@@ -104,20 +104,19 @@ class PaymentAndBillingController extends Controller
             ], 400);
         }
 
-        $paymentDateTime = Carbon::parse("{$payment->payment_date} {$payment->payment_time}");
-
-        $now = now();
-        $diffInDays = $paymentDateTime->diffInDays($now);
-
+        $paymentDate     = $payment->payment_date;
+        $now             = now()->startOfDay();
+        $paymentDateOnly = Carbon::createFromFormat('d/m/Y', $paymentDate)->startOfDay();
+        $diffInDays      = $paymentDateOnly->diffInDays($now);
 
         if ($diffInDays > 15) {
             return response()->json([
                 'success' => false,
                 'message' => 'Refund requests can only be made within 15 days of payment.',
-                'payment_date' => $payment->payment_date,
-                'payment_time' => $payment->payment_time,
+                'payment_date' => $paymentDate,
             ], 400);
         }
+
 
 
         $payment->refund = 'request processed';

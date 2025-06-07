@@ -293,8 +293,10 @@ Route::prefix('v1')->group(function () {
         Route::prefix('shifts')->group(function () {
             Route::get('/', [ShiftsController::class, 'index']);
             Route::post('/', [ShiftsController::class, 'store']);
-            Route::put('/', [ShiftsController::class, 'update']);
-            Route::get('{id}', [ShiftsController::class, 'show']);
+            Route::get('/{id}', [ShiftsController::class, 'show']);
+            // Route::put('/{id}', [ShiftsController::class, 'update']);        
+            Route::match(['put', 'patch'], '/{id}', [ShiftsController::class, 'update']);
+            Route::delete('{id}', [ShiftsController::class, 'destroy']);
         });
 
 
@@ -400,9 +402,9 @@ Route::prefix('v1')->group(function () {
         Route::prefix('taxes')->group(function () {
             Route::get('/', [ItemTaxController::class, 'index']);
             Route::post('/', [ItemTaxController::class, 'store']);
-            Route::get('/{tax}', [ItemTaxController::class, 'show']);
-            Route::put('/{tax}', [ItemTaxController::class, 'update']);
-            Route::delete('/{tax}', [ItemTaxController::class, 'destroy']);
+            Route::get('/{id}', [ItemTaxController::class, 'show']);
+            Route::put('/{id}', [ItemTaxController::class, 'update']);
+            Route::delete('/{id}', [ItemTaxController::class, 'destroy']);
         });
 
         // Predefined Tasks API's

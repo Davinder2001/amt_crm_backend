@@ -97,13 +97,22 @@ class ItemTaxController extends Controller
             'data' => new TaxResource($tax)
         ]);
     }
-    
+
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Tax $tax)
+    public function destroy($id)
     {
+        $tax = Tax::find($id);
+
+        if (!$tax) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tax not found'
+            ], 404);
+        }
+
         $tax->delete();
 
         return response()->json([
