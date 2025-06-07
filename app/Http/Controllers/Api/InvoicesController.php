@@ -124,13 +124,13 @@ class InvoicesController extends Controller
             $companyLogo = null;
         }
         
-        $creditId = $invoice->id;
-        dd($creditId );
-
+        $invoiceID = $invoice->id;
+        $customerCredits = CustomerCredit::where('invoice_id', $invoiceID)->get();
 
         $pdf = Pdf::loadView('invoices.pdf', [
             'invoice'          => $invoice,
             'company_name'     => $companyName,
+            'customer_credits' => $customerCredits,
             'company_logo'     => $companyLogo,
             'company_address'  => $selectedCompany->company->address ?? 'N/A',
             'company_phone'    => $selectedCompany->company->phone ?? 'N/A',
