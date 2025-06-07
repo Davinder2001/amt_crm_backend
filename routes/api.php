@@ -294,7 +294,6 @@ Route::prefix('v1')->group(function () {
             Route::get('/', [ShiftsController::class, 'index']);
             Route::post('/', [ShiftsController::class, 'store']);
             Route::get('/{id}', [ShiftsController::class, 'show']);
-            // Route::put('/{id}', [ShiftsController::class, 'update']);        
             Route::match(['put', 'patch'], '/{id}', [ShiftsController::class, 'update']);
             Route::delete('{id}', [ShiftsController::class, 'destroy']);
         });

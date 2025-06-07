@@ -28,6 +28,7 @@ class Invoice extends Model
         'delivery_charge',
         'final_amount',
         'payment_method',
+        'bank_account_id',
         'issued_by',
         'issued_by_name',
         'pdf_path',

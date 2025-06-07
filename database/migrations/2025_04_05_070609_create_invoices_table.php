@@ -16,7 +16,7 @@ class CreateInvoicesTable extends Migration
             $table->string('client_phone')->nullable();
             $table->string('client_email')->nullable();
             $table->date('invoice_date');
-
+            
             // Use double for unlimited numeric size
             $table->double('total_amount');
             $table->double('sub_total');
@@ -26,7 +26,7 @@ class CreateInvoicesTable extends Migration
             $table->double('service_charge_percent')->default(0);
             $table->double('service_charge_gst')->default(0);
             $table->double('service_charge_final')->default(0);
-
+            
             $table->double('discount_amount')->default(0);
             $table->double('discount_percentage')->default(0);
             
@@ -36,6 +36,7 @@ class CreateInvoicesTable extends Migration
             $table->double('final_amount');
             
             $table->enum('payment_method', ['cash', 'online', 'card', 'credit', 'self'])->nullable();
+            $table->foreignId('bank_account_id')->constrained('company_accounts')->onDelete('cascade');
             $table->string('credit_note')->nullable();
             $table->foreignId('issued_by')->constrained('users')->onDelete('cascade');
             $table->string('issued_by_name')->nullable();
