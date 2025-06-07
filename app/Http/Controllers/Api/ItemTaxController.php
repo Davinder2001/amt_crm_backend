@@ -74,8 +74,17 @@ class ItemTaxController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Tax $tax)
+    public function update(Request $request, $id)
     {
+        $tax = Tax::find($id);
+
+        if (!$tax) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tax not found.'
+            ], 404);
+        }
+
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'rate' => 'required|numeric|min:0',
@@ -97,6 +106,7 @@ class ItemTaxController extends Controller
             'data' => new TaxResource($tax)
         ]);
     }
+
 
 
     /**

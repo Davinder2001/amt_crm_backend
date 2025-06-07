@@ -117,12 +117,15 @@ class InvoicesController extends Controller
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
         $companyName     = $selectedCompany->company->company_name;
         $logoFile        = $selectedCompany->company->company_logo;
-
+        
         if (!empty($logoFile) && !is_dir(public_path($logoFile))) {
             $companyLogo = public_path($logoFile);
         } else {
             $companyLogo = null;
         }
+        
+        $creditId = $invoice->id;
+        dd($creditId );
 
 
         $pdf = Pdf::loadView('invoices.pdf', [
@@ -323,8 +326,8 @@ class InvoicesController extends Controller
                 'delivery_pincode'          => $data['pincode'] ?? null,
                 'final_amount'              => $finalAmount,
                 'payment_method'            => $data['payment_method'],
-                'bank_account_id'            => $data['bank_account_id'],
-                'payment_method'            => $data['credit_note'],
+                'bank_account_id'            => $data['bank_account_id'] ?? null,
+                'credit_note'            => $data['credit_note'],
                 'issued_by'                 => $issuedById,
                 'issued_by_name'            => $issuedByName,
                 'company_id'                => $selectedCompany->company_id,

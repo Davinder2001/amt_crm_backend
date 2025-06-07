@@ -163,7 +163,8 @@
                 @if ($invoice->discount_amount > 0)
                     <tr>
                         <td><strong>Discount:</strong></td>
-                        <td>- ₹{{ number_format($invoice->discount_amount, 2) }} / {{ $invoice->discount_percentage }}%</td>
+                        <td>- ₹{{ number_format($invoice->discount_amount, 2) }} /
+                            {{ $invoice->discount_percentage }}%</td>
                     </tr>
                 @endif
                 @if (!empty($invoice->tax_amount) && $invoice->tax_amount > 0)
@@ -183,6 +184,14 @@
                     <td><strong>- ₹{{ number_format($invoice->final_amount, 2) }}</strong></td>
                 </tr>
             </table>
+
+            @if (strtolower($invoice->payment_method) === 'credit')
+                @if ($invoice->payment_method)
+                    <p style="">
+                        This is a <u>Credit Note</u><br>Payment is pending.
+                    </p>
+                @endif
+            @endif
 
             @if (!empty($show_signature))
                 <div class="signature">
