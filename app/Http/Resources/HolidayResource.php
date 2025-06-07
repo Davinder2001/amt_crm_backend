@@ -14,6 +14,7 @@ class HolidayResource extends JsonResource
             'company_id' => $this->company_id,
             'name'       => $this->name,
             'type'       => $this->type,
+            'day'        => $this->day,
         ];
     }
 }
