@@ -27,10 +27,11 @@ class CustomerCreditResource extends JsonResource
             'total_due'  => number_format($credits->sum('outstanding'), 2, '.', ''),
             'credits'    => $credits->map(function ($credit) {
                 return [
+                    'invoice_id'     => $credit->invoice_id,
+                    'credit_id'      => $credit->id,
                     'invoice_number' => $credit->invoice->invoice_number,
                     'invoice_date'   => $credit->invoice->invoice_date,
                     'final_amount'   => $credit->invoice->final_amount,
-                    'credit_id'      => $credit->id,
                     'status'         => $credit->status,
                     'amount_paid'    => $credit->amount_paid,
                     'outstanding'    => $credit->outstanding,
