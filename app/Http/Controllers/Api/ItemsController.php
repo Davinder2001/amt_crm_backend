@@ -664,7 +664,6 @@ class ItemsController extends Controller
         return Excel::download($export, 'items_export.xlsx');
     }
 
-
     public function importInline(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -683,10 +682,9 @@ class ItemsController extends Controller
         $companyId       = $selectedCompany->company_id;
 
         try {
-            $path = $request->file('file')->getRealPath();
-            $rows = Excel::toArray([], $path)[0];
+            $rows = Excel::toArray([], $request->file('file'))[0];
 
-            unset($rows[0]);
+            unset($rows[0]); // Skip header row
 
             foreach ($rows as $row) {
                 if (!isset($row[0]) || empty($row[0])) continue;
@@ -722,6 +720,7 @@ class ItemsController extends Controller
             ], 500);
         }
     }
+
 
 
 
