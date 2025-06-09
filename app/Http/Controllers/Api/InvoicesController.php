@@ -680,7 +680,7 @@ class InvoicesController extends Controller
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
 
         $invoices = Invoice::where('company_id', $selectedCompany->company_id)
-            ->where('payment_method', 'self consumption')
+            ->where('payment_method', 'self')
             ->get();
 
         $grouped = $invoices->groupBy('invoice_date')->map(function ($dateGroup, $date) {

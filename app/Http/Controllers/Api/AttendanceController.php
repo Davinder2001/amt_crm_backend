@@ -142,110 +142,115 @@ class AttendanceController extends Controller
     /**
      * Applay for leave current day.
      */
-    public function applyForLeave(Request $request): JsonResponse
-    {
-        $user = $request->user();
-        $activeCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+  public function applyForLeave(Request $request): JsonResponse
+{
+    $user = $request->user();
+    $activeCompany = SelectedCompanyService::getSelectedCompanyOrFail();
 
-        if (!$activeCompany) {
-            return response()->json([
-                'message' => 'User is not associated with any company.',
-            ], 422);
-        }
-
-        $validator = Validator::make($request->all(), [
-            'dates' => 'required|array|min:1',
-            'dates.*' => 'required|date|date_format:Y-m-d',
-            'leave_type' => 'required|integer|exists:leaves,id',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation failed.',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
-        $leave = Leave::find($validated['leave_type']);
-
-        if (!$leave) {
-            return response()->json([
-                'message' => 'Leave type not found.',
-            ], 404);
-        }
-
-        // Count used leaves
-        $usedLeaveCount = LeaveApplication::where('user_id', $user->id)
-            ->where('leave_id', $leave->id)
-            ->where('company_id', $activeCompany->company_id)
-            ->count();
-
-        $availableLeaves = $leave->count - $usedLeaveCount;
-        $requestedLeaveCount = count($validated['dates']);
-
-        if ($availableLeaves <= 0) {
-            return response()->json([
-                'message' => "No {$leave->name} leaves remaining.",
-            ], 422);
-        }
-
-        if ($requestedLeaveCount > $availableLeaves) {
-            return response()->json([
-                'message' => "Only {$availableLeaves} {$leave->name} leave(s) remaining. You requested {$requestedLeaveCount}.",
-            ], 422);
-        }
-
-        $appliedLeaves = [];
-        $skippedDates = [];
-
-        foreach ($validated['dates'] as $date) {
-            $alreadyApplied = LeaveApplication::where('user_id', $user->id)
-                ->where('leave_date', $date)
-                ->where('leave_id', $leave->id)
-                ->exists();
-
-            if ($alreadyApplied) {
-                $skippedDates[] = $date;
-                continue;
-            }
-
-            // Create attendance first
-            $attendance = Attendance::firstOrCreate(
-                [
-                    'user_id' => $user->id,
-                    'attendance_date' => $date,
-                ],
-                [
-                    'company_id' => $activeCompany->company_id,
-                    'status' => 'leave',
-                    'approval_status' => 'pending',
-                    'clock_in' => '-',
-                    'clock_out' => '-',
-                    'clock_in_image' => null,
-                    'clock_out_image' => null,
-                ]
-            );
-
-            // Create leave application and link to attendance
-            $leaveApp = LeaveApplication::create([
-                'user_id' => $user->id,
-                'company_id' => $activeCompany->company_id,
-                'leave_id' => $leave->id,
-                'leave_date' => $date,
-                'status' => 'pending',
-                'attendance_id' => $attendance->id,
-            ]);
-
-            $appliedLeaves[] = $leaveApp;
-        }
-
+    if (!$activeCompany) {
         return response()->json([
-            'message' => 'Leave application processed.',
-            'applied' => $appliedLeaves,
-            'already_exist' => $skippedDates,
-        ]);
+            'message' => 'User is not associated with any company.',
+        ], 422);
     }
+
+    $validator = Validator::make($request->all(), [
+        'dates' => 'required|array|min:1',
+        'dates.*' => 'required|date|date_format:Y-m-d',
+        'leave_type' => 'required|integer|exists:leaves,id',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'message' => 'Validation failed.',
+            'errors' => $validator->errors(),
+        ], 422);
+    }
+
+    $validated = $validator->validated();
+    $leave = Leave::find($validated['leave_type']);
+
+    if (!$leave) {
+        return response()->json([
+            'message' => 'Leave type not found.',
+        ], 404);
+    }
+
+    // Apply frequency filter
+    $leaveQuery = LeaveApplication::where('user_id', $user->id)
+        ->where('leave_id', $leave->id)
+        ->where('company_id', $activeCompany->company_id);
+
+    if ($leave->frequency === 'monthly') {
+        $leaveQuery->whereMonth('leave_date', now()->month)
+                   ->whereYear('leave_date', now()->year);
+    } elseif ($leave->frequency === 'yearly') {
+        $leaveQuery->whereYear('leave_date', now()->year);
+    }
+
+    $usedLeaveCount      = $leaveQuery->count();
+    $availableLeaves     = $leave->count - $usedLeaveCount;
+    $requestedLeaveCount = count($validated['dates']);
+
+    if ($availableLeaves <= 0) {
+        return response()->json([
+            'message' => "No {$leave->name} leaves remaining.",
+        ], 422);
+    }
+
+    if ($requestedLeaveCount > $availableLeaves) {
+        return response()->json([
+            'message' => "Only {$availableLeaves} {$leave->name} leave(s) remaining. You requested {$requestedLeaveCount}.",
+        ], 422);
+    }
+
+    $appliedLeaves = [];
+    $skippedDates = [];
+
+    foreach ($validated['dates'] as $date) {
+        $alreadyApplied = LeaveApplication::where('user_id', $user->id)
+            ->where('leave_date', $date)
+            ->where('leave_id', $leave->id)
+            ->exists();
+
+        if ($alreadyApplied) {
+            $skippedDates[] = $date;
+            continue;
+        }
+
+        $attendance = Attendance::firstOrCreate(
+            [
+                'user_id' => $user->id,
+                'attendance_date' => $date,
+            ],
+            [
+                'company_id' => $activeCompany->company_id,
+                'status' => 'leave',
+                'approval_status' => 'pending',
+                'clock_in' => '-',
+                'clock_out' => '-',
+                'clock_in_image' => null,
+                'clock_out_image' => null,
+            ]
+        );
+
+        $leaveApp = LeaveApplication::create([
+            'user_id' => $user->id,
+            'company_id' => $activeCompany->company_id,
+            'leave_id' => $leave->id,
+            'leave_date' => $date,
+            'status' => 'pending',
+            'attendance_id' => $attendance->id,
+        ]);
+
+        $appliedLeaves[] = $leaveApp;
+    }
+
+    return response()->json([
+        'message' => 'Leave application processed.',
+        'applied' => $appliedLeaves,
+        'already_exist' => $skippedDates,
+    ]);
+}
 
 
 
