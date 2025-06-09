@@ -270,6 +270,7 @@ Route::prefix('v1')->group(function () {
         // Attendance API's
         Route::prefix('attendance')->group(function () {
             Route::get('/summary', [AttendanceController::class, 'getAttendanceSummary']);
+            Route::get('/balance-leave', [AttendanceController::class, 'getLeaveBalance']);
             Route::get('/all', [AttendanceController::class, 'getAllAttendance']);
             Route::get('/my', [AttendanceController::class, 'myAttendance']);
             Route::post('/', [AttendanceController::class, 'recordAttendance']);

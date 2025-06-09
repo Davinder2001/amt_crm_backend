@@ -8,6 +8,7 @@ use App\Models\Item;
 use Illuminate\Support\Facades\Log;
 use App\Models\Customer;
 use App\Models\Package;
+use App\Models\CompanyAccount;
 use App\Models\ItemVariant;
 use App\Models\CustomerHistory;
 use App\Models\CustomerCredit;
@@ -381,14 +382,15 @@ class InvoicesController extends Controller
 
             $amountPaid = null;
             $totalDue   = null;
+
             if ($data['payment_method'] === 'credit') {
 
                 if ($data['creditPaymentType'] === 'partial') {
                     $amountPaid = $data['partialAmount'];
-                    $totalDue = $finalAmount - $amountPaid;
+                    $totalDue   = $finalAmount - $amountPaid;
                 } elseif ($data['creditPaymentType'] === 'full') {
                     $amountPaid = 0;
-                    $totalDue = $finalAmount;
+                    $totalDue   = $finalAmount;
                 }
             }
 
@@ -558,31 +560,26 @@ class InvoicesController extends Controller
     public function onlinePaymentHistory()
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+        $invoices = Invoice::where('company_id', $selectedCompany->company_id)->where('payment_method', 'online')->get();
 
-        // Get all online-payment invoices
-        $invoices = Invoice::where('company_id', $selectedCompany->company_id)
-            ->where('payment_method', 'online')
-            ->get();
-
-        // Group by bank_account_id and format
         $grouped = $invoices->groupBy('bank_account_id')->map(function ($invoiceGroup, $bankAccountId) {
-            $bankAccount = \App\Models\CompanyAccount::find($bankAccountId);
+            $bankAccount = CompanyAccount::find($bankAccountId);
 
             return [
-                'bank_account_id' => $bankAccountId,
-                'bank_name' => $bankAccount->bank_name ?? 'N/A',
-                'account_number' => $bankAccount->account_number ?? 'N/A',
-                'ifsc_code' => $bankAccount->ifsc_code ?? 'N/A',
+                'bank_account_id'   => $bankAccountId,
+                'bank_name'         => $bankAccount->bank_name ?? 'N/A',
+                'account_number'    => $bankAccount->account_number ?? 'N/A',
+                'ifsc_code'         => $bankAccount->ifsc_code ?? 'N/A',
                 'total_transferred' => $invoiceGroup->sum('final_amount'),
-                'transactions' => $invoiceGroup->map(function ($inv) {
+                'transactions'      => $invoiceGroup->map(function ($inv) {
                     return [
                         'invoice_number' => $inv->invoice_number,
-                        'invoice_date' => $inv->invoice_date,
-                        'amount' => $inv->final_amount,
+                        'invoice_date'   => $inv->invoice_date,
+                        'amount'         => $inv->final_amount,
                     ];
                 })->values()
             ];
-        })->values(); // ensure numeric array for JSON
+        })->values();
 
         return response()->json([
             'status' => true,
@@ -594,10 +591,7 @@ class InvoicesController extends Controller
     public function cashPaymentHistory()
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-
-        $invoices = Invoice::where('company_id', $selectedCompany->company_id)
-            ->where('payment_method', 'cash')
-            ->get();
+        $invoices        = Invoice::where('company_id', $selectedCompany->company_id)->where('payment_method', 'cash')->get();
 
         $grouped = $invoices->groupBy('invoice_date')->map(function ($dateGroup, $date) {
             return [
@@ -623,10 +617,7 @@ class InvoicesController extends Controller
     public function cardPaymentHistory()
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-
-        $invoices = Invoice::where('company_id', $selectedCompany->company_id)
-            ->where('payment_method', 'card')
-            ->get();
+        $invoices = Invoice::where('company_id', $selectedCompany->company_id)->where('payment_method', 'card')->get();
 
         $grouped = $invoices->groupBy('invoice_date')->map(function ($dateGroup, $date) {
             return [
@@ -650,10 +641,7 @@ class InvoicesController extends Controller
     public function creditPaymentHistory()
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-
-        $invoices = Invoice::where('company_id', $selectedCompany->company_id)
-            ->where('payment_method', 'credit')
-            ->get();
+        $invoices = Invoice::where('company_id', $selectedCompany->company_id)->where('payment_method', 'credit')->get();
 
         $grouped = $invoices->groupBy('invoice_date')->map(function ($dateGroup, $date) {
             return [
@@ -662,44 +650,41 @@ class InvoicesController extends Controller
                 'transactions' => $dateGroup->map(function ($inv) {
                     return [
                         'invoice_number' => $inv->invoice_number,
-                        'amount' => $inv->final_amount,
+                        'amount'         => $inv->final_amount,
                     ];
                 })->values()
             ];
         })->values();
 
         return response()->json([
-            'status' => true,
+            'status'         => true,
             'payment_method' => 'credit',
-            'data' => $grouped
+            'data'           => $grouped
         ]);
     }
 
     public function selfConsumptionHistory()
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-
-        $invoices = Invoice::where('company_id', $selectedCompany->company_id)
-            ->where('payment_method', 'self')
-            ->get();
+        $invoices        = Invoice::where('company_id', $selectedCompany->company_id)->where('payment_method', 'self')->get();
 
         $grouped = $invoices->groupBy('invoice_date')->map(function ($dateGroup, $date) {
             return [
-                'date' => $date,
+                'date'  => $date,
                 'total' => $dateGroup->sum('final_amount'),
                 'transactions' => $dateGroup->map(function ($inv) {
                     return [
                         'invoice_number' => $inv->invoice_number,
-                        'amount' => $inv->final_amount,
+                        'amount'         => $inv->final_amount,
                     ];
                 })->values()
             ];
         })->values();
 
         return response()->json([
-            'status' => true,
+            'status'         => true,
             'payment_method' => 'self consumption',
-            'data' => $grouped
+            'data'           => $grouped
         ]);
     }
 }
