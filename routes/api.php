@@ -310,6 +310,8 @@ Route::prefix('v1')->group(function () {
             Route::post('bulk-items', [ItemsController::class, 'storeBulkItems']);
             Route::get('cat-items', [ItemsController::class, 'getItemCatTree']);
 
+            Route::post('items/bulk-delete', [ItemsController::class, 'bulkDeleteItems']);
+
             // Vendors API's
             Route::get('vendors', [StoreVendorController::class, 'index']);
             Route::post('vendors', [StoreVendorController::class, 'store']);
@@ -338,14 +340,17 @@ Route::prefix('v1')->group(function () {
                 Route::post('/{id}/pay', [CreditManagementController::class, 'closeDue']);
             });
 
+            // All payment history API's
+            Route::prefix('/payments-history')->group(function () {
+                Route::get('/online', [InvoicesController::class, 'onlinePaymentHistory']);
+                Route::get('/cash', [InvoicesController::class, 'cashPaymentHistory']);
+                Route::get('/card', [InvoicesController::class, 'cardPaymentHistory']);
+                Route::get('/credit', [InvoicesController::class, 'creditPaymentHistory']);
+                Route::get('/self-consumption', [InvoicesController::class, 'selfConsumptionHistory']);
+            });
 
-            Route::get('/payments-history/online', [InvoicesController::class, 'onlinePaymentHistory']);
-            Route::get('/payments-history/cash', [InvoicesController::class, 'cashPaymentHistory']);
-            Route::get('/payments-history/card', [InvoicesController::class, 'cardPaymentHistory']);
-            Route::get('/payments-history/credit', [InvoicesController::class, 'creditPaymentHistory']);
-            Route::get('/payments-history/self-consumption', [InvoicesController::class, 'selfConsumptionHistory']);
 
-
+            // Invoice API's Basic
             Route::get('/', [InvoicesController::class, 'index']);
             Route::get('/{id}', [InvoicesController::class, 'show']);
             Route::get('/{id}/download', [InvoicesController::class, 'download']);
@@ -448,6 +453,7 @@ Route::prefix('v1')->group(function () {
         });
 
 
+        // Add new company API's
         Route::prefix('add-new-company')->group(function () {
             Route::post('/pay', [AddNewCompanyController::class, 'paymentInitiate']);
             Route::post('/{id}', [AddNewCompanyController::class, 'store']);
@@ -455,6 +461,7 @@ Route::prefix('v1')->group(function () {
 
         Route::get('company-details', [CompanyController::class, 'companyDetails']);
 
+        // Pricing and Packages API's
         Route::prefix('pricing-packages')->group(function () {
             Route::get('/', [PackageController::class, 'index']);
             Route::post('/', [PackageController::class, 'store']);
@@ -477,6 +484,7 @@ Route::prefix('v1')->group(function () {
 
 
 
+        // Payments and refund API's
         Route::prefix('payments')->group(function () {
             Route::get('/', [PaymentAndBillingController::class, 'adminBilling']);
             Route::post('/refund-request/{transaction_id}', [PaymentAndBillingController::class, 'refundRequest']);

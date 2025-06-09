@@ -725,6 +725,40 @@ class ItemsController extends Controller
 
 
 
+    public function bulkDeleteItems(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'item_id' => 'required|array',
+            'item_id.*' => 'integer|exists:store_items,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation errors.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+        $itemIds = $request->input('item_id');
+
+        Item::whereIn('id', $itemIds)
+            ->where('company_id', $selectedCompany->company_id)
+            ->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Items deleted successfully.',
+        ]);
+    }
+
+
+
+
+
+
+
     // public function importInline(Request $request): JsonResponse
     // {
     //     $validator = Validator::make($request->all(), [
