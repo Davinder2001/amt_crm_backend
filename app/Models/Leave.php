@@ -25,9 +25,8 @@ class Leave extends Model
         return $this->belongsTo(Company::class);
     }
 
-        protected static function booted(): void
+    protected static function booted(): void
     {
         static::addGlobalScope(new CompanyScope);
     }
-
 }
