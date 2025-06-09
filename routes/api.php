@@ -339,6 +339,13 @@ Route::prefix('v1')->group(function () {
             });
 
 
+            Route::get('/payments-history/online', [InvoicesController::class, 'onlinePaymentHistory']);
+            Route::get('/payments-history/cash', [InvoicesController::class, 'cashPaymentHistory']);
+            Route::get('/payments-history/card', [InvoicesController::class, 'cardPaymentHistory']);
+            Route::get('/payments-history/credit', [InvoicesController::class, 'creditPaymentHistory']);
+            Route::get('/payments-history/self-consumption', [InvoicesController::class, 'selfConsumptionHistory']);
+
+
             Route::get('/', [InvoicesController::class, 'index']);
             Route::get('/{id}', [InvoicesController::class, 'show']);
             Route::get('/{id}/download', [InvoicesController::class, 'download']);

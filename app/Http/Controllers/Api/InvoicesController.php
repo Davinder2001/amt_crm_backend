@@ -117,13 +117,13 @@ class InvoicesController extends Controller
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
         $companyName     = $selectedCompany->company->company_name;
         $logoFile        = $selectedCompany->company->company_logo;
-        
+
         if (!empty($logoFile) && !is_dir(public_path($logoFile))) {
             $companyLogo = public_path($logoFile);
         } else {
             $companyLogo = null;
         }
-        
+
         $invoiceID = $invoice->id;
         $customerCredits = CustomerCredit::where('invoice_id', $invoiceID)->get();
 
@@ -212,8 +212,6 @@ class InvoicesController extends Controller
             throw new \Exception("You have reached your invoice limit for the {$packageType} package ({$allowedInvoiceCount} invoices).");
         }
 
-
-
         $invoice = DB::transaction(function () use ($data, $selectedCompany, $issuedById, $issuedByName) {
             foreach ($data['items'] as $line) {
                 $item = Item::findOrFail($line['item_id']);
@@ -293,8 +291,6 @@ class InvoicesController extends Controller
                     'pincode'    => $data['pincode'] ?? null,
                 ]
             );
-
-
 
             $companyCode =  $selectedCompany->company->company_id;
             $datePrefix  =  now()->format('Ymd');
@@ -425,6 +421,17 @@ class InvoicesController extends Controller
             'show_signature'   => true,
         ]);
 
+        if (!empty($data['email'])) {
+            Mail::send([], [], function ($message) use ($data, $pdf) {
+                $message->to($data['email'])
+                    ->subject('Invoice')
+                    ->attachData($pdf->output(), 'invoice.pdf', [
+                        'mime' => 'application/pdf',
+                    ]);
+            });
+        }
+
+
         return [$invoice, $pdf->output()];
     }
 
@@ -544,6 +551,155 @@ class InvoicesController extends Controller
         return response()->json([
             'status'  => true,
             'invoice' => $invoice,
+        ]);
+    }
+
+
+    public function onlinePaymentHistory()
+    {
+        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+
+        // Get all online-payment invoices
+        $invoices = Invoice::where('company_id', $selectedCompany->company_id)
+            ->where('payment_method', 'online')
+            ->get();
+
+        // Group by bank_account_id and format
+        $grouped = $invoices->groupBy('bank_account_id')->map(function ($invoiceGroup, $bankAccountId) {
+            $bankAccount = \App\Models\CompanyAccount::find($bankAccountId);
+
+            return [
+                'bank_account_id' => $bankAccountId,
+                'bank_name' => $bankAccount->bank_name ?? 'N/A',
+                'account_number' => $bankAccount->account_number ?? 'N/A',
+                'ifsc_code' => $bankAccount->ifsc_code ?? 'N/A',
+                'total_transferred' => $invoiceGroup->sum('final_amount'),
+                'transactions' => $invoiceGroup->map(function ($inv) {
+                    return [
+                        'invoice_number' => $inv->invoice_number,
+                        'invoice_date' => $inv->invoice_date,
+                        'amount' => $inv->final_amount,
+                    ];
+                })->values()
+            ];
+        })->values(); // ensure numeric array for JSON
+
+        return response()->json([
+            'status' => true,
+            'data' => $grouped,
+        ]);
+    }
+
+
+    public function cashPaymentHistory()
+    {
+        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+
+        $invoices = Invoice::where('company_id', $selectedCompany->company_id)
+            ->where('payment_method', 'cash')
+            ->get();
+
+        $grouped = $invoices->groupBy('invoice_date')->map(function ($dateGroup, $date) {
+            return [
+                'date' => $date,
+                'total' => $dateGroup->sum('final_amount'),
+                'transactions' => $dateGroup->map(function ($inv) {
+                    return [
+                        'invoice_number' => $inv->invoice_number,
+                        'amount' => $inv->final_amount,
+                    ];
+                })->values()
+            ];
+        })->values();
+
+        return response()->json([
+            'status' => true,
+            'payment_method' => 'cash',
+            'data' => $grouped
+        ]);
+    }
+
+
+    public function cardPaymentHistory()
+    {
+        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+
+        $invoices = Invoice::where('company_id', $selectedCompany->company_id)
+            ->where('payment_method', 'card')
+            ->get();
+
+        $grouped = $invoices->groupBy('invoice_date')->map(function ($dateGroup, $date) {
+            return [
+                'date' => $date,
+                'total' => $dateGroup->sum('final_amount'),
+                'transactions' => $dateGroup->map(function ($inv) {
+                    return [
+                        'invoice_number' => $inv->invoice_number,
+                        'amount' => $inv->final_amount,
+                    ];
+                })->values()
+            ];
+        })->values();
+
+        return response()->json([
+            'status' => true,
+            'payment_method' => 'card',
+            'data' => $grouped
+        ]);
+    }
+    public function creditPaymentHistory()
+    {
+        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+
+        $invoices = Invoice::where('company_id', $selectedCompany->company_id)
+            ->where('payment_method', 'credit')
+            ->get();
+
+        $grouped = $invoices->groupBy('invoice_date')->map(function ($dateGroup, $date) {
+            return [
+                'date' => $date,
+                'total' => $dateGroup->sum('final_amount'),
+                'transactions' => $dateGroup->map(function ($inv) {
+                    return [
+                        'invoice_number' => $inv->invoice_number,
+                        'amount' => $inv->final_amount,
+                    ];
+                })->values()
+            ];
+        })->values();
+
+        return response()->json([
+            'status' => true,
+            'payment_method' => 'credit',
+            'data' => $grouped
+        ]);
+    }
+
+    public function selfConsumptionHistory()
+    {
+        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+
+        $invoices = Invoice::where('company_id', $selectedCompany->company_id)
+            ->where('payment_method', 'self consumption')
+            ->get();
+
+        $grouped = $invoices->groupBy('invoice_date')->map(function ($dateGroup, $date) {
+            return [
+                'date' => $date,
+                'total' => $dateGroup->sum('final_amount'),
+                'transactions' => $dateGroup->map(function ($inv) {
+                    return [
+                        'invoice_number' => $inv->invoice_number,
+                        'amount' => $inv->final_amount,
+                    ];
+                })->values()
+            ];
+        })->values();
+
+        return response()->json([
+            'status' => true,
+            'payment_method' => 'self consumption',
+            'data' => $grouped
         ]);
     }
 }

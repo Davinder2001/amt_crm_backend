@@ -152,8 +152,9 @@ class AttendanceController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'dates'   => 'required|array|min:1',
-            'dates.*' => 'required|date|date_format:Y-m-d',
+            'dates'      => 'required|array|min:1',
+            'dates.*'    => 'required|date|date_format:Y-m-d',
+            'leave_type' => 'required',
         ]);
 
         if ($validator->fails()) {
