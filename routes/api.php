@@ -358,6 +358,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/', [InvoicesController::class, 'store']);
             Route::post('/print', [InvoicesController::class, 'storeAndPrint']);
             Route::post('/mail', [InvoicesController::class, 'storeAndMail']);
+            Route::post('/{id}/store-whatsapp', [InvoicesController::class, 'sendToWhatsapp']);
             Route::post('/{id}/whatsapp', [InvoicesController::class, 'sendToWhatsapp']);
         });
 

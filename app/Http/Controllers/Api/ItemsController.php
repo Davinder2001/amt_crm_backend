@@ -589,13 +589,14 @@ class ItemsController extends Controller
 
 
 
-
     public function exportInline(): BinaryFileResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
 
-        $items = Item::where('company_id', $selectedCompany->company_id)
+        $items = Item::with('categories')
+            ->where('company_id', $selectedCompany->company_id)
             ->select([
+                'id',
                 'item_code',
                 'name',
                 'quantity_count',
@@ -624,12 +625,15 @@ class ItemsController extends Controller
             'Brand Name',
             'Replacement',
             'Vendor Name',
+            'Vendor ID',
             'Available Stock',
             'Cost Price',
             'Selling Price',
+            'Categories', // new column
         ]];
 
         foreach ($items as $item) {
+            $categoryNames = $item->categories->pluck('name')->implode(', '); // get category names
             $data[] = [
                 $item->item_code,
                 $item->name,
@@ -645,11 +649,11 @@ class ItemsController extends Controller
                 $item->availability_stock,
                 $item->cost_price,
                 $item->selling_price,
+                $categoryNames,
             ];
         }
 
-        // Export
-        $export = new class($data) implements FromArray {
+        $export = new class($data) implements \Maatwebsite\Excel\Concerns\FromArray {
             protected $data;
             public function __construct(array $data)
             {
@@ -661,8 +665,9 @@ class ItemsController extends Controller
             }
         };
 
-        return Excel::download($export, 'items_export.xlsx');
+        return Excel::download($export, 'items_export_with_categories.xlsx');
     }
+
 
     public function importInline(Request $request): JsonResponse
     {
@@ -679,7 +684,7 @@ class ItemsController extends Controller
         }
 
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $companyId       = $selectedCompany->company_id;
+        $companyId = $selectedCompany->company_id;
 
         try {
             $rows = Excel::toArray([], $request->file('file'))[0];
@@ -689,7 +694,7 @@ class ItemsController extends Controller
             foreach ($rows as $row) {
                 if (!isset($row[0]) || empty($row[0])) continue;
 
-                Item::create([
+                $item = Item::create([
                     'item_code'             => $row[0],
                     'name'                  => $row[1],
                     'quantity_count'        => $row[2],
@@ -706,11 +711,32 @@ class ItemsController extends Controller
                     'selling_price'         => $row[13],
                     'company_id'            => $companyId,
                 ]);
+
+                // Handle category association (column index 14)
+                if (!empty($row[14])) {
+                    $categoryNames = explode(',', $row[14]);
+                    $categoryIds = [];
+
+                    foreach ($categoryNames as $catName) {
+                        $trimmed = trim($catName);
+                        if ($trimmed === '') continue;
+
+                        $category = \App\Models\Category::firstOrCreate(
+                            ['name' => $trimmed, 'company_id' => $companyId]
+                        );
+
+                        $categoryIds[] = $category->id;
+                    }
+
+                    if (!empty($categoryIds)) {
+                        $item->categories()->sync($categoryIds);
+                    }
+                }
             }
 
             return response()->json([
                 'success' => true,
-                'message' => 'Items imported successfully.',
+                'message' => 'Items imported successfully with categories.',
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -720,7 +746,6 @@ class ItemsController extends Controller
             ], 500);
         }
     }
-
 
 
 
