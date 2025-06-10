@@ -102,7 +102,7 @@ class ItemResource extends JsonResource
             'purchase_date'       => optional($this->purchase_date)->format('Y-m-d'),
             'date_of_manufacture' => optional($this->date_of_manufacture)->format('Y-m-d'),
             'date_of_expiry'      => optional($this->date_of_expiry)->format('Y-m-d'),
-            'brand_name'          => $this->brand_name,
+            'brand_id'            => $this->brand_id,
             'replacement'         => $this->replacement,
             'featured_image'      => $this->featured_image,
 
