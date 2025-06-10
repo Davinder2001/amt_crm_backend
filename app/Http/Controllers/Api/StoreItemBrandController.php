@@ -21,8 +21,8 @@ class StoreItemBrandController extends Controller
      */
     public function index()
     {
-        $company = $this->selectCompanyService->getSelectedCompanyOrFail();
-        return StoreItemBrand::where('company_id', $company->id)->get();
+        // $company = $this->selectCompanyService->getSelectedCompanyOrFail();
+        return StoreItemBrand::get();
     }
 
     /**
