@@ -270,6 +270,7 @@ class ItemsController extends Controller
             'purchase_date'             => 'nullable|date',
             'date_of_manufacture'       => 'nullable|date',
             'date_of_expiry'            => 'nullable|date',
+            'brand_id'                  => 'nullable|integer',
             'brand_name'                => 'nullable|string|max:255',
             'replacement'               => 'nullable|string|max:255',
             'categories'                => 'nullable|array',
@@ -632,7 +633,7 @@ class ItemsController extends Controller
             'Available Stock',
             'Cost Price',
             'Selling Price',
-            'Categories', 
+            'Categories',
         ]];
 
         foreach ($items as $item) {
