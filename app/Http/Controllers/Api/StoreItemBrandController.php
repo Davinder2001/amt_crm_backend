@@ -30,7 +30,7 @@ class StoreItemBrandController extends Controller
     public function store(Request $request)
     {
         $company = $this->selectCompanyService->getSelectedCompanyOrFail();
-        
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
         ]);
@@ -49,7 +49,7 @@ class StoreItemBrandController extends Controller
     public function show(StoreItemBrand $storeItemBrand)
     {
         $company = $this->selectCompanyService->getSelectedCompanyOrFail();
-        
+
         if ($storeItemBrand->company_id !== $company->id) {
             abort(403, 'This brand does not belong to your selected company');
         }
@@ -58,38 +58,28 @@ class StoreItemBrandController extends Controller
     }
 
     /**
-     * Update the specified resource in storage.
+     * Update the specified resource in storage by ID.
      */
-    public function update(Request $request, StoreItemBrand $storeItemBrand)
+    public function update(Request $request, $id)
     {
-        $company = $this->selectCompanyService->getSelectedCompanyOrFail();
-        
-        // Verify the brand belongs to the selected company
-        if ($storeItemBrand->company_id !== $company->id) {
-            abort(403, 'This brand does not belong to your selected company');
-        }
-
         $validated = $request->validate([
             'name' => 'required|string|max:255',
         ]);
 
+        $storeItemBrand = StoreItemBrand::findOrFail($id);
         $storeItemBrand->update($validated);
+
         return response()->json($storeItemBrand, 200);
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Remove the specified resource from storage by ID.
      */
-    public function destroy(StoreItemBrand $storeItemBrand)
+    public function destroy($id)
     {
-        $company = $this->selectCompanyService->getSelectedCompanyOrFail();
-        
-        // Verify the brand belongs to the selected company
-        if ($storeItemBrand->company_id !== $company->id) {
-            abort(403, 'This brand does not belong to your selected company');
-        }
-
+        $storeItemBrand = StoreItemBrand::findOrFail($id);
         $storeItemBrand->delete();
+
         return response()->json(null, 204);
     }
 }
