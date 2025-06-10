@@ -30,6 +30,9 @@ return new class extends Migration
             // Use invoice_id instead of invoice_no
             $table->unsignedBigInteger('invoice_id')->nullable();
             $table->foreign('invoice_id')->references('id')->on('vendor_invoices')->onDelete('set null');
+ 
+            $table->unsignedBigInteger('brand_id')->nullable();
+            $table->foreign('brand_id')->references('id')->on('store_item_brands')->onDelete('set null');
 
             $table->unsignedBigInteger('vendor_id')->nullable();
             $table->foreign('vendor_id')->references('id')->on('store_vendors')->onDelete('set null');

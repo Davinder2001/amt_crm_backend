@@ -15,6 +15,7 @@ class Item extends Model
     protected $fillable = [
         'item_code',
         'company_id',
+        'brand_id',
         'name',
         'quantity_count',
         'invoice_no',

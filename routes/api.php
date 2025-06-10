@@ -36,7 +36,8 @@ use App\Http\Controllers\Api\{
     TableColumnController,
     AdminAndCompanyRegisterController,
     LeavesAndHolidayController,
-    PaymentAndBillingController
+    PaymentAndBillingController,
+    StoreItemBrandController
 };
 
 
@@ -320,6 +321,16 @@ Route::prefix('v1')->group(function () {
             Route::get('vendors/credit/{id}', [StoreVendorController::class, 'vendorCredit']);
             Route::put('vendors/{id}', [StoreVendorController::class, 'update']);
             Route::delete('vendors/{id}', [StoreVendorController::class, 'destroy']);
+
+
+            Route::prefix('brands')->group(function () {
+                Route::get('/', [StoreItemBrandController::class, 'index']);
+                Route::post('/', [StoreItemBrandController::class, 'store']);
+                Route::get('/{id}', [StoreItemBrandController::class, 'show']);
+                Route::put('/{id}', [StoreItemBrandController::class, 'update']);
+                // Route::patch('/{id}', [StoreItemBrandController::class, 'update']);
+                Route::delete('/{id}', [StoreItemBrandController::class, 'destroy']);
+            });
         });
 
         // Catalog API's

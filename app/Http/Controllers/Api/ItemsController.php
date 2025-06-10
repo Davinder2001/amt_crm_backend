@@ -19,9 +19,7 @@ use Illuminate\Support\Facades\Validator;
 use App\Services\SelectedCompanyService;
 use App\Http\Resources\ItemResource;
 use App\Http\Resources\CategoryTreeResource;
-use App\Models\TableMeta;
-use App\Models\TableManagement;
-use Illuminate\Support\Facades\Auth;
+
 
 
 
@@ -95,6 +93,7 @@ class ItemsController extends Controller
         $validator = Validator::make($request->all(), [
             'name'                      => 'required|string|max:255',
             'quantity_count'            => 'required|integer',
+            'brand_id'                  => 'nullable|integer',
             'featured_image'            => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
             'measurement'               => 'nullable|string',
             'purchase_date'             => 'nullable|date',
@@ -148,9 +147,7 @@ class ItemsController extends Controller
 
         try {
 
-            $lastItemCode = Item::where('company_id', $companyId)
-                ->select(DB::raw('MAX(CAST(item_code AS UNSIGNED)) as max_code'))
-                ->value('max_code');
+            $lastItemCode = Item::where('company_id', $companyId)->select(DB::raw('MAX(CAST(item_code AS UNSIGNED)) as max_code'))->value('max_code');
             $data['item_code'] = $lastItemCode ? $lastItemCode + 1 : 1;
 
             if (!empty($data['vendor_name'])) {
@@ -416,7 +413,7 @@ class ItemsController extends Controller
 
             ItemTax::updateOrCreate(
                 ['store_item_id' => $item->id],
-                ['tax_id' => $data['tax_id']]
+                ['tax_id'        => $data['tax_id']]
             );
         }
 
@@ -437,15 +434,21 @@ class ItemsController extends Controller
         $item               = Item::find($id);
 
         if (!$item) {
-            return response()->json(['message' => 'Item not found.'], 404);
+            return response()->json([
+                'message' => 'Item not found.'
+            ], 404);
         }
 
         if (!$selectedCompany->super_admin && $item->company_id !== $selectedCompany->company_id) {
-            return response()->json(['message' => 'Unauthorized.'], 403);
+            return response()->json([
+                'message' => 'Unauthorized.'
+            ], 403);
         }
 
         $item->delete();
-        return response()->json(['message' => 'Item deleted successfully.']);
+        return response()->json([
+            'message' => 'Item deleted successfully.'
+        ]);
     }
 
 
@@ -629,11 +632,11 @@ class ItemsController extends Controller
             'Available Stock',
             'Cost Price',
             'Selling Price',
-            'Categories', // new column
+            'Categories', 
         ]];
 
         foreach ($items as $item) {
-            $categoryNames = $item->categories->pluck('name')->implode(', '); // get category names
+            $categoryNames = $item->categories->pluck('name')->implode(', ');
             $data[] = [
                 $item->item_code,
                 $item->name,
@@ -684,12 +687,12 @@ class ItemsController extends Controller
         }
 
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $companyId = $selectedCompany->company_id;
+        $companyId       = $selectedCompany->company_id;
 
         try {
             $rows = Excel::toArray([], $request->file('file'))[0];
 
-            unset($rows[0]); // Skip header row
+            unset($rows[0]);
 
             foreach ($rows as $row) {
                 if (!isset($row[0]) || empty($row[0])) continue;
@@ -712,7 +715,6 @@ class ItemsController extends Controller
                     'company_id'            => $companyId,
                 ]);
 
-                // Handle category association (column index 14)
                 if (!empty($row[14])) {
                     $categoryNames = explode(',', $row[14]);
                     $categoryIds = [];
@@ -752,7 +754,7 @@ class ItemsController extends Controller
     public function bulkDeleteItems(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'item_id' => 'required|array',
+            'item_id'   => 'required|array',
             'item_id.*' => 'integer|exists:store_items,id',
         ]);
 
@@ -760,119 +762,18 @@ class ItemsController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Validation errors.',
-                'errors' => $validator->errors(),
+                'errors'  => $validator->errors(),
             ], 422);
         }
 
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $itemIds = $request->input('item_id');
+        $itemIds         = $request->input('item_id');
 
-        Item::whereIn('id', $itemIds)
-            ->where('company_id', $selectedCompany->company_id)
-            ->delete();
+        Item::whereIn('id', $itemIds)->where('company_id', $selectedCompany->company_id)->delete();
 
         return response()->json([
             'success' => true,
             'message' => 'Items deleted successfully.',
         ]);
     }
-
-
-
-
-
-
-
-    // public function importInline(Request $request): JsonResponse
-    // {
-    //     $validator = Validator::make($request->all(), [
-    //         'file' => 'required|file|mimes:xlsx,xls',
-    //     ]);
-
-    //     if ($validator->fails()) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => 'Invalid file.',
-    //             'errors' => $validator->errors(),
-    //         ], 422);
-    //     }
-
-    //     $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-    //     $companyId       = $selectedCompany->company_id;
-
-    //     try {
-    //         $path = $request->file('file')->getRealPath();
-    //         $rows = Excel::toArray([], $path)[0]; // First sheet
-    //         unset($rows[0]); // Remove headers
-
-    //         $inserted = 0;
-    //         $updated  = 0;
-    //         $skipped  = 0;
-
-    //         foreach ($rows as $row) {
-    //             if (!isset($row[0]) || empty($row[0])) continue;
-
-    //             $existing = Item::where('company_id', $companyId)
-    //                 ->where('item_code', $row[0])
-    //                 ->first();
-
-    //             $fields = [
-    //                 'item_code'          => $row[0],
-    //                 'name'               => $row[1],
-    //                 'quantity_count'     => $row[2],
-    //                 'measurement'        => $row[3],
-    //                 'purchase_date'      => $row[4] ?? null,
-    //                 'date_of_manufacture' => $row[5] ?? null,
-    //                 'date_of_expiry'     => $row[6] ?? null,
-    //                 'brand_name'         => $row[7],
-    //                 'replacement'        => $row[8],
-    //                 'vendor_name'        => $row[9],
-    //                 'availability_stock' => $row[10],
-    //                 'cost_price'         => $row[11],
-    //                 'selling_price'      => $row[12],
-    //                 'company_id'         => $companyId,
-    //             ];
-
-    //             if ($existing) {
-    //                 $diff = [];
-    //                 foreach ($fields as $key => $value) {
-    //                     if ($existing->{$key} != $value) {
-    //                         $diff[$key] = $value;
-    //                     }
-    //                 }
-
-    //                 if (!empty($diff)) {
-    //                     $existing->update($diff);
-    //                     $updated++;
-    //                 } else {
-    //                     $skipped++;
-    //                 }
-    //             } else {
-    //                 Item::create($fields);
-    //                 $inserted++;
-    //             }
-    //         }
-
-    //         if ($inserted === 0 && $updated === 0) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'message' => 'All data already exists. No new or updated rows.',
-    //             ], 200);
-    //         }
-
-    //         return response()->json([
-    //             'success' => true,
-    //             'message' => 'Import completed.',
-    //             'inserted' => $inserted,
-    //             'updated'  => $updated,
-    //             'skipped'  => $skipped,
-    //         ]);
-    //     } catch (\Exception $e) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => 'Import failed.',
-    //             'error' => $e->getMessage(),
-    //         ], 500);
-    //     }
-    // }
 }
