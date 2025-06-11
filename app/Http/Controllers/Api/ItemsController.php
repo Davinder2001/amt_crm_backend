@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use App\Models\Tax;
 use App\Models\Package;
+use App\Models\ItemBatch;
 use App\Models\ItemTax;
 use App\Models\VendorInvoice;
 use App\Models\VendorPaymentHistory;
@@ -30,65 +31,171 @@ class ItemsController extends Controller
      */
     public function index(): JsonResponse
     {
-        $items = Item::with(['variants.attributeValues.attribute', 'taxes', 'categories'])->get();
+        $items = Item::with(['variants.attributeValues.attribute', 'taxes', 'categories', 'batches'])->get();
         return response()->json(ItemResource::collection($items));
     }
-
-
-    // public function index(): JsonResponse
-    // {
-    //     $activeCompanyId = SelectedCompanyService::getSelectedCompanyOrFail()->company->id;
-    //     $userId          = Auth::id();
-    //     $tableName       = 'items';
-    //     $table           = TableManagement::where('company_id', $activeCompanyId)->where('user_id', $userId)->where('table_name', $tableName)->first();
-    //     $defaultColumns  = ['id', 'name'];
-    //     $columns         = $defaultColumns;
-    //     $relations       = [];
-
-    //     if ($table) {
-
-    //         $metaColumns = TableMeta::where('table_id', $table->id)->where('value', true)->pluck('col_name')->toArray();
-
-    //         if (!in_array('id', $metaColumns)) {
-    //             $metaColumns[] = 'id';
-    //         }
-
-    //         if (!in_array('name', $metaColumns)) {
-    //             $metaColumns[] = 'name';
-    //         }
-
-    //         $columns = $metaColumns;
-
-    //         if (in_array('variants', $columns)) {
-    //             $relations[] = 'variants.attributeValues.attribute';
-    //             $columns     = array_filter($columns, fn($col) => $col !== 'variants');
-    //         }
-
-    //         if (in_array('taxes', $columns)) {
-    //             $relations[] = 'taxes';
-    //             $columns     = array_filter($columns, fn($col) => $col !== 'taxes');
-    //         }
-
-    //         if (in_array('categories', $columns)) {
-    //             $relations[] = 'categories';
-    //             $columns     = array_filter($columns, fn($col) => $col !== 'categories');
-    //         }
-    //     }
-
-    //     $items = Item::select($columns)->with($relations)->get();
-
-    //     return response()->json($items);
-    // }
-
 
 
     /**
      * Store a newly created resource in storage.
      */
+    // public function store(Request $request): JsonResponse
+    // {
+    //     $selectedCompany    = SelectedCompanyService::getSelectedCompanyOrFail();
+    //     $companyId          = $selectedCompany->company_id;
+
+    //     $validator = Validator::make($request->all(), [
+    //         'name'                      => 'required|string|max:255',
+    //         'quantity_count'            => 'required|integer',
+    //         'brand_id'                  => 'nullable|integer',
+    //         'featured_image'            => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
+    //         'measurement'               => 'nullable|string',
+    //         'purchase_date'             => 'nullable|date',
+    //         'date_of_manufacture'       => 'required|date',
+    //         'date_of_expiry'            => 'nullable|date',
+    //         'brand_name'                => 'required|string|max:255',
+    //         'replacement'               => 'nullable|string|max:255',
+    //         'categories'                => 'nullable|array',
+    //         'categories.*'              => 'integer|exists:categories,id',
+    //         'vendor_name'               => 'nullable|string|max:255',
+    //         'cost_price'                => 'required|numeric|min:0',
+    //         'selling_price'             => 'required|numeric|min:0',
+    //         'availability_stock'        => 'required|integer',
+    //         'images.*'                  => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
+    //         'variants'                  => 'nullable|array',
+    //         'variants.*.price'          => 'required_with:variants|numeric|min:0',
+    //         'variants.*.ragular_price'  => 'nullable:variants|numeric|min:0',
+    //         'variants.*.stock'          => 'nullable|integer|min:0',
+    //         'variants.*.attributes'     => 'required_with:variants|array',
+    //         'tax_id'                    => 'nullable',
+    //     ]);
+
+    //     if ($validator->fails()) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Validation errors.',
+    //             'errors'  => $validator->errors(),
+    //         ], 422);
+    //     }
+
+    //     $data               = $validator->validated();
+    //     $data['company_id'] = $companyId;
+    //     $package            = Package::find($selectedCompany->company->package_id ?? 1);
+    //     $packageType        = $package->package_type ?? 'monthly';
+    //     $allowedItemCount   = $package->items_number ?? 0;
+    //     $now                = now();
+
+    //     $itemQuery = Item::where('company_id', $companyId);
+    //     if ($packageType === 'monthly') {
+    //         $itemQuery->whereYear('created_at', $now->year)->whereMonth('created_at', $now->month);
+    //     } else {
+    //         $itemQuery->whereYear('created_at', $now->year);
+    //     }
+
+    //     if ($itemQuery->count() >= $allowedItemCount) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => "Item limit reached for your {$packageType} package. Allowed: {$allowedItemCount} items.",
+    //         ], 403);
+    //     }
+
+    //     try {
+
+    //         $lastItemCode = Item::where('company_id', $companyId)->select(DB::raw('MAX(CAST(item_code AS UNSIGNED)) as max_code'))->value('max_code');
+    //         $data['item_code'] = $lastItemCode ? $lastItemCode + 1 : 1;
+
+    //         if (!empty($data['vendor_name'])) {
+    //             StoreVendor::firstOrCreate([
+    //                 'vendor_name' => $data['vendor_name'],
+    //                 'company_id'  => $companyId,
+    //             ]);
+    //         }
+
+    //         $imageLinks = [];
+
+    //         if ($request->hasFile('images')) {
+    //             foreach ($request->file('images') as $image) {
+    //                 $filename = uniqid('item_') . '.' . $image->getClientOriginalExtension();
+    //                 $image->move(public_path('uploads/items'), $filename);
+    //                 $imageLinks[] = asset('uploads/items/' . $filename);
+    //             }
+    //         }
+
+    //         $data['images'] = $imageLinks;
+
+    //         $featuredImageLink = null;
+    //         if ($request->hasFile('featured_image')) {
+    //             $featured = $request->file('featured_image');
+    //             $filename = uniqid('featured_') . '.' . $featured->getClientOriginalExtension();
+    //             $featured->move(public_path('uploads/items'), $filename);
+    //             $featuredImageLink = asset('uploads/items/' . $filename);
+    //         }
+
+    //         $data['featured_image'] = $featuredImageLink;
+
+    //         $item           = Item::create($data);
+
+    //         if (!empty($data['variants'])) {
+    //             foreach ($data['variants'] as $variantData) {
+    //                 $variant = $item->variants()->create([
+    //                     'regular_price' => $variantData['regular_price'] ?? 0,
+    //                     'price'         => $variantData['price'],
+    //                     'stock'         => $variantData['stock'] ?? 1,
+    //                     'images'        => $imageLinks,
+    //                 ]);
+
+    //                 foreach ($variantData['attributes'] as $attribute) {
+    //                     $variant->attributeValues()->attach($attribute['attribute_value_id'], [
+    //                         'attribute_id' => $attribute['attribute_id'],
+    //                     ]);
+    //                 }
+    //             }
+    //         }
+
+    //         if (!empty($data['categories'])) {
+    //             foreach ($data['categories'] as $categoryId) {
+    //                 CategoryItem::create([
+    //                     'store_item_id' => $item->id,
+    //                     'category_id'   => $categoryId,
+    //                 ]);
+    //             }
+    //         } else {
+    //             $uncategorized = Category::firstOrCreate([
+    //                 'company_id' => $companyId,
+    //                 'name'       => 'Uncategorized',
+    //             ]);
+    //             CategoryItem::create([
+    //                 'store_item_id' => $item->id,
+    //                 'category_id'   => $uncategorized->id,
+    //             ]);
+    //         }
+
+    //         if (!empty($data['tax_id'])) {
+    //             ItemTax::create([
+    //                 'store_item_id' => $item->id,
+    //                 'tax_id'        => $data['tax_id'],
+    //             ]);
+    //         }
+
+    //         return response()->json([
+    //             'success' => true,
+    //             'message' => 'Item added successfully.',
+    //             'item'    => new ItemResource($item->load('variants.attributeValues', 'categories')),
+    //         ], 201);
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Something went wrong while creating the item.',
+    //             'error'   => $e->getMessage(),
+    //         ], 500);
+    //     }
+    // }
+
+
     public function store(Request $request): JsonResponse
     {
-        $selectedCompany    = SelectedCompanyService::getSelectedCompanyOrFail();
-        $companyId          = $selectedCompany->company_id;
+        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+        $companyId = $selectedCompany->company_id;
 
         $validator = Validator::make($request->all(), [
             'name'                      => 'required|string|max:255',
@@ -99,14 +206,14 @@ class ItemsController extends Controller
             'purchase_date'             => 'nullable|date',
             'date_of_manufacture'       => 'required|date',
             'date_of_expiry'            => 'nullable|date',
-            'brand_name'                => 'required|string|max:255',
+            'brand_name'                => 'nullable|string|max:255',
             'replacement'               => 'nullable|string|max:255',
             'categories'                => 'nullable|array',
             'categories.*'              => 'integer|exists:categories,id',
             'vendor_name'               => 'nullable|string|max:255',
             'cost_price'                => 'required|numeric|min:0',
             'selling_price'             => 'required|numeric|min:0',
-            'availability_stock'        => 'required|integer',
+            'availability_stock'        => 'required|integer|min:0',
             'images.*'                  => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
             'variants'                  => 'nullable|array',
             'variants.*.price'          => 'required_with:variants|numeric|min:0',
@@ -124,12 +231,13 @@ class ItemsController extends Controller
             ], 422);
         }
 
-        $data               = $validator->validated();
+        $data = $validator->validated();
         $data['company_id'] = $companyId;
-        $package            = Package::find($selectedCompany->company->package_id ?? 1);
-        $packageType        = $package->package_type ?? 'monthly';
-        $allowedItemCount   = $package->items_number ?? 0;
-        $now                = now();
+
+        $package = Package::find($selectedCompany->company->package_id ?? 1);
+        $packageType = $package->package_type ?? 'monthly';
+        $allowedItemCount = $package->items_number ?? 0;
+        $now = now();
 
         $itemQuery = Item::where('company_id', $companyId);
         if ($packageType === 'monthly') {
@@ -146,8 +254,9 @@ class ItemsController extends Controller
         }
 
         try {
-
-            $lastItemCode = Item::where('company_id', $companyId)->select(DB::raw('MAX(CAST(item_code AS UNSIGNED)) as max_code'))->value('max_code');
+            $lastItemCode = Item::where('company_id', $companyId)
+                ->select(DB::raw('MAX(CAST(item_code AS UNSIGNED)) as max_code'))
+                ->value('max_code');
             $data['item_code'] = $lastItemCode ? $lastItemCode + 1 : 1;
 
             if (!empty($data['vendor_name'])) {
@@ -158,7 +267,6 @@ class ItemsController extends Controller
             }
 
             $imageLinks = [];
-
             if ($request->hasFile('images')) {
                 foreach ($request->file('images') as $image) {
                     $filename = uniqid('item_') . '.' . $image->getClientOriginalExtension();
@@ -166,7 +274,6 @@ class ItemsController extends Controller
                     $imageLinks[] = asset('uploads/items/' . $filename);
                 }
             }
-
             $data['images'] = $imageLinks;
 
             $featuredImageLink = null;
@@ -176,10 +283,11 @@ class ItemsController extends Controller
                 $featured->move(public_path('uploads/items'), $filename);
                 $featuredImageLink = asset('uploads/items/' . $filename);
             }
-
             $data['featured_image'] = $featuredImageLink;
 
-            $item           = Item::create($data);
+            DB::beginTransaction();
+
+            $item = Item::create($data);
 
             if (!empty($data['variants'])) {
                 foreach ($data['variants'] as $variantData) {
@@ -223,12 +331,25 @@ class ItemsController extends Controller
                 ]);
             }
 
+            // ✅ CREATE BATCH
+            $batchNumber = 'BATCH-' . strtoupper(uniqid());
+            ItemBatch::create([
+                'company_id'     => $data['company_id'],
+                'item_id'        => $item->id,
+                'batch_number'   => $batchNumber,
+                'purchase_price' => $data['cost_price'],
+                'quantity'       => $data['availability_stock'],
+            ]);
+
+            DB::commit();
+
             return response()->json([
                 'success' => true,
-                'message' => 'Item added successfully.',
+                'message' => 'Item and stock batch added successfully.',
                 'item'    => new ItemResource($item->load('variants.attributeValues', 'categories')),
             ], 201);
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json([
                 'success' => false,
                 'message' => 'Something went wrong while creating the item.',
@@ -236,6 +357,7 @@ class ItemsController extends Controller
             ], 500);
         }
     }
+
 
 
     /**

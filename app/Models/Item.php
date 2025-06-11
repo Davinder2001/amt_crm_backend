@@ -50,6 +50,15 @@ class Item extends Model
     }
 
     /**
+     * The batches associated with the item.
+     */
+    public function batches()
+    {
+        return $this->hasMany(ItemBatch::class);
+    }
+
+
+    /**
      * The attributes that should be cast to native types.
      */
     public function categories()

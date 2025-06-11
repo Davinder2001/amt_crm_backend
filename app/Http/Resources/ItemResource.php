@@ -153,8 +153,18 @@ class ItemResource extends JsonResource
                     ];
                 });
             }),
+            'batches' => $this->whenLoaded('batches', function () {
+                return $this->batches->map(function ($batch) {
+                    return [
+                        'id'            => $batch->id,
+                        'batch_number'  => $batch->batch_number,
+                        'purchase_price' => $batch->purchase_price,
+                        'quantity'      => $batch->quantity,
+                        'created_at'    => optional($batch->created_at)->format('Y-m-d H:i'),
+                    ];
+                });
+            }),
+
         ];
     }
 }
-
-
