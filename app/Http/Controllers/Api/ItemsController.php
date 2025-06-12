@@ -49,7 +49,7 @@ class ItemsController extends Controller
             'product_type'              => 'nullable|string|max:255',
 
             'regular_price'             => 'required|integer',
-            'selling_price'             => 'nullable|integer',
+            'sale_price'             => 'nullable|integer',
 
             'variants'                  => 'nullable|array',
             'variants.*.price'          => 'required_with:variants|numeric|min:0',
@@ -138,7 +138,7 @@ class ItemsController extends Controller
                 'images'              => $data['images'] ?? null,
                 'cost_price'          => $data['cost_price'] ?? null,
                 'regular_price'       => $data['regular_price'], // Typo? Should be 'regular_price'?
-                'sale_price'          => $data['selling_price'],
+                'sale_price'          => $data['sale_price'],
             ]);
 
 
