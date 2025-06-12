@@ -364,7 +364,7 @@ class InvoicesController extends Controller
                     'variant_id'     => $line['variant_id'] ?? null,
                     'description'    => $item->name,
                     'quantity'       => $line['quantity'],
-                    'unit_price'     => $unitPrice,
+                    'unit_price'     => $unitPrice ?? 0,
                     'tax_percentage' => $taxPercentage,
                     'tax_amount'     => $taxAmount,
                     'total'          => $totalAmount,

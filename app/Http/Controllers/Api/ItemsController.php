@@ -106,8 +106,8 @@ class ItemsController extends Controller
         }
 
         try {
-            DB::beginTransaction();
 
+            DB::beginTransaction();
             $data['item_code'] = ItemService::generateNextItemCode($companyId);
 
             if (!empty($data['vendor_name'])) {
@@ -117,7 +117,7 @@ class ItemsController extends Controller
             $data['images'] = ImageHelper::processImages($request->file('images') ?? []);
             $data['featured_image'] = $request->hasFile('featured_image') ? ImageHelper::saveImage($request->file('featured_image'), 'featured_') : null;
 
-            // $item = Item::create($data);
+
 
             $item = Item::create([
                 'company_id'          => $data['company_id'],
@@ -137,7 +137,7 @@ class ItemsController extends Controller
                 'vendor_id'           => $data['vendor_id'] ?? null,
                 'images'              => $data['images'] ?? null,
                 'cost_price'          => $data['cost_price'] ?? null,
-                'regular_price'       => $data['regular_price'], // Typo? Should be 'regular_price'?
+                'regular_price'       => $data['regular_price'],
                 'sale_price'          => $data['sale_price'],
             ]);
 
