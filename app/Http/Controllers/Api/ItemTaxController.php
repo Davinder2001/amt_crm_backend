@@ -16,15 +16,14 @@ class ItemTaxController extends Controller
      */
     public function index()
     {
-        $selectedCompany    = SelectedCompanyService::getSelectedCompanyOrFail();
-        $taxes              = Tax::where('company_id', $selectedCompany->id)->get();
+        $taxes = Tax::all();
 
         return response()->json([
             'success' => true,
+            'message' => 'Taxes fetched successfully',
             'data' => TaxResource::collection($taxes)
         ]);
     }
-
 
     /**
      * Store a newly created resource in storage.
@@ -38,24 +37,24 @@ class ItemTaxController extends Controller
 
         if ($validator->fails()) {
             return response()->json([
-                'success'   => false,
-                'message'   => 'Validation errors',
-                'errors'    => $validator->errors()
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
             ], 422);
         }
 
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
 
         $tax = Tax::create([
-            'company_id'    => $selectedCompany->id,
-            'name'          => $request->name,
-            'rate'          => $request->rate,
+            'company_id' => $selectedCompany->company->id,
+            'name' => $request->name,
+            'rate' => $request->rate,
         ]);
 
         return response()->json([
-            'success'   => true,
-            'message'   => 'Tax created successfully',
-            'data'      => new TaxResource($tax)
+            'success' => true,
+            'message' => 'Tax created successfully',
+            'data' => new TaxResource($tax)
         ], 201);
     }
 
@@ -66,10 +65,10 @@ class ItemTaxController extends Controller
     {
         return response()->json([
             'success' => true,
+            'message' => 'Tax fetched successfully',
             'data' => new TaxResource($tax)
         ]);
     }
-
 
     /**
      * Update the specified resource in storage.
@@ -81,7 +80,7 @@ class ItemTaxController extends Controller
         if (!$tax) {
             return response()->json([
                 'success' => false,
-                'message' => 'Tax not found.'
+                'message' => 'Tax not found'
             ], 404);
         }
 
@@ -93,7 +92,7 @@ class ItemTaxController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Validation errors',
+                'message' => 'Validation failed',
                 'errors' => $validator->errors()
             ], 422);
         }
@@ -106,8 +105,6 @@ class ItemTaxController extends Controller
             'data' => new TaxResource($tax)
         ]);
     }
-
-
 
     /**
      * Remove the specified resource from storage.

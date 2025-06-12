@@ -88,7 +88,7 @@ class ItemSeeder extends Seeder
                         'vendor_name'         => $vendorNames[array_rand($vendorNames)],
                         'availability_stock'  => rand(10, 100),
                         'cost_price'          => rand(100, 800),
-                        'selling_price'       => rand(900, 1500),
+                        'sale_price'       => rand(900, 1500),
                         'images'              => json_encode([]),
                         'catalog'             => false,
                         'online_visibility'   => true,

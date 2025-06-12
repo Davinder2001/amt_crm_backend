@@ -37,7 +37,8 @@ use App\Http\Controllers\Api\{
     AdminAndCompanyRegisterController,
     LeavesAndHolidayController,
     PaymentAndBillingController,
-    StoreItemBrandController
+    StoreItemBrandController,
+    BulkActionsController
 };
 
 
@@ -309,10 +310,11 @@ Route::prefix('v1')->group(function () {
             Route::get('items/{id}', [ItemsController::class, 'show']);
             Route::put('items/{id}', [ItemsController::class, 'update']);
             Route::delete('items/{id}', [ItemsController::class, 'destroy']);
-            Route::post('bulk-items', [ItemsController::class, 'storeBulkItems']);
-            Route::get('cat-items', [ItemsController::class, 'getItemCatTree']);
 
-            Route::post('items/bulk-delete', [ItemsController::class, 'bulkDeleteItems']);
+
+            Route::post('bulk-items', [BulkActionsController::class, 'storeBulkItems']);
+            Route::get('cat-items', [BulkActionsController::class, 'getItemCatTree']);
+            Route::post('items/bulk-delete', [BulkActionsController::class, 'bulkDeleteItems']);
 
             // Vendors API's
             Route::get('vendors', [StoreVendorController::class, 'index']);
@@ -487,8 +489,8 @@ Route::prefix('v1')->group(function () {
 
 
         // Export and import Items
-        Route::get('export-inline', [ItemsController::class, 'exportInline']);
-        Route::post('import-inline', [ItemsController::class, 'importInline']);
+        Route::get('export-inline', [BulkActionsController::class, 'exportInline']);
+        Route::post('import-inline', [BulkActionsController::class, 'importInline']);
 
 
         Route::post('/table/store', [TableColumnController::class, 'store']);

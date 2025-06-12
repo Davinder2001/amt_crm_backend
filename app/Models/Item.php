@@ -28,10 +28,10 @@ class Item extends Model
         'replacement',
         'vendor_name',
         'vendor_id',
-        'availability_stock',
         'images',
         'cost_price',
-        'selling_price',
+        'regular_price',
+        'sale_price',
     ];
 
     protected $casts = [

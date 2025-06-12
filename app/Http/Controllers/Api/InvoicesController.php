@@ -28,9 +28,7 @@ class InvoicesController extends Controller
      */
     public function index()
     {
-        $invoices   = Invoice::with(['items', 'credit'])
-            ->where('company_id', SelectedCompanyService::getSelectedCompanyOrFail()
-                ->company->id)->latest()->get();
+        $invoices   = Invoice::with(['items', 'credit'])->latest()->get();
 
         return response()->json([
             'status'   => true,
@@ -38,7 +36,9 @@ class InvoicesController extends Controller
         ]);
     }
 
-
+    /**
+     * Store a newly created invoice in storage.
+     */
     public function store(Request $request)
     {
         [$invoice] = $this->createInvoiceAndPdf($request);
@@ -49,8 +49,9 @@ class InvoicesController extends Controller
             'invoice' => $invoice,
         ], 201);
     }
-
-
+    /**
+     * Store a newly created invoice and return the PDF content.
+     */
     public function storeAndPrint(Request $request)
     {
         [$invoice, $pdfContent] = $this->createInvoiceAndPdf($request);
@@ -63,7 +64,9 @@ class InvoicesController extends Controller
             );
     }
 
-
+    /**
+     * Store a newly created invoice and send it via email.
+     */
     public function storeAndMail(Request $request)
     {
         [$invoice, $pdfContent] = $this->createInvoiceAndPdf($request);
@@ -111,7 +114,9 @@ class InvoicesController extends Controller
         ], 201);
     }
 
-
+    /**
+     * Download the invoice as a PDF.
+     */
     public function download($id)
     {
         $invoice         = Invoice::with('items')->findOrFail($id);
@@ -143,8 +148,10 @@ class InvoicesController extends Controller
         return $pdf->download('invoice_' . $invoice->invoice_number . '.pdf');
     }
 
-
-
+    /**
+     * Create an invoice and generate a PDF.
+     *
+     */
     private function createInvoiceAndPdf(Request $request): array
     {
         $validator = Validator::make($request->all(), [
@@ -437,7 +444,189 @@ class InvoicesController extends Controller
         return [$invoice, $pdf->output()];
     }
 
+    /**
+     * Update the specified invoice in storage.
+     */
+    public function update(Request $request, $id)
+    {
+        $invoice = Invoice::with('items')->findOrFail($id);
 
+        $validator = Validator::make($request->all(), [
+            'client_name'            => 'required|string',
+            'number'                 => 'required|string',
+            'email'                  => 'nullable|email',
+            'invoice_date'           => 'required|date',
+
+            'discount_price'         => 'nullable|numeric|min:0',
+            'discount_percentage'    => 'nullable|numeric|min:0',
+            'discount_type'          => 'nullable|in:percentage,amount',
+
+            'payment_method'         => 'required|string',
+            'creditPaymentType'      => 'nullable|in:partial,full',
+            'partialAmount'          => 'nullable|numeric|min:0',
+            'credit_note'            => 'nullable|string',
+            'bank_account_id'        => 'nullable|integer|exists:company_accounts,id',
+
+            'item_type'              => 'nullable|string',
+            'delivery_charge'        => 'nullable|numeric|min:0',
+
+            'serviceChargeType'      => 'nullable|in:amount,percentage',
+            'serviceChargeAmount'    => 'nullable|numeric|min:0',
+            'serviceChargePercent'   => 'nullable|numeric|min:0',
+
+            'address'                => 'nullable|string',
+            'pincode'                => 'nullable|string|max:10',
+
+            'items'                  => 'required|array|min:1',
+            'items.*.item_id'        => 'required|exists:store_items,id',
+            'items.*.variant_id'     => 'nullable|exists:item_variants,id',
+            'items.*.quantity'       => 'required|integer|min:1',
+            'items.*.unit_price'     => 'nullable|numeric|min:0',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Validation failed.',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        $data            = $validator->validated();
+        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+        $issuedByName    = Auth::user()->name;
+
+        DB::transaction(function () use ($invoice, $data, $selectedCompany, $issuedByName) {
+
+            $invoice->items()->delete();
+
+            $total = collect($data['items'])->sum(function ($line) {
+                $item = Item::findOrFail($line['item_id']);
+                $price = !empty($line['variant_id'])
+                    ? ItemVariant::where('id', $line['variant_id'])->where('item_id', $item->id)->firstOrFail()->price
+                    : $item->selling_price;
+
+                $taxRate = DB::table('item_tax')
+                    ->join('taxes', 'item_tax.tax_id', '=', 'taxes.id')
+                    ->where('item_tax.store_item_id', $item->id)
+                    ->value('taxes.rate') ?? 0;
+
+                return ($price + ($price * $taxRate / 100)) * $line['quantity'];
+            });
+
+            $serviceChargeAmount    = 0;
+            $finalServiceCharge     = 0;
+            $serviceChargeGstAmount = 0;
+
+            if (!empty($data['serviceChargeType'])) {
+                if ($data['serviceChargeType'] === 'amount' && !empty($data['serviceChargeAmount'])) {
+                    $serviceChargeAmount = $data['serviceChargeAmount'];
+                } elseif ($data['serviceChargeType'] === 'percentage' && !empty($data['serviceChargePercent'])) {
+                    $serviceChargeAmount = round(($data['serviceChargePercent'] / 100) * $total, 2);
+                }
+                $serviceChargeGstAmount = round($serviceChargeAmount * 0.18, 2);
+                $finalServiceCharge = $serviceChargeAmount + $serviceChargeGstAmount;
+            }
+
+            $subtotal = $total + $finalServiceCharge;
+
+            if ($data['discount_type'] === 'amount') {
+                $discountAmount     = $data['discount_price'];
+                $discountPercentage = $subtotal ? round(($discountAmount / $subtotal) * 100, 2) : 0;
+                $finalAmount        = round(max(0, $subtotal - $discountAmount));
+            } elseif ($data['discount_type'] === 'percentage') {
+                $discountPercentage = $data['discount_percentage'];
+                $discountAmount     = round(($discountPercentage / 100) * $subtotal, 2);
+                $finalAmount        = round(max(0, $subtotal - $discountAmount));
+            } else {
+                $discountAmount     = 0;
+                $discountPercentage = 0;
+                $finalAmount        = round($subtotal);
+            }
+
+            if (!empty($data['delivery_charge'])) {
+                $finalAmount += $data['delivery_charge'];
+            }
+
+            $invoice->update([
+                'client_name'               => $data['client_name'],
+                'client_phone'              => $data['number'],
+                'client_email'              => $data['email'] ?? null,
+                'invoice_date'              => $data['invoice_date'],
+                'total_amount'              => $subtotal,
+                'sub_total'                 => $total,
+                'service_charge_amount'     => $serviceChargeAmount,
+                'service_charge_percent'    => 18,
+                'service_charge_gst'        => $serviceChargeGstAmount,
+                'service_charge_final'      => $finalServiceCharge,
+                'discount_amount'           => $discountAmount,
+                'discount_percentage'       => $discountPercentage,
+                'delivery_charge'           => $data['delivery_charge'] ?? 0,
+                'delivery_address'          => $data['address'] ?? null,
+                'delivery_pincode'          => $data['pincode'] ?? null,
+                'final_amount'              => $finalAmount,
+                'payment_method'            => $data['payment_method'],
+                'bank_account_id'           => $data['bank_account_id'] ?? null,
+                'credit_note'               => $data['credit_note'] ?? null,
+                'issued_by_name'            => $issuedByName,
+            ]);
+
+            foreach ($data['items'] as $line) {
+                $item = Item::findOrFail($line['item_id']);
+                $unitPrice = !empty($line['variant_id'])
+                    ? ItemVariant::where('id', $line['variant_id'])->where('item_id', $item->id)->firstOrFail()->price
+                    : $item->selling_price;
+
+                $taxRate = DB::table('item_tax')
+                    ->join('taxes', 'item_tax.tax_id', '=', 'taxes.id')
+                    ->where('item_tax.store_item_id', $item->id)
+                    ->value('taxes.rate') ?? 0;
+
+                $taxAmount   = $unitPrice * $taxRate / 100;
+                $totalAmount = ($unitPrice * $line['quantity']) + $taxAmount;
+
+                $invoice->items()->create([
+                    'item_id'        => $item->id,
+                    'variant_id'     => $line['variant_id'] ?? null,
+                    'description'    => $item->name,
+                    'quantity'       => $line['quantity'],
+                    'unit_price'     => $unitPrice,
+                    'tax_percentage' => $taxRate,
+                    'tax_amount'     => $taxAmount,
+                    'total'          => $totalAmount,
+                ]);
+            }
+
+            if ($data['payment_method'] === 'credit') {
+                $amountPaid     = $data['creditPaymentType'] === 'partial' ? $data['partialAmount'] : 0;
+                $outstanding    = $finalAmount - $amountPaid;
+
+                CustomerCredit::updateOrCreate(
+                    ['invoice_id' => $invoice->id],
+                    [
+                        'customer_id'  => $invoice->customer_id,
+                        'total_due'    => $finalAmount,
+                        'amount_paid'  => $amountPaid,
+                        'outstanding'  => $outstanding,
+                        'company_id'   => $selectedCompany->company_id,
+                        'status'       => 'due',
+                    ]
+                );
+            }
+        });
+
+        $invoice->load('items', 'credit');
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'Invoice updated successfully.',
+            'invoice' => $invoice,
+        ]);
+    }
+
+    /**
+     * Send the invoice to the client via WhatsApp.
+     */
     public function sendToWhatsapp($id)
     {
         $invoice         = Invoice::with('items')->findOrFail($id);
@@ -545,7 +734,9 @@ class InvoicesController extends Controller
         }
     }
 
-
+    /**
+     * Display the specified invoice.
+     */
     public function show($id)
     {
         $invoice = Invoice::with('items', 'credit')->findOrFail($id);
@@ -557,6 +748,9 @@ class InvoicesController extends Controller
     }
 
 
+    /**
+     * Display the online payment history.
+     */
     public function onlinePaymentHistory()
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -588,6 +782,9 @@ class InvoicesController extends Controller
     }
 
 
+    /**
+     * Display the cash payment history.
+     */
     public function cashPaymentHistory()
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -638,6 +835,10 @@ class InvoicesController extends Controller
             'data' => $grouped
         ]);
     }
+
+    /**
+     * Display the credit payment history.
+     */
     public function creditPaymentHistory()
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -663,6 +864,9 @@ class InvoicesController extends Controller
         ]);
     }
 
+    /**
+     * Display the self-consumption payment history.
+     */
     public function selfConsumptionHistory()
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -688,6 +892,9 @@ class InvoicesController extends Controller
         ]);
     }
 
+    /**
+     * Store a newly created invoice and send it via WhatsApp.
+     */
     public function storeAndSendWhatsapp(Request $request)
     {
         [$invoice, $pdfContent] = $this->createInvoiceAndPdf($request);
@@ -708,7 +915,7 @@ class InvoicesController extends Controller
         $publicUrl = asset('invoices/' . $fileName);
 
         $payload = [
-            "integrated_number" => "918219678757", 
+            "integrated_number" => "918219678757",
             "content_type" => "template",
             "payload" => [
                 "messaging_product" => "whatsapp",

@@ -37,7 +37,7 @@ class StoreItemBrandController extends Controller
 
         $storeItemBrand = StoreItemBrand::create([
             'name' => $validated['name'],
-            'company_id' => $company->id,
+            'company_id' => $company->company->id,
         ]);
 
         return response()->json($storeItemBrand, 201);
@@ -50,7 +50,7 @@ class StoreItemBrandController extends Controller
     {
         $company = $this->selectCompanyService->getSelectedCompanyOrFail();
 
-        if ($storeItemBrand->company_id !== $company->id) {
+        if ($storeItemBrand->company_id !== $company->company->id) {
             abort(403, 'This brand does not belong to your selected company');
         }
 

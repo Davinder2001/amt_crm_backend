@@ -43,7 +43,7 @@ return new class extends Migration
             $table->boolean('online_visibility')->default(false);
             $table->decimal('cost_price', 10, 2)->nullable();
             $table->decimal('regular_price', 10, 2)->nullable();
-            $table->decimal('selling_price', 10, 2)->nullable();
+            $table->decimal('sale_price', 10, 2)->nullable();
             $table->timestamps();
         });
     }
