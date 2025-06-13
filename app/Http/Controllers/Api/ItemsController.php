@@ -191,6 +191,7 @@ class ItemsController extends Controller
             'measurement'               => 'sometimes|nullable|string',
             'quantity_count'            => 'sometimes|nullable|integer',
             'cost_price'                => 'sometimes|nullable|numeric|min:0',
+            'product_type'              => 'sometimes|string|max:255',
 
             'regular_price'             => 'sometimes|nullable|numeric|min:0',
             'sale_price'                => 'sometimes|nullable|numeric|min:0',
@@ -233,9 +234,8 @@ class ItemsController extends Controller
             ], 422);
         }
 
-        /* ────────────────────── 2. Authorisation & Limits ────────────────────── */
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $companyId       = $selectedCompany->company_id;
+        $companyId       = $selectedCompany->company->id;
 
         /** @var \App\Models\Item $item */
         $item = Item::with('variants', 'categories')->find($id);
@@ -246,57 +246,41 @@ class ItemsController extends Controller
             return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
         }
 
-        // Optional: block edits if the package limit would be exceeded when *duplicating* an item.
-        // (Pure updates normally don't change the count, but keep parity with `store` if you wish)
         $package = Package::find($selectedCompany->company->package_id);
         if (!$package) {
             return response()->json(['success' => false, 'message' => 'No package found for the selected company.'], 404);
         }
 
-        $payload = $validator->validated();
+        $data = array_merge($validator->validated(), [
+            'company_id' => $companyId
+        ]);
 
-        /* ────────────────────── 3. Side-effects inside a transaction ────────────────────── */
         DB::beginTransaction();
         try {
 
-            /* 3-a  Vendor autocreation */
-            if (!empty($payload['vendor_name'])) {
-                VendorService::createIfNotExists($payload['vendor_name'], $companyId);
-            }
-
-            /* 3-b  Images (add / keep / remove) */
-            $payload['images'] = ImageHelper::updateImages(
+            $data['images'] = ImageHelper::updateImages(
                 $request->file('images')        ?? [],
                 is_array($item->images)
                     ? $item->images
                     : (json_decode($item->images, true) ?? []),
-                $payload['removed_images']      ?? []
+                $data['removed_images']      ?? []
             );
 
-            /* 3-c  Featured image */
-            $payload['featured_image'] = $request->hasFile('featured_image')
+            $data['featured_image'] = $request->hasFile('featured_image')
                 ? ImageHelper::saveImage($request->file('featured_image'), 'featured_')
                 : $item->featured_image;
 
-            /* 3-d  Item code (first time only) */
             if (empty($item->item_code)) {
-                $payload['item_code'] = ItemService::generateNextItemCode($companyId);
+                $data['item_code'] = ItemService::generateNextItemCode($companyId);
             }
 
-            /* 3-e  Apply updates */
-            $item->update($payload);
-
-            /* 3-f  Variants */
+            $item->update($data);
             $item->variants()->delete();
-            ItemService::createItemVariants($item, $payload['variants'] ?? [], $payload['images']);
+            ItemService::createItemVariants($item, $data['variants'] ?? [], $data['images']);
 
-            /* 3-g  Categories & tax */
-            $item->categories()->sync([]); // detach all, then re-attach
-            ItemService::assignCategories($item, $payload['categories'] ?? null, $companyId);
-            ItemService::assignTax($item, $payload['tax_id'] ?? null);
-
-            /* 3-h  Batch / stock ledger */
-            ItemService::createBatch($item, $payload);
+            $item->categories()->sync([]);
+            ItemService::assignCategories($item, $data['categories'] ?? null, $companyId);
+            ItemService::assignTax($item, $data['tax_id'] ?? null);
 
             DB::commit();
 

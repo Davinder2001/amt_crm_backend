@@ -152,41 +152,51 @@ class InvoicesController extends Controller
      * Create an invoice and generate a PDF.
      *
      */
+    /**
+     * Build an invoice, reduce stock, save PDF, optionally e-mail it back.
+     *
+     * Pricing rules
+     * ──────────────
+     * • Simple product         →  sale_price (if set) else regular_price
+     * • Variable/variant row   →  variant->price (if set) else variant->ragular_price
+     */
     private function createInvoiceAndPdf(Request $request): array
     {
+        /* ─────────────────────────────────────────────────────────────
+     |  1. Validation
+     ───────────────────────────────────────────────────────────── */
         $validator = Validator::make($request->all(), [
-            'client_name'            => 'required|string',
-            'number'                 => 'required|string',
-            'email'                  => 'nullable|email',
-            'invoice_date'           => 'required|date',
+            'client_name'         => 'required|string',
+            'number'              => 'required|string',
+            'email'               => 'nullable|email',
+            'invoice_date'        => 'required|date',
 
-            'discount_price'         => 'nullable|numeric|min:0',
-            'discount_percentage'    => 'nullable|numeric|min:0',
-            'discount_type'          => 'nullable|in:percentage,amount',
+            'discount_price'      => 'nullable|numeric|min:0',
+            'discount_percentage' => 'nullable|numeric|min:0',
+            'discount_type'       => 'nullable|in:percentage,amount',
 
-            'payment_method'         => 'required|string',
-            'creditPaymentType'      => 'nullable|in:partial,full',
-            'partialAmount'          => 'nullable|numeric|min:0',
-            'credit_note'            => 'nullable|string',
-            'bank_account_id'        => 'nullable|integer|exists:company_accounts,id',
+            'payment_method'      => 'required|string',
+            'creditPaymentType'   => 'nullable|in:partial,full',
+            'partialAmount'       => 'nullable|numeric|min:0',
+            'credit_note'         => 'nullable|string',
+            'bank_account_id'     => 'nullable|integer|exists:company_accounts,id',
 
-            'item_type'              => 'nullable|string',
-            'delivery_charge'        => 'nullable|numeric|min:0',
+            'item_type'           => 'nullable|string',
+            'delivery_charge'     => 'nullable|numeric|min:0',
 
-            'serviceChargeType'      => 'nullable|in:amount,percentage',
-            'serviceChargeAmount'    => 'nullable|numeric|min:0',
-            'serviceChargePercent'   => 'nullable|numeric|min:0',
+            'serviceChargeType'   => 'nullable|in:amount,percentage',
+            'serviceChargeAmount' => 'nullable|numeric|min:0',
+            'serviceChargePercent' => 'nullable|numeric|min:0',
 
-            'address'                => 'nullable|string',
-            'pincode'                => 'nullable|string|max:10',
+            'address'             => 'nullable|string',
+            'pincode'             => 'nullable|string|max:10',
 
-            'items'                  => 'required|array|min:1',
-            'items.*.item_id'        => 'required|exists:store_items,id',
-            'items.*.variant_id'     => 'nullable|exists:item_variants,id',
-            'items.*.quantity'       => 'required|integer|min:1',
-            'items.*.unit_price'     => 'nullable|numeric|min:0',
+            'items'               => 'required|array|min:1',
+            'items.*.item_id'     => 'required|exists:store_items,id',
+            'items.*.variant_id'  => 'nullable|exists:item_variants,id',
+            'items.*.quantity'    => 'required|integer|min:1',
+            'items.*.unit_price'  => 'nullable|numeric|min:0',   // optional override
         ]);
-
 
         if ($validator->fails()) {
             abort(response()->json([
@@ -196,16 +206,21 @@ class InvoicesController extends Controller
             ], 422));
         }
 
-        $data                   = $validator->validated();
-        $selectedCompany        = SelectedCompanyService::getSelectedCompanyOrFail();
-        $issuedById             = Auth::id();
-        $issuedByName           = Auth::user()->name;
-        $packageId              = $selectedCompany->company->package_id ?? 1;
-        $package                = Package::find($packageId);
-        $packageType            = $package['package_type'];
-        $allowedInvoiceCount    = $package['invoices_number'];
-        $now                    = now();
-        $invoiceQuery           = Invoice::where('company_id', $selectedCompany->company_id);
+        $data            = $validator->validated();
+        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+
+        $issuedById   = Auth::id();
+        $issuedByName = Auth::user()->name;
+
+        /* ─────────────────────────────────────────────────────────────
+     |  2. Package invoice-count guard
+     ───────────────────────────────────────────────────────────── */
+        $package       = Package::find($selectedCompany->company->package_id ?? 1);
+        $packageType   = $package?->package_type ?? 'monthly';
+        $allowedCount  = $package?->invoices_number ?? 0;
+
+        $invoiceQuery  = Invoice::where('company_id', $selectedCompany->company_id);
+        $now           = now();
 
         if ($packageType === 'monthly') {
             $invoiceQuery->whereYear('invoice_date', $now->year)
@@ -214,30 +229,53 @@ class InvoicesController extends Controller
             $invoiceQuery->whereYear('invoice_date', $now->year);
         }
 
-        $currentInvoiceCount = $invoiceQuery->count();
-
-        if ($currentInvoiceCount >= $allowedInvoiceCount) {
-            throw new \Exception("You have reached your invoice limit for the {$packageType} package ({$allowedInvoiceCount} invoices).");
+        if ($invoiceQuery->count() >= $allowedCount) {
+            throw new \Exception("You have reached your invoice limit for the {$packageType} package ({$allowedCount} invoices).");
         }
 
-        $invoice = DB::transaction(function () use ($data, $selectedCompany, $issuedById, $issuedByName) {
-            foreach ($data['items'] as $line) {
-                $item = Item::findOrFail($line['item_id']);
-                if ($item->quantity_count < $line['quantity']) {
+        /* ─────────────────────────────────────────────────────────────
+     | 3. Helper closure – pick correct price
+     ───────────────────────────────────────────────────────────── */
+        $unitPriceFor = static function (Item $item, ?int $variantId = null): float {
+            // ▼ Variable product (variant supplied)
+            if (!empty($variantId)) {
+                $variant = ItemVariant::where('id', $variantId)
+                    ->where('item_id', $item->id)
+                    ->firstOrFail();
+                return $variant->price         // sale price
+                    ?? $variant->ragular_price // fallback to regular
+                    ?? 0.0;
+            }
+
+            // ▼ Simple product – prefer sale price
+            return $item->sale_price          // sale price
+                ?? $item->regular_price       // fallback to regular
+                ?? 0.0;
+        };
+
+        /* ─────────────────────────────────────────────────────────────
+     | 4. Main DB transaction
+     ───────────────────────────────────────────────────────────── */
+        $invoice = DB::transaction(function () use (
+            $data,
+            $selectedCompany,
+            $issuedById,
+            $issuedByName,
+            $unitPriceFor
+        ) {
+
+            /* 4-a  Stock availability check */
+            foreach ($data['items'] as $row) {
+                $item = Item::findOrFail($row['item_id']);
+                if ($item->quantity_count < $row['quantity']) {
                     throw new \Exception("Insufficient stock for '{$item->name}'.");
                 }
             }
 
-            $total = collect($data['items'])->sum(function ($line) {
-                $item   = Item::findOrFail($line['item_id']);
-                $price  = $item->selling_price;
-
-                if (!empty($line['variant_id'])) {
-                    $variant = ItemVariant::where('id', $line['variant_id'])
-                        ->where('item_id', $item->id)
-                        ->firstOrFail();
-                    $price = $variant->price;
-                }
+            /* 4-b  Subtotal (price+tax × qty for every row) */
+            $total = collect($data['items'])->sum(function ($row) use ($unitPriceFor) {
+                $item   = Item::findOrFail($row['item_id']);
+                $price  = $unitPriceFor($item, $row['variant_id'] ?? null);
 
                 $taxRate = DB::table('item_tax')
                     ->join('taxes', 'item_tax.tax_id', '=', 'taxes.id')
@@ -245,20 +283,32 @@ class InvoicesController extends Controller
                     ->value('taxes.rate') ?? 0;
 
                 $priceWithTax = $price + ($price * $taxRate / 100);
-                return $priceWithTax * $line['quantity'];
+                return $priceWithTax * $row['quantity'];
             });
+
+            /* 4-c  Service charge (+18 % GST) */
             $serviceChargeAmount    = 0;
             $serviceChargePercent   = 0;
             $serviceChargeGstAmount = 0;
             $finalServiceCharge     = 0;
 
             if (!empty($data['serviceChargeType'])) {
-                if ($data['serviceChargeType'] === 'amount' && !empty($data['serviceChargeAmount'])) {
-                    $serviceChargeAmount    = $data['serviceChargeAmount'];
-                    $serviceChargePercent   = $total > 0 ? round(($serviceChargeAmount / $total) * 100, 2) : 0;
-                } elseif ($data['serviceChargeType'] === 'percentage' && !empty($data['serviceChargePercent'])) {
-                    $serviceChargePercent   = $data['serviceChargePercent'];
-                    $serviceChargeAmount    = round(($serviceChargePercent / 100) * $total, 2);
+                if (
+                    $data['serviceChargeType'] === 'amount'
+                    && !empty($data['serviceChargeAmount'])
+                ) {
+
+                    $serviceChargeAmount  = $data['serviceChargeAmount'];
+                    $serviceChargePercent = $total > 0
+                        ? round(($serviceChargeAmount / $total) * 100, 2)
+                        : 0;
+                } elseif (
+                    $data['serviceChargeType'] === 'percentage'
+                    && !empty($data['serviceChargePercent'])
+                ) {
+
+                    $serviceChargePercent = $data['serviceChargePercent'];
+                    $serviceChargeAmount  = round(($serviceChargePercent / 100) * $total, 2);
                 }
 
                 $serviceChargeGstAmount = round($serviceChargeAmount * 0.18, 2);
@@ -267,13 +317,14 @@ class InvoicesController extends Controller
 
             $subtotal = $total + $finalServiceCharge;
 
+            /* 4-d  Discount */
             if ($data['discount_type'] === 'amount' && $data['discount_price'] > 0) {
-
                 $discountAmount     = $data['discount_price'];
-                $discountPercentage = $subtotal ? round(($discountAmount / $subtotal) * 100, 2) : 0;
-                $finalAmount        = round(max(0, $subtotal - $discountAmount));
+                $discountPercentage = $subtotal > 0
+                    ? round(($discountAmount / $subtotal) * 100, 2)
+                    : 0;
+                $finalAmount = round(max(0, $subtotal - $discountAmount));
             } elseif ($data['discount_type'] === 'percentage' && $data['discount_percentage'] > 0) {
-
                 $discountPercentage = $data['discount_percentage'];
                 $discountAmount     = round(($discountPercentage / 100) * $subtotal, 2);
                 $finalAmount        = round(max(0, $subtotal - $discountAmount));
@@ -283,88 +334,83 @@ class InvoicesController extends Controller
                 $finalAmount        = round($subtotal);
             }
 
+            /* 4-e  Delivery charge */
             if (isset($data['delivery_charge']) && is_numeric($data['delivery_charge'])) {
                 $finalAmount += $data['delivery_charge'];
             }
 
+            /* 4-f  Customer record */
             $customer = Customer::firstOrCreate(
+                ['number' => $data['number'], 'company_id' => $selectedCompany->company_id],
                 [
-                    'number'     => $data['number'],
-                    'company_id' => $selectedCompany->company_id
-                ],
-                [
-                    'name'       => $data['client_name'],
-                    'email'      => $data['email'] ?? null,
-                    'address'    => $data['address'] ?? null,
-                    'pincode'    => $data['pincode'] ?? null,
+                    'name'    => $data['client_name'],
+                    'email'   => $data['email']    ?? null,
+                    'address' => $data['address']  ?? null,
+                    'pincode' => $data['pincode']  ?? null,
                 ]
             );
 
-            $companyCode =  $selectedCompany->company->company_id;
-            $datePrefix  =  now()->format('Ymd');
-            $last        =  Invoice::where('company_id', $selectedCompany->company_id)
+            /* 4-g  Invoice number (YYYYMMDD + 4-digit seq) */
+            $companyCode  = $selectedCompany->company->company_id;
+            $datePrefix   = now()->format('Ymd');
+            $lastInv      = Invoice::where('company_id', $selectedCompany->company_id)
                 ->whereDate('invoice_date', now()->toDateString())
                 ->orderBy('invoice_number', 'desc')
                 ->first();
+            $nextSeq      = $lastInv ? ((int) substr($lastInv->invoice_number, -4)) + 1 : 1;
+            $invoiceNo    = "{$companyCode}{$datePrefix}" . str_pad($nextSeq, 4, '0', STR_PAD_LEFT);
 
-
-            $nextSeq        = $last ? ((int) substr($last->invoice_number, -4)) + 1 : 1;
-            $invoiceNumber  = "{$companyCode}{$datePrefix}" . str_pad($nextSeq, 4, '0', STR_PAD_LEFT);
-
+            /* 4-h  Save invoice header */
             $inv = Invoice::create([
-                'invoice_number'            => $invoiceNumber,
-                'client_name'               => $data['client_name'] ?? 'Guest',
-                'client_phone'              => $data['number'] ?? null,
-                'client_email'              => $data['email'] ?? null,
-                'invoice_date'              => $data['invoice_date'],
-                'total_amount'              => $subtotal,
-                'sub_total'                 => $total,
-                'service_charge_amount'     => $serviceChargeAmount,
-                'service_charge_percent'    => 18,
-                'service_charge_gst'        => $serviceChargeGstAmount,
-                'service_charge_final'      => $finalServiceCharge,
-                'discount_amount'           => $discountAmount ?? 0,
-                'discount_percentage'       => $discountPercentage ?? 0,
-                'delivery_charge'           => $data['delivery_charge'] ?? 0,
-                'delivery_address'          => $data['address'] ?? null,
-                'delivery_pincode'          => $data['pincode'] ?? null,
-                'final_amount'              => $finalAmount,
-                'payment_method'            => $data['payment_method'],
-                'bank_account_id'            => $data['bank_account_id'] ?? null,
-                'credit_note'            => $data['credit_note'],
-                'issued_by'                 => $issuedById,
-                'issued_by_name'            => $issuedByName,
-                'company_id'                => $selectedCompany->company_id,
+                'invoice_number'         => $invoiceNo,
+                'client_name'            => $data['client_name'] ?? 'Guest',
+                'client_phone'           => $data['number'] ?? null,
+                'client_email'           => $data['email']  ?? null,
+                'invoice_date'           => $data['invoice_date'],
+                'total_amount'           => $subtotal,
+                'sub_total'              => $total,
+                'service_charge_amount'  => $serviceChargeAmount,
+                'service_charge_percent' => 18,
+                'service_charge_gst'     => $serviceChargeGstAmount,
+                'service_charge_final'   => $finalServiceCharge,
+                'discount_amount'        => $discountAmount,
+                'discount_percentage'    => $discountPercentage,
+                'delivery_charge'        => $data['delivery_charge'] ?? 0,
+                'delivery_address'       => $data['address']  ?? null,
+                'delivery_pincode'       => $data['pincode']  ?? null,
+                'final_amount'           => $finalAmount,
+                'payment_method'         => $data['payment_method'],
+                'bank_account_id'        => $data['bank_account_id'] ?? null,
+                'credit_note'            => $data['credit_note'] ?? null,
+                'issued_by'              => $issuedById,
+                'issued_by_name'         => $issuedByName,
+                'company_id'             => $selectedCompany->company_id,
             ]);
 
-
+            /* 4-i  Line items + stock decrement + customer history */
             $historyItems = [];
 
-            foreach ($data['items'] as $line) {
-                $item = Item::findOrFail($line['item_id']);
+            foreach ($data['items'] as $row) {
+                $item      = Item::findOrFail($row['item_id']);
+                $unitPrice = $unitPriceFor($item, $row['variant_id'] ?? null);
 
-                $unitPrice = !empty($line['variant_id'])
-                    ? ItemVariant::where('id', $line['variant_id'])
-                    ->where('item_id', $item->id)->firstOrFail()->price
-                    : $item->selling_price;
-
-                $item->decrement('quantity_count', $line['quantity']);
-                $lineTotal = $unitPrice * $line['quantity'];
+                $item->decrement('quantity_count', $row['quantity']);
 
                 $taxPercentage = DB::table('item_tax')
                     ->join('taxes', 'item_tax.tax_id', '=', 'taxes.id')
                     ->where('item_tax.store_item_id', $item->id)
                     ->value('taxes.rate') ?? 0;
 
-                $taxAmount      = $unitPrice * $taxPercentage / 100;
-                $totalAmount    = $lineTotal + $taxAmount;
+                $taxAmount   = $unitPrice * $taxPercentage / 100;
+                $lineTotal   = $unitPrice * $row['quantity'];
+                $totalAmount = $lineTotal + $taxAmount;
 
                 $inv->items()->create([
                     'item_id'        => $item->id,
-                    'variant_id'     => $line['variant_id'] ?? null,
+                    'variant_id'     => $row['variant_id'] ?? null,
                     'description'    => $item->name,
-                    'quantity'       => $line['quantity'],
-                    'unit_price'     => $unitPrice ?? 0,
+                    'quantity'       => $row['quantity'],
+                    'unit_price'     => $unitPrice,
                     'tax_percentage' => $taxPercentage,
                     'tax_amount'     => $taxAmount,
                     'total'          => $totalAmount,
@@ -372,7 +418,7 @@ class InvoicesController extends Controller
 
                 $historyItems[] = [
                     'description' => $item->name,
-                    'quantity'    => $line['quantity'],
+                    'quantity'    => $row['quantity'],
                     'unit_price'  => $unitPrice,
                     'total'       => $lineTotal,
                 ];
@@ -387,47 +433,48 @@ class InvoicesController extends Controller
                 'subtotal'      => $subtotal,
             ]);
 
-            $amountPaid = null;
-            $totalDue   = null;
-
+            /* 4-j  Credit handling */
             if ($data['payment_method'] === 'credit') {
+                $amountPaid = null;
+                $totalDue   = $finalAmount;
 
                 if ($data['creditPaymentType'] === 'partial') {
-                    $amountPaid = $data['partialAmount'];
+                    $amountPaid = $data['partialAmount'] ?? 0;
                     $totalDue   = $finalAmount - $amountPaid;
                 } elseif ($data['creditPaymentType'] === 'full') {
                     $amountPaid = 0;
                     $totalDue   = $finalAmount;
                 }
-            }
 
-            if ($data['payment_method'] === 'credit') {
                 CustomerCredit::create([
-                    'customer_id'  => $customer->id,
-                    'invoice_id'   => $inv->id,
-                    'total_due'    => $finalAmount,
-                    'amount_paid'  => $amountPaid,
-                    'outstanding'  => $totalDue,
-                    'company_id'   => $selectedCompany->company_id,
-                    'status'       => 'due',
+                    'customer_id' => $customer->id,
+                    'invoice_id'  => $inv->id,
+                    'total_due'   => $finalAmount,
+                    'amount_paid' => $amountPaid,
+                    'outstanding' => $totalDue,
+                    'company_id'  => $selectedCompany->company_id,
+                    'status'      => 'due',
                 ]);
             }
 
             return $inv;
         });
 
-        $invoice->load('items.variant', 'credit');
+        /* ─────────────────────────────────────────────────────────────
+     | 5. PDF build & optional e-mail
+     ───────────────────────────────────────────────────────────── */
+        $invoice->load(['items.variant', 'credit']);
 
         $pdf = Pdf::loadView('invoices.pdf', [
-            'invoice'          => $invoice,
-            'company_name'     => $selectedCompany->company->company_name,
-            'company_address'  => $selectedCompany->company->address ?? 'N/A',
-            'company_phone'    => $selectedCompany->company->phone ?? 'N/A',
-            'company_gstin'    => $selectedCompany->company->gstin ?? 'N/A',
-            'company_logo'     => $selectedCompany->company->company_logo ?? 'N/A',
-            'issued_by'        => Auth::user()->name,
-            'footer_note'      => 'Thank you for your business',
-            'show_signature'   => true,
+            'invoice'         => $invoice,
+            'company_name'    => $selectedCompany->company->company_name,
+            'company_address' => $selectedCompany->company->address ?? 'N/A',
+            'company_phone'   => $selectedCompany->company->phone   ?? 'N/A',
+            'company_gstin'   => $selectedCompany->company->gstin   ?? 'N/A',
+            'company_logo'    => $selectedCompany->company->company_logo ?? 'N/A',
+            'issued_by'       => Auth::user()->name,
+            'footer_note'     => 'Thank you for your business',
+            'show_signature'  => true,
         ]);
 
         if (!empty($data['email'])) {
@@ -440,9 +487,9 @@ class InvoicesController extends Controller
             });
         }
 
-
         return [$invoice, $pdf->output()];
     }
+
 
     /**
      * Update the specified invoice in storage.

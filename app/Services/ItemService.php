@@ -43,7 +43,7 @@ class ItemService
 
     public static function createBatch(Item $item, array $data): void
     {
-        ItemBatch::create([
+        ItemBatch::updateOrCreate([
             'company_id'     => $data['company_id'],
             'item_id'        => $item->id,
             'batch_number'   => 'BATCH-' . strtoupper(uniqid()),
