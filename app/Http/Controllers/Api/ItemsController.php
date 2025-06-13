@@ -48,8 +48,8 @@ class ItemsController extends Controller
             'date_of_expiry'            => 'nullable|date',
             'product_type'              => 'nullable|string|max:255',
 
-            'regular_price'             => 'required|integer',
-            'sale_price'                => 'nullable|integer',
+            'regular_price'             => 'required_if:product_type,simple_product|nullable|numeric|min:0',
+            'sale_price'                => 'nullable|numeric|min:0',
 
             'variants'                  => 'nullable|array',
             'variants.*.regular_price'  => 'required_with:variants|numeric|min:0',
@@ -137,8 +137,8 @@ class ItemsController extends Controller
                 'vendor_id'           => $data['vendor_id'] ?? null,
                 'images'              => $data['images'] ?? null,
                 'cost_price'          => $data['cost_price'] ?? null,
-                'regular_price'       => $data['regular_price'],
-                'sale_price'          => $data['sale_price'],
+                'regular_price'       => $data['regular_price'] ?? null,
+                'sale_price'          => $data['sale_price'] ?? null,
             ]);
 
 

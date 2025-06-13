@@ -26,6 +26,7 @@ return new class extends Migration
             $table->string('category')->nullable();
             $table->string('vendor_name')->nullable();
             $table->string('featured_image')->nullable();
+            $table->enum('product_type', ['simple_product', 'variable_product'])->default('simple_product');
             
             // Use invoice_id instead of invoice_no
             $table->unsignedBigInteger('invoice_id')->nullable();
