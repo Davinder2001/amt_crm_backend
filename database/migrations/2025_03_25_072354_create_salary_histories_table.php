@@ -16,7 +16,7 @@ return new class extends Migration
             $table->unsignedBigInteger('user_id');
             $table->decimal('previous_salary', 10, 2)->nullable();
             $table->decimal('new_salary', 10, 2);
-            $table->date('increment_date')->default(DB::raw('CURRENT_DATE'));
+            $table->date('increment_date')->nullable();
             $table->text('reason')->nullable();
             $table->timestamps();
         
