@@ -58,8 +58,8 @@ class ItemService
     {
         foreach ($variants as $variantData) {
             $variant = $item->variants()->create([
-                'regular_price' => $variantData['regular_price'] ?? 0,
-                'price'         => $variantData['price'],
+                'regular_price' => $variantData['regular_price'],
+                'price'         => $variantData['sale_price'] ?? 0,
                 'stock'         => $variantData['stock'] ?? 1,
                 'images'        => $imageLinks,
             ]);

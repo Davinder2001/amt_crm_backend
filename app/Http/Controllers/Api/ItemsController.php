@@ -49,11 +49,11 @@ class ItemsController extends Controller
             'product_type'              => 'nullable|string|max:255',
 
             'regular_price'             => 'required|integer',
-            'sale_price'             => 'nullable|integer',
+            'sale_price'                => 'nullable|integer',
 
             'variants'                  => 'nullable|array',
-            'variants.*.price'          => 'required_with:variants|numeric|min:0',
-            'variants.*.ragular_price'  => 'nullable:variants|numeric|min:0',
+            'variants.*.regular_price'  => 'required_with:variants|numeric|min:0',
+            'variants.*.sale_price'     => 'nullable:variants|numeric|min:0',
             'variants.*.stock'          => 'nullable|integer|min:0',
             'variants.*.attributes'     => 'required_with:variants|array',
 
@@ -183,88 +183,138 @@ class ItemsController extends Controller
      * Update the specified item in storage.
      *
      */
-    public function update(Request $request, $id): JsonResponse
+    public function update(Request $request, int $id): JsonResponse
     {
+        /* ────────────────────── 1. Validation ────────────────────── */
         $validator = Validator::make($request->all(), [
-            'name'                      => 'nullable|string|max:255',
-            'quantity_count'            => 'nullable|integer',
-            'brand_id'                  => 'nullable|integer',
-            'featured_image'            => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
-            'measurement'               => 'nullable|string',
-            'purchase_date'             => 'nullable|date',
-            'date_of_manufacture'       => 'nullable|date',
-            'date_of_expiry'            => 'nullable|date',
-            'brand_name'                => 'nullable|string|max:255',
-            'replacement'               => 'nullable|string|max:255',
-            'categories'                => 'nullable|array',
+            'name'                      => 'sometimes|required|string|max:255',
+            'measurement'               => 'sometimes|nullable|string',
+            'quantity_count'            => 'sometimes|nullable|integer',
+            'cost_price'                => 'sometimes|nullable|numeric|min:0',
+
+            'regular_price'             => 'sometimes|nullable|numeric|min:0',
+            'sale_price'                => 'sometimes|nullable|numeric|min:0',
+
+            'vendor_name'               => 'sometimes|nullable|string|max:255',
+            'vendor_id'                 => 'sometimes|nullable|integer',
+            'tax_id'                    => 'sometimes|nullable',
+
+            'replacement'               => 'sometimes|nullable|string|max:255',
+            'purchase_date'             => 'sometimes|nullable|date',
+            'date_of_manufacture'       => 'sometimes|nullable|date',
+            'date_of_expiry'            => 'sometimes|nullable|date',
+            'product_type'              => 'sometimes|nullable|string|max:255',
+
+            'brand_id'                  => 'sometimes|nullable|integer',
+            'brand_name'                => 'sometimes|nullable|string|max:255',
+
+            'featured_image'            => 'sometimes|nullable|image|mimes:jpg,jpeg,png|max:5120',
+
+            'categories'                => 'sometimes|nullable|array',
             'categories.*'              => 'integer|exists:categories,id',
-            'vendor_name'               => 'nullable|string|max:255',
-            'cost_price'                => 'nullable|numeric|min:0',
-            'selling_price'             => 'nullable|numeric|min:0',
-            'availability_stock'        => 'nullable|integer|min:0',
-            'images.*'                  => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
-            'removed_images'            => 'nullable|array',
+
+            'images'                    => 'sometimes|array',
+            'images.*'                  => 'image|mimes:jpg,jpeg,png|max:5120',
+            'removed_images'            => 'sometimes|array',
             'removed_images.*'          => 'string',
-            'variants'                  => 'nullable|array',
-            'variants.*.price'          => 'required_with:variants|numeric|min:0',
-            'variants.*.regular_price'  => 'nullable|numeric|min:0',
-            'variants.*.stock'          => 'nullable|integer|min:0',
+
+            'variants'                  => 'sometimes|nullable|array',
+            'variants.*.regular_price'  => 'required_with:variants|numeric|min:0',
+            'variants.*.sale_price'     => 'sometimes|nullable|numeric|min:0',
+            'variants.*.stock'          => 'sometimes|nullable|integer|min:0',
             'variants.*.attributes'     => 'required_with:variants|array',
-            'tax_id'                    => 'nullable',
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['message' => 'Validation errors.', 'errors' => $validator->errors()], 422);
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation errors.',
+                'errors'  => $validator->errors(),
+            ], 422);
         }
 
-        $data            = $validator->validated();
+        /* ────────────────────── 2. Authorisation & Limits ────────────────────── */
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $item            = Item::with('variants', 'categories')->find($id);
+        $companyId       = $selectedCompany->company_id;
 
+        /** @var \App\Models\Item $item */
+        $item = Item::with('variants', 'categories')->find($id);
         if (!$item) {
+            return response()->json(['success' => false, 'message' => 'Item not found.'], 404);
+        }
+        if (!$selectedCompany->super_admin && $item->company_id !== $companyId) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
+        }
+
+        // Optional: block edits if the package limit would be exceeded when *duplicating* an item.
+        // (Pure updates normally don't change the count, but keep parity with `store` if you wish)
+        $package = Package::find($selectedCompany->company->package_id);
+        if (!$package) {
+            return response()->json(['success' => false, 'message' => 'No package found for the selected company.'], 404);
+        }
+
+        $payload = $validator->validated();
+
+        /* ────────────────────── 3. Side-effects inside a transaction ────────────────────── */
+        DB::beginTransaction();
+        try {
+
+            /* 3-a  Vendor autocreation */
+            if (!empty($payload['vendor_name'])) {
+                VendorService::createIfNotExists($payload['vendor_name'], $companyId);
+            }
+
+            /* 3-b  Images (add / keep / remove) */
+            $payload['images'] = ImageHelper::updateImages(
+                $request->file('images')        ?? [],
+                is_array($item->images)
+                    ? $item->images
+                    : (json_decode($item->images, true) ?? []),
+                $payload['removed_images']      ?? []
+            );
+
+            /* 3-c  Featured image */
+            $payload['featured_image'] = $request->hasFile('featured_image')
+                ? ImageHelper::saveImage($request->file('featured_image'), 'featured_')
+                : $item->featured_image;
+
+            /* 3-d  Item code (first time only) */
+            if (empty($item->item_code)) {
+                $payload['item_code'] = ItemService::generateNextItemCode($companyId);
+            }
+
+            /* 3-e  Apply updates */
+            $item->update($payload);
+
+            /* 3-f  Variants */
+            $item->variants()->delete();
+            ItemService::createItemVariants($item, $payload['variants'] ?? [], $payload['images']);
+
+            /* 3-g  Categories & tax */
+            $item->categories()->sync([]); // detach all, then re-attach
+            ItemService::assignCategories($item, $payload['categories'] ?? null, $companyId);
+            ItemService::assignTax($item, $payload['tax_id'] ?? null);
+
+            /* 3-h  Batch / stock ledger */
+            ItemService::createBatch($item, $payload);
+
+            DB::commit();
+
             return response()->json([
-                'message' => 'Item not found.'
-            ], 404);
-        }
-
-        if (!$selectedCompany->super_admin && $item->company_id !== $selectedCompany->company_id) {
+                'success' => true,
+                'message' => 'Item updated successfully.',
+                'item'    => new ItemResource($item->load('variants.attributeValues', 'categories')),
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
             return response()->json([
-                'message' => 'Unauthorized.'
-            ], 403);
+                'success' => false,
+                'message' => 'Something went wrong while updating the item.',
+                'error'   => $e->getMessage(),
+            ], 500);
         }
-
-        if (!empty($data['vendor_name'])) {
-            VendorService::createIfNotExists($data['vendor_name'], $item->company_id);
-        }
-
-        $imageLinks = ImageHelper::updateImages(
-            $request->file('images') ?? [],
-            is_array($item->images) ? $item->images : json_decode($item->images, true) ?? [],
-            $data['removed_images'] ?? []
-        );
-
-
-        $data['images'] = $imageLinks;
-        $data['featured_image'] = $request->hasFile('featured_image') ? ImageHelper::saveImage($request->file('featured_image'), 'featured_') : $item->featured_image;
-
-        if (empty($item->item_code)) {
-            $data['item_code'] = ItemService::generateNextItemCode($item->company_id);
-        }
-
-        $item->update($data);
-        $item->variants()->delete();
-
-        ItemService::createItemVariants($item, $data['variants'] ?? [], $data['images']);
-
-        $item->categories()->detach();
-        ItemService::assignCategories($item, $data['categories'] ?? null, $item->company_id);
-        ItemService::assignTax($item, $data['tax_id'] ?? null);
-
-        return response()->json([
-            'message' => 'Item updated successfully.',
-            'item' => new ItemResource($item->load('variants.attributeValues', 'categories')),
-        ]);
     }
+
 
     /**
      * Remove the specified item from storage.
