@@ -61,12 +61,15 @@ class ItemResource extends JsonResource
             'taxes' => $this->whenLoaded(
                 'taxes',
                 fn() =>
-                $this->taxes->map(fn($t) => ['id' => $t->id, 'name' => $t->name, 'rate' => $t->rate])
+                $this->taxes->map(fn($t) => [
+                    'id'   => $t->id, 
+                    'name' => $t->name, 
+                    'rate' => $t->rate])
             ),
 
             'variants' => $this->whenLoaded('variants', function () use ($calcFinal) {
                 return $this->variants->map(function ($variant) use ($calcFinal) {
-                    $base = $variant->sale_price ?? $variant->regular_price ?? $variant->price;
+                    $base = $variant->sale_price ?? $variant->regular_price ?? $variant->sale_price;
                     return [
                         'id'            => $variant->id,
                         'regular_price' => $variant->regular_price,
@@ -87,11 +90,11 @@ class ItemResource extends JsonResource
                 'batches',
                 fn() =>
                 $this->batches->map(fn($b) => [
-                    'id'            => $b->id,
-                    'batch_number'  => $b->batch_number,
+                    'id'             => $b->id,
+                    'batch_number'   => $b->batch_number,
                     'purchase_price' => $b->purchase_price,
-                    'quantity'      => $b->quantity,
-                    'created_at'    => optional($b->created_at)->format('Y-m-d H:i'),
+                    'quantity'       => $b->quantity,
+                    'created_at'     => optional($b->created_at)->format('Y-m-d H:i'),
                 ])
             ),
         ];
