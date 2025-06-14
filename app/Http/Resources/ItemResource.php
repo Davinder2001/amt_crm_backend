@@ -55,8 +55,8 @@ class ItemResource extends JsonResource
             'sale_price'         => $this->sale_price,
             'final_cost'         => $itemFinalCost,
 
-            'created_at' => optional($this->created_at)->format('Y-m-d'),
-            'updated_at' => optional($this->updated_at)->format('Y-m-d'),
+            // 'created_at' => optional($this->created_at)->format('Y-m-d'),
+            // 'updated_at' => optional($this->updated_at)->format('Y-m-d'),
 
             'taxes' => $this->whenLoaded(
                 'taxes',
@@ -70,7 +70,7 @@ class ItemResource extends JsonResource
                     return [
                         'id'            => $variant->id,
                         'regular_price' => $variant->regular_price,
-                        'sale_price'    => $variant->sale_price,
+                        'sale_price'    => $variant->sale_price ?? $variant->price,
                         'price'         => $variant->price,
                         'stock'         => $variant->stock,
                         'images'        => $variant->images,
