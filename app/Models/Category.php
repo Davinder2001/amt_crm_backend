@@ -56,5 +56,4 @@ class Category extends Model
     {
         return $this->belongsToMany( Item::class, 'category_item', 'category_id', 'store_item_id');
     }
-
 }

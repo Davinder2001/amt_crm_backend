@@ -47,15 +47,20 @@ class ItemsController extends Controller
             'date_of_manufacture'       => 'nullable|date',
             'date_of_expiry'            => 'nullable|date',
             'product_type'              => 'nullable|string|max:255',
+            'sale_type'                 => 'nullable|string|max:255',
 
             'regular_price'             => 'required_if:product_type,simple_product|nullable|numeric|min:0',
             'sale_price'                => 'nullable|numeric|min:0',
+            'units_in_peace'            => 'nullable|string|max:255',
+            'price_per_unit'            => 'nullable|string|max:255',
 
             'variants'                  => 'nullable|array',
             'variants.*.regular_price'  => 'required_with:variants|numeric|min:0',
             'variants.*.sale_price'     => 'nullable:variants|numeric|min:0',
             'variants.*.stock'          => 'nullable|integer|min:0',
             'variants.*.attributes'     => 'required_with:variants|array',
+            'units_in_peace'            => 'nullable|string|max:255',
+            'price_per_unit'            => 'nullable|string|max:255',
 
             'featured_image'            => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
             'categories'                => 'nullable|array',
