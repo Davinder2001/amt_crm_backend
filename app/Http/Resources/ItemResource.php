@@ -104,7 +104,7 @@ class ItemResource extends JsonResource
                         'variant_sale_price'     => $variant->variant_sale_price,
                         'variant_units_in_peace' => $variant->variant_units_in_peace,
                         'variant_price_per_unit' => $variant->variant_price_per_unit,
-                        'stock'                  => $variant->stock,
+                        'variant_stock'          => $variant->stock,
                         'images'                 => $variant->images,
                         'final_cost'             => $variantFinalCost,
 
