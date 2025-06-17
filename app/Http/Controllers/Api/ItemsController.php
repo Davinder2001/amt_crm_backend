@@ -33,60 +33,79 @@ class ItemsController extends Controller
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
         $companyId       = $selectedCompany->company_id;
 
+        /* -----------------------------------------------------------------
+     | 1. VALIDATION
+     * -----------------------------------------------------------------*/
         $validator = Validator::make($request->all(), [
-            'name'                      => 'required|string|max:255',
-            'measurement'               => 'nullable|string',
-            'quantity_count'            => 'required|integer',
-            'cost_price'                => 'required|numeric|min:0',
-            'vendor_name'               => 'nullable|string|max:255',
-            'vendor_id'                 => 'nullable|integer',
-            'tax_id'                    => 'nullable',
 
-            'replacement'               => 'nullable|string|max:255',
-            'purchase_date'             => 'nullable|date',
-            'date_of_manufacture'       => 'nullable|date',
-            'date_of_expiry'            => 'nullable|date',
-            'product_type'              => 'nullable|string|max:255',
-            'sale_type'                 => 'nullable|string|max:255',
+            /* core item data */
+            'name'            => 'required|string|max:255',
+            'measurement'     => 'nullable|string',
+            'quantity_count'  => 'required|integer',
+            'cost_price'      => 'required|numeric|min:0',
 
-            'regular_price'             => 'required_if:product_type,simple_product|nullable|numeric|min:0',
-            'sale_price'                => 'nullable|numeric|min:0',
-            'units_in_peace'            => 'nullable|string|max:255',
-            'price_per_unit'            => 'nullable|string|max:255',
+            /* vendor / brand */
+            'vendor_name'     => 'nullable|string|max:255',
+            'vendor_id'       => 'nullable|integer',
+            'brand_id'        => 'nullable|integer',
+            'brand_name'      => 'nullable|string|max:255',
 
-            'variants'                  => 'nullable|array',
-            'variants.*.regular_price'  => 'required_with:variants|numeric|min:0',
-            'variants.*.sale_price'     => 'nullable:variants|numeric|min:0',
-            'variants.*.stock'          => 'nullable|integer|min:0',
-            'variants.*.attributes'     => 'required_with:variants|array',
-            'units_in_peace'            => 'nullable|string|max:255',
-            'price_per_unit'            => 'nullable|string|max:255',
+            /* tax */
+            'tax_id'          => 'nullable|integer|exists:taxes,id',
 
-            'featured_image'            => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
-            'categories'                => 'nullable|array',
-            'categories.*'              => 'integer|exists:categories,id',
-            'brand_id'                  => 'nullable|integer',
-            'brand_name'                => 'nullable|string|max:255',
+            /* dates & misc. */
+            'replacement'         => 'nullable|string|max:255',
+            'purchase_date'       => 'nullable|date',
+            'date_of_manufacture' => 'nullable|date',
+            'date_of_expiry'      => 'nullable|date',
 
-            // 'selling_price'             => 'required|numeric|min:0',
-            // 'availability_stock'        => 'required|integer|min:0',
+            /* product meta */
+            'product_type'    => 'required|in:simple_product,variable_product',
+            'sale_type'       => 'nullable|string|max:255',
+            'unit_of_measure' => 'required|in:pieces,unit',
 
-            'images.*'                  => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
+            /* pricing */
+            'regular_price'   => 'required_if:product_type,simple_product|nullable|numeric|min:0',
+            'sale_price'      => 'nullable|numeric|min:0',
+            'units_in_peace'  => 'nullable|string|max:255',
+            'price_per_unit'  => 'nullable|string|max:255',
 
+            /* variants (only for variable products) */
+            'variants'                                         => 'required_if:product_type,variable_product|array',
+            'variants.*.variant_regular_price'                 => 'required_with:variants|numeric|min:0',
+            'variants.*.variant_sale_price'                    => 'nullable|numeric|min:0',
+            'variants.*.variant_stock'                         => 'required_with:variants|integer|min:0',
+            'variants.*.variant_units_in_peace'                => 'nullable|string|max:255',
+            'variants.*.variant_price_per_unit'                => 'nullable|string|max:255',
+            'variants.*.attributes'                            => 'required_with:variants|array',
+            'variants.*.attributes.*.attribute_id'             => 'required|exists:attributes,id',
+            'variants.*.attributes.*.attribute_value_id'       => 'required|exists:attribute_values,id',
+
+            /* images / files */
+            'featured_image' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
+            'images'         => 'nullable|array',
+            'images.*'       => 'image|mimes:jpg,jpeg,png|max:5120',
+
+            /* categories */
+            'categories'     => 'nullable|array',
+            'categories.*'   => 'integer|exists:categories,id',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation errors.',
-                'errors' => $validator->errors(),
+                'errors'  => $validator->errors(),
             ], 422);
         }
 
+        /* -----------------------------------------------------------------
+     | 2. PACKAGE LIMIT CHECK
+     * -----------------------------------------------------------------*/
         $data               = $validator->validated();
         $data['company_id'] = $companyId;
-        $package            = Package::find($selectedCompany->company->package_id);
 
+        $package = Package::find($selectedCompany->company->package_id);
         if (!$package) {
             return response()->json([
                 'success' => false,
@@ -95,10 +114,11 @@ class ItemsController extends Controller
         }
 
         $itemQuery = Item::where('company_id', $companyId);
+        $now       = now();
 
-        $now = now();
         if ($package->package_type === 'monthly') {
-            $itemQuery->whereYear('created_at', $now->year)->whereMonth('created_at', $now->month);
+            $itemQuery->whereYear('created_at', $now->year)
+                ->whereMonth('created_at', $now->month);
         } else {
             $itemQuery->whereYear('created_at', $now->year);
         }
@@ -110,43 +130,67 @@ class ItemsController extends Controller
             ], 403);
         }
 
+        /* -----------------------------------------------------------------
+     | 3. STORE ITEM
+     * -----------------------------------------------------------------*/
         try {
-
             DB::beginTransaction();
+
             $data['item_code'] = ItemService::generateNextItemCode($companyId);
 
+            // autocreate vendor if needed
             if (!empty($data['vendor_name'])) {
                 VendorService::createIfNotExists($data['vendor_name'], $companyId);
             }
 
-            $data['images'] = ImageHelper::processImages($request->file('images') ?? []);
-            $data['featured_image'] = $request->hasFile('featured_image') ? ImageHelper::saveImage($request->file('featured_image'), 'featured_') : null;
+            // images handling
+            $data['images']         = ImageHelper::processImages($request->file('images') ?? []);
+            $data['featured_image'] = $request->hasFile('featured_image')
+                ? ImageHelper::saveImage($request->file('featured_image'), 'featured_')
+                : null;
 
-
-
+            /** @var \App\Models\Item $item */
             $item = Item::create([
                 'company_id'          => $data['company_id'],
-                'item_code'           => $data['item_code'] ?? null,
+                'item_code'           => $data['item_code'],
                 'brand_id'            => $data['brand_id'] ?? null,
-                'name'                => $data['name'],
-                'quantity_count'      => $data['quantity_count'],
-                'measurement'         => $data['measurement'] ?? null,
-                'purchase_date'       => $data['purchase_date'] ?? null,
-                'featured_image'      => $data['featured_image'] ?? null,
-                'invoice_id'          => $data['invoice_no'] ?? null,
-                'date_of_manufacture' => $data['date_of_manufacture'] ?? null,
-                'date_of_expiry'      => $data['date_of_expiry'] ?? null,
                 'brand_name'          => $data['brand_name'] ?? null,
-                'replacement'         => $data['replacement'] ?? null,
+
+                'name'                => $data['name'],
+                'measurement'         => $data['measurement'] ?? null,
+                'quantity_count'      => $data['quantity_count'],
+                'unit_of_measure'     => $data['unit_of_measure'],
+
+                // pricing
+                'cost_price'      => $data['cost_price'],
+                'regular_price'   => $data['regular_price'] ?? null,
+                'sale_price'      => $data['sale_price'] ?? null,
+                'units_in_peace'  => $data['units_in_peace'] ?? null,
+                'price_per_unit'  => $data['price_per_unit'] ?? null,
+
+                // product meta
+                'product_type'    => $data['product_type'],
+                'sale_type'       => $data['sale_type'] ?? null,
+
+                // vendor / dates / misc.
                 'vendor_name'         => $data['vendor_name'] ?? null,
                 'vendor_id'           => $data['vendor_id'] ?? null,
-                'images'              => $data['images'] ?? null,
-                'cost_price'          => $data['cost_price'] ?? null,
-                'regular_price'       => $data['regular_price'] ?? null,
-                'sale_price'          => $data['sale_price'] ?? null,
+                'replacement'         => $data['replacement'] ?? null,
+                'purchase_date'       => $data['purchase_date'] ?? null,
+                'date_of_manufacture' => $data['date_of_manufacture'] ?? null,
+                'date_of_expiry'      => $data['date_of_expiry'] ?? null,
+
+                // media
+                'featured_image' => $data['featured_image'],
+                'images'         => $data['images'],
+
+                // optional invoice number (came in as invoice_no)
+                'invoice_id'     => $data['invoice_no'] ?? null,
             ]);
 
-
+            /* ------------------------------------------
+         | Relationships
+         *------------------------------------------*/
             ItemService::createItemVariants($item, $data['variants'] ?? [], $data['images']);
             ItemService::assignCategories($item, $data['categories'] ?? null, $companyId);
             ItemService::assignTax($item, $data['tax_id'] ?? null);
@@ -157,17 +201,20 @@ class ItemsController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Item and stock batch added successfully.',
-                'item' => new ItemResource($item->load('variants.attributeValues', 'categories')),
+                'item'    => new ItemResource(
+                    $item->load('variants.attributeValues', 'categories')
+                ),
             ], 201);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
             return response()->json([
                 'success' => false,
                 'message' => 'Something went wrong while creating the item.',
-                'error' => $e->getMessage(),
+                'error'   => $e->getMessage(),
             ], 500);
         }
     }
+
 
     /**
      * Display the specified item.
@@ -192,43 +239,59 @@ class ItemsController extends Controller
     {
         /* ────────────────────── 1. Validation ────────────────────── */
         $validator = Validator::make($request->all(), [
-            'name'                      => 'sometimes|required|string|max:255',
-            'measurement'               => 'sometimes|nullable|string',
-            'quantity_count'            => 'sometimes|nullable|integer',
-            'cost_price'                => 'sometimes|nullable|numeric|min:0',
-            'product_type'              => 'sometimes|string|max:255',
+            /* core item data */
+            'name'            => 'sometimes|required|string|max:255',
+            'measurement'     => 'sometimes|nullable|string',
+            'quantity_count'  => 'sometimes|nullable|integer',
+            'cost_price'      => 'sometimes|nullable|numeric|min:0',
 
-            'regular_price'             => 'sometimes|nullable|numeric|min:0',
-            'sale_price'                => 'sometimes|nullable|numeric|min:0',
+            /* vendor / brand */
+            'vendor_name'     => 'sometimes|nullable|string|max:255',
+            'vendor_id'       => 'sometimes|nullable|integer',
+            'brand_id'        => 'sometimes|nullable|integer',
+            'brand_name'      => 'sometimes|nullable|string|max:255',
 
-            'vendor_name'               => 'sometimes|nullable|string|max:255',
-            'vendor_id'                 => 'sometimes|nullable|integer',
-            'tax_id'                    => 'sometimes|nullable',
+            /* tax */
+            'tax_id'          => 'sometimes|nullable|integer|exists:taxes,id',
 
-            'replacement'               => 'sometimes|nullable|string|max:255',
-            'purchase_date'             => 'sometimes|nullable|date',
-            'date_of_manufacture'       => 'sometimes|nullable|date',
-            'date_of_expiry'            => 'sometimes|nullable|date',
-            'product_type'              => 'sometimes|nullable|string|max:255',
+            /* dates & misc. */
+            'replacement'         => 'sometimes|nullable|string|max:255',
+            'purchase_date'       => 'sometimes|nullable|date',
+            'date_of_manufacture' => 'sometimes|nullable|date',
+            'date_of_expiry'      => 'sometimes|nullable|date',
 
-            'brand_id'                  => 'sometimes|nullable|integer',
-            'brand_name'                => 'sometimes|nullable|string|max:255',
+            /* product meta */
+            'product_type'    => 'sometimes|in:simple_product,variable_product',
+            'sale_type'       => 'sometimes|nullable|string|max:255',
+            'unit_of_measure' => 'sometimes|in:pieces,unit',
 
-            'featured_image'            => 'sometimes|nullable|image|mimes:jpg,jpeg,png|max:5120',
+            /* pricing */
+            'regular_price'   => 'sometimes|nullable|numeric|min:0',
+            'sale_price'      => 'sometimes|nullable|numeric|min:0',
+            'units_in_peace'  => 'sometimes|nullable|string|max:255',
+            'price_per_unit'  => 'sometimes|nullable|string|max:255',
 
-            'categories'                => 'sometimes|nullable|array',
-            'categories.*'              => 'integer|exists:categories,id',
+            /* variants (only for variable products) */
+            'variants'                                         => 'sometimes|nullable|array',
+            'variants.*.variant_regular_price'                 => 'required_with:variants|numeric|min:0',
+            'variants.*.variant_sale_price'                    => 'sometimes|nullable|numeric|min:0',
+            'variants.*.variant_stock'                         => 'sometimes|nullable|integer|min:0',
+            'variants.*.variant_units_in_peace'                => 'sometimes|nullable|string|max:255',
+            'variants.*.variant_price_per_unit'                => 'sometimes|nullable|string|max:255',
+            'variants.*.attributes'                            => 'required_with:variants|array',
+            'variants.*.attributes.*.attribute_id'             => 'required|exists:attributes,id',
+            'variants.*.attributes.*.attribute_value_id'       => 'required|exists:attribute_values,id',
 
-            'images'                    => 'sometimes|array',
-            'images.*'                  => 'image|mimes:jpg,jpeg,png|max:5120',
-            'removed_images'            => 'sometimes|array',
-            'removed_images.*'          => 'string',
+            /* images */
+            'featured_image'   => 'sometimes|nullable|image|mimes:jpg,jpeg,png|max:5120',
+            'images'           => 'sometimes|array',
+            'images.*'         => 'image|mimes:jpg,jpeg,png|max:5120',
+            'removed_images'   => 'sometimes|array',
+            'removed_images.*' => 'string',
 
-            'variants'                  => 'sometimes|nullable|array',
-            'variants.*.regular_price'  => 'required_with:variants|numeric|min:0',
-            'variants.*.sale_price'     => 'sometimes|nullable|numeric|min:0',
-            'variants.*.stock'          => 'sometimes|nullable|integer|min:0',
-            'variants.*.attributes'     => 'required_with:variants|array',
+            /* categories */
+            'categories'     => 'sometimes|nullable|array',
+            'categories.*'   => 'integer|exists:categories,id',
         ]);
 
         if ($validator->fails()) {
@@ -239,10 +302,11 @@ class ItemsController extends Controller
             ], 422);
         }
 
+        /* ────────────────────── 2. Authorisation + package ────────────────────── */
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
         $companyId       = $selectedCompany->company->id;
 
-        /** @var \App\Models\Item $item */
+        /** @var \App\Models\Item|null $item */
         $item = Item::with('variants', 'categories')->find($id);
         if (!$item) {
             return response()->json(['success' => false, 'message' => 'Item not found.'], 404);
@@ -251,48 +315,50 @@ class ItemsController extends Controller
             return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
         }
 
-        $package = Package::find($selectedCompany->company->package_id);
-        if (!$package) {
-            return response()->json(['success' => false, 'message' => 'No package found for the selected company.'], 404);
-        }
-
-        $data = array_merge($validator->validated(), [
-            'company_id' => $companyId
-        ]);
+        /* ────────────────────── 3. Merge validated data ────────────────────── */
+        $data = array_merge($validator->validated(), ['company_id' => $companyId]);
 
         DB::beginTransaction();
         try {
-
+            /* ---------- Images ---------- */
             $data['images'] = ImageHelper::updateImages(
-                $request->file('images')        ?? [],
-                is_array($item->images)
-                    ? $item->images
-                    : (json_decode($item->images, true) ?? []),
-                $data['removed_images']      ?? []
+                $request->file('images') ?? [],
+                is_array($item->images) ? $item->images : (json_decode($item->images, true) ?? []),
+                $data['removed_images'] ?? []
             );
 
             $data['featured_image'] = $request->hasFile('featured_image')
                 ? ImageHelper::saveImage($request->file('featured_image'), 'featured_')
                 : $item->featured_image;
 
+            /* ---------- Item code (if missing) ---------- */
             if (empty($item->item_code)) {
                 $data['item_code'] = ItemService::generateNextItemCode($companyId);
             }
 
+            /* ---------- Update item ---------- */
             $item->update($data);
-            $item->variants()->delete();
+
+            /* ---------- Variants ---------- */
+            $item->variants()->delete(); // simplest: re-insert
             ItemService::createItemVariants($item, $data['variants'] ?? [], $data['images']);
 
+            /* ---------- Categories / Tax ---------- */
             $item->categories()->sync([]);
             ItemService::assignCategories($item, $data['categories'] ?? null, $companyId);
             ItemService::assignTax($item, $data['tax_id'] ?? null);
+
+            /* ---------- Batch (update or create) ---------- */
+            ItemService::createBatch($item, $data);
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
                 'message' => 'Item updated successfully.',
-                'item'    => new ItemResource($item->load('variants.attributeValues', 'categories')),
+                'item'    => new ItemResource(
+                    $item->load('variants.attributeValues', 'categories')
+                ),
             ]);
         } catch (\Throwable $e) {
             DB::rollBack();

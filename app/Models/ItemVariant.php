@@ -8,29 +8,32 @@ class ItemVariant extends Model
 {
     protected $fillable = [
         'item_id',
-        'regular_price',
-        'price',
+        'variant_regular_price',
+        'variant_sale_price',
+        'variant_units_in_peace',
+        'variant_price_per_unit',
         'stock',
-        'images'
+        'images',
     ];
 
     protected $casts = [
         'images' => 'array',
     ];
 
-    /**
-     * The attributes that should be cast to native types.
-     */
+    /*--------------------------------------------------------------
+    | Relationships
+    *--------------------------------------------------------------*/
     public function item()
     {
         return $this->belongsTo(Item::class);
     }
 
-    /**
-     * The attributes that should be cast to native types.
-     */
     public function attributeValues()
     {
-        return $this->belongsToMany(AttributeValue::class, 'item_variant_attribute_value')->withPivot('attribute_id')->withTimestamps();
+        return $this->belongsToMany(
+            AttributeValue::class,
+            'item_variant_attribute_value'
+        )->withPivot('attribute_id')
+         ->withTimestamps();
     }
 }

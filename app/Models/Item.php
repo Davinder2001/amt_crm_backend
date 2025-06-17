@@ -12,85 +12,113 @@ class Item extends Model
 
     protected $table = 'store_items';
 
+    /*------------------------------------------------------------------
+    | Mass-assignable columns
+    *------------------------------------------------------------------*/
     protected $fillable = [
+        /* identifiers */
         'item_code',
         'company_id',
+
+        /* brand / vendor */
         'brand_id',
+        'brand_name',
+        'vendor_id',
+        'vendor_name',
+
+        /* core item data */
         'name',
         'quantity_count',
-        'invoice_no',
         'measurement',
+
+        /* unit / pricing meta */
+        'unit_of_measure',
+        'units_in_peace',
+        'price_per_unit',
+
+        /* dates */
         'purchase_date',
-        'product_type',
-        'featured_image',
         'date_of_manufacture',
         'date_of_expiry',
-        'brand_name',
+
+        /* product meta */
+        'product_type',
+        'sale_type',
         'replacement',
-        'vendor_name',
-        'vendor_id',
-        'images',
+        'featured_image',
+
+        /* prices */
         'cost_price',
         'regular_price',
         'sale_price',
+
+        /* media & visibility */
+        'images',
+        'availability_stock',
+        'catalog',
+        'online_visibility',
+
+        /* invoice FK */
+        'invoice_id',
     ];
 
+    /*------------------------------------------------------------------
+    | Attribute casting
+    *------------------------------------------------------------------*/
     protected $casts = [
         'images'              => 'array',
+        'catalog'             => 'boolean',
+        'online_visibility'   => 'boolean',
         'purchase_date'       => 'date',
         'date_of_manufacture' => 'date',
         'date_of_expiry'      => 'date',
     ];
 
-    /**
-     * The attributes that should be cast to native types.
-     */
+    /*------------------------------------------------------------------
+    | Global scope
+    *------------------------------------------------------------------*/
     protected static function booted(): void
     {
         static::addGlobalScope(new CompanyScope);
     }
 
-    /**
-     * The batches associated with the item.
-     */
+    /*------------------------------------------------------------------
+    | Relationships
+    *------------------------------------------------------------------*/
     public function batches()
     {
         return $this->hasMany(ItemBatch::class);
     }
 
-
-    /**
-     * The attributes that should be cast to native types.
-     */
     public function categories()
     {
-        return $this->belongsToMany(Category::class, 'category_item', 'store_item_id', 'category_id');
+        return $this->belongsToMany(
+            Category::class,
+            'category_item',
+            'store_item_id',
+            'category_id'
+        );
     }
 
-    /**
-     * The attributes that should be cast to native types.
-     */
     public function company()
     {
         return $this->belongsTo(Company::class);
     }
 
-    /**
-     * The attributes that should be cast to native types.
-     */
     public function variants()
     {
         return $this->hasMany(ItemVariant::class);
     }
 
-    /**
-     * The attributes that should be cast to native types.
-     */
     public function taxes()
     {
-        return $this->belongsToMany(Tax::class, 'item_tax', 'store_item_id', 'tax_id')->withTimestamps();
+        return $this->belongsToMany(
+            Tax::class,
+            'item_tax',
+            'store_item_id',
+            'tax_id'
+        )->withTimestamps();
     }
-
 
     public function vendor()
     {

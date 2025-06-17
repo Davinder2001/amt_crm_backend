@@ -15,9 +15,11 @@ return new class extends Migration
         Schema::create('item_variants', function (Blueprint $table) {
             $table->id();
             $table->foreignId('item_id')->constrained('store_items')->onDelete('cascade');
-            $table->decimal('regular_price', 10, 2)->nullable() ; 
-            $table->decimal('price', 10, 2);
-            $table->integer('stock');
+            $table->decimal('variant_regular_price', 10, 2)->nullable(); 
+            $table->decimal('variant_sale_price', 10, 2)->nullable();
+            $table->decimal('variant_units_in_peace', 10, 2)->nullable();
+            $table->decimal('variant_price_per_unit', 10, 2)->nullable();
+            $table->integer('stock')->nullable();
             $table->json('images')->nullable();
             $table->timestamps();
         });

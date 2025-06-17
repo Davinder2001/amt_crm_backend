@@ -2,11 +2,21 @@
 
 namespace App\Services;
 
-use App\Models\{Category, CategoryItem, Item, ItemBatch, ItemTax, Tax};
+use App\Models\{
+    Category,
+    CategoryItem,
+    Item,
+    ItemBatch,
+    ItemTax,
+    Tax
+};
 use Illuminate\Support\Facades\DB;
 
 class ItemService
 {
+    /* --------------------------------------------------------------
+     |  Item code helpers
+     * -------------------------------------------------------------- */
     public static function generateNextItemCode(int $companyId): int
     {
         return (int) Item::where('company_id', $companyId)
@@ -14,60 +24,81 @@ class ItemService
             ->value('max_code') + 1;
     }
 
+    /* --------------------------------------------------------------
+     |  Categories
+     * -------------------------------------------------------------- */
     public static function assignCategories(Item $item, ?array $categories, int $companyId): void
     {
         if (!$categories || empty($categories)) {
-            $categories = [Category::firstOrCreate([
-                'company_id' => $companyId,
-                'name'       => 'Uncategorized',
-            ])->id];
+            $categories = [
+                Category::firstOrCreate([
+                    'company_id' => $companyId,
+                    'name'       => 'Uncategorized',
+                ])->id,
+            ];
         }
 
-        foreach ($categories as $categoryId) {
-            CategoryItem::create([
-                'store_item_id' => $item->id,
-                'category_id'   => $categoryId,
-            ]);
-        }
+        $item->categories()->syncWithoutDetaching($categories);
     }
 
+    /* --------------------------------------------------------------
+     |  Tax
+     * -------------------------------------------------------------- */
     public static function assignTax(Item $item, $taxId): void
     {
         if (!$taxId || !Tax::find($taxId)) return;
 
         ItemTax::updateOrCreate(
             ['store_item_id' => $item->id],
-            ['tax_id'        => $taxId]
+            ['tax_id' => $taxId]
         );
     }
 
+    /* --------------------------------------------------------------
+     |  Batch / stock
+     * -------------------------------------------------------------- */
     public static function createBatch(Item $item, array $data): void
     {
-        ItemBatch::updateOrCreate([
-            'company_id'     => $data['company_id'],
-            'item_id'        => $item->id,
-            'batch_number'   => 'BATCH-' . strtoupper(uniqid()),
-            'purchase_price' => $data['cost_price'],
-            'quantity'       => $data['quantity_count'],
-        ]);
+        ItemBatch::updateOrCreate(
+            [
+                'company_id' => $data['company_id'],
+                'item_id'    => $item->id,
+            ],
+            [
+                'batch_number'        => $data['batch_number'] ?? 'BATCH-' . strtoupper(uniqid()),
+                'purchase_price'      => $data['cost_price'],
+                'quantity'            => $data['quantity_count'],
+                'unit_of_measure'     => $data['unit_of_measure'] ?? null,
+                'units_in_peace'      => $data['units_in_peace']  ?? null,
+                'price_per_unit'      => $data['price_per_unit']  ?? null,
+                'date_of_manufacture' => $data['date_of_manufacture'] ?? null,
+                'date_of_expiry'      => $data['date_of_expiry']      ?? null,
+            ]
+        );
     }
 
-
-
-    public static function createItemVariants(Item $item, array $variants, array $imageLinks): void
+    /* --------------------------------------------------------------
+     |  Variants
+     * -------------------------------------------------------------- */
+    public static function createItemVariants(Item $item, array $variants, array $imageLinks = []): void
     {
         foreach ($variants as $variantData) {
             $variant = $item->variants()->create([
-                'regular_price' => $variantData['regular_price'],
-                'price'         => $variantData['sale_price'] ?? 0,
-                'stock'         => $variantData['stock'] ?? 1,
-                'images'        => $imageLinks,
+                'variant_regular_price'  => $variantData['variant_regular_price'],
+                'variant_sale_price'     => $variantData['variant_sale_price']     ?? null,
+                'stock'                  => $variantData['variant_stock']          ?? 0,
+                'variant_units_in_peace' => $variantData['variant_units_in_peace'] ?? null,
+                'variant_price_per_unit' => $variantData['variant_price_per_unit'] ?? null,
+                'images'                 => $imageLinks,
             ]);
 
-            foreach ($variantData['attributes'] as $attribute) {
-                $variant->attributeValues()->attach($attribute['attribute_value_id'], [
-                    'attribute_id' => $attribute['attribute_id'],
-                ]);
+            if (!empty($variantData['attributes'])) {
+                foreach ($variantData['attributes'] as $attr) {
+                    $variant->attributeValues()->attach(
+                        $attr['attribute_value_id'],
+                        ['attribute_id' => $attr['attribute_id']]
+                    );
+                }
             }
         }
     }
