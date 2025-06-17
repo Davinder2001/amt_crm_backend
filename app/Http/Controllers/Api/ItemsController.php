@@ -235,6 +235,7 @@ class ItemsController extends Controller
      * Update the specified item in storage.
      *
      */
+
     public function update(Request $request, int $id): JsonResponse
     {
         /* ────────────────────── 1. Validation ────────────────────── */
@@ -302,12 +303,11 @@ class ItemsController extends Controller
             ], 422);
         }
 
-        /* ────────────────────── 2. Authorisation + package ────────────────────── */
+        /* ────────────────────── 2. Authorisation ────────────────────── */
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
         $companyId       = $selectedCompany->company->id;
 
-        /** @var \App\Models\Item|null $item */
-        $item = Item::with('variants', 'categories')->find($id);
+        $item = Item::with('variants', 'categories', 'batches')->find($id);
         if (!$item) {
             return response()->json(['success' => false, 'message' => 'Item not found.'], 404);
         }
@@ -315,7 +315,6 @@ class ItemsController extends Controller
             return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
         }
 
-        /* ────────────────────── 3. Merge validated data ────────────────────── */
         $data = array_merge($validator->validated(), ['company_id' => $companyId]);
 
         DB::beginTransaction();
@@ -331,7 +330,6 @@ class ItemsController extends Controller
                 ? ImageHelper::saveImage($request->file('featured_image'), 'featured_')
                 : $item->featured_image;
 
-            /* ---------- Item code (if missing) ---------- */
             if (empty($item->item_code)) {
                 $data['item_code'] = ItemService::generateNextItemCode($companyId);
             }
@@ -340,7 +338,7 @@ class ItemsController extends Controller
             $item->update($data);
 
             /* ---------- Variants ---------- */
-            $item->variants()->delete(); // simplest: re-insert
+            $item->variants()->delete();
             ItemService::createItemVariants($item, $data['variants'] ?? [], $data['images']);
 
             /* ---------- Categories / Tax ---------- */
@@ -348,8 +346,19 @@ class ItemsController extends Controller
             ItemService::assignCategories($item, $data['categories'] ?? null, $companyId);
             ItemService::assignTax($item, $data['tax_id'] ?? null);
 
-            /* ---------- Batch (update or create) ---------- */
-            ItemService::createBatch($item, $data);
+            /* ---------- Batch (update only) ---------- */
+            if ($item->batches()->exists()) {
+                $batch = $item->batches()->first();
+                $batch->update([
+                    'purchase_price'      => $data['cost_price']       ?? $batch->purchase_price,
+                    'quantity'            => $data['quantity_count']   ?? $batch->quantity,
+                    'unit_of_measure'     => $data['unit_of_measure']  ?? $batch->unit_of_measure,
+                    'units_in_peace'      => $data['units_in_peace']   ?? $batch->units_in_peace,
+                    'price_per_unit'      => $data['price_per_unit']   ?? $batch->price_per_unit,
+                    'date_of_manufacture' => $data['date_of_manufacture'] ?? $batch->date_of_manufacture,
+                    'date_of_expiry'      => $data['date_of_expiry']      ?? $batch->date_of_expiry,
+                ]);
+            }
 
             DB::commit();
 
@@ -369,6 +378,7 @@ class ItemsController extends Controller
             ], 500);
         }
     }
+
 
 
     /**
