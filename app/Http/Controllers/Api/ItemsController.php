@@ -198,7 +198,10 @@ class ItemsController extends Controller
             $data['item_code'] = $item->item_code ?: ItemService::generateNextItemCode($companyId);
             $item->update($data);
 
-            // $item->variants()->delete();
+            if($data['variants']){
+                $item->variants()->delete();
+            }
+            
             ItemService::createItemVariants($item, $data['variants'] ?? [], $data['images']);
             $item->categories()->sync([]);
             ItemService::assignCategories($item, $data['categories'] ?? null, $companyId);
