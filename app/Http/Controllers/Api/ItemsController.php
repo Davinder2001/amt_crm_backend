@@ -61,7 +61,11 @@ class ItemsController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['success' => false, 'message' => 'Validation errors.', 'errors' => $validator->errors()], 422);
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation errors.',
+                'errors'  => $validator->errors()
+            ], 422);
         }
 
         $data = $validator->validated();
@@ -118,14 +122,20 @@ class ItemsController extends Controller
             ], 201);
         } catch (\Throwable $e) {
             DB::rollBack();
-            return response()->json(['success' => false, 'message' => 'Something went wrong while creating the item.', 'error' => $e->getMessage()], 500);
+            return response()->json([
+                'success' => false,
+                'message' => 'Something went wrong while creating the item.',
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
 
     public function show($id): JsonResponse
     {
-        $item = Item::with(['variants.attributeValues.attribute', 'taxes', 'categories'])->find($id);
-        return $item ? response()->json(new ItemResource($item)) : response()->json(['message' => 'Item not found.'], 404);
+        $item = Item::with(['variants.attributeValues.attribute', 'taxes', 'categories', 'batches'])->find($id);
+        return $item ? response()->json(new ItemResource($item)) : response()->json([
+            'message' => 'Item not found.'
+        ], 404);
     }
 
     public function update(Request $request, int $id): JsonResponse
@@ -170,15 +180,27 @@ class ItemsController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['success' => false, 'message' => 'Validation errors.', 'errors' => $validator->errors()], 422);
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation errors.',
+                'errors' => $validator->errors()
+            ], 422);
         }
 
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
         $companyId       = $selectedCompany->company->id;
         $item            = Item::with('variants', 'categories', 'batches')->find($id);
 
-        if (!$item) return response()->json(['success' => false, 'message' => 'Item not found.'], 404);
-        if (!$selectedCompany->super_admin && $item->company_id !== $companyId) return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
+        if (!$item) return response()->json([
+            'success' => false,
+            'message' => 'Item not found.'
+        ], 404);
+
+        if (!$selectedCompany->super_admin && $item->company_id !== $companyId)
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized.'
+            ], 403);
 
         $data = array_merge($validator->validated(), ['company_id' => $companyId]);
 
@@ -198,42 +220,42 @@ class ItemsController extends Controller
             $data['item_code'] = $item->item_code ?: ItemService::generateNextItemCode($companyId);
             $item->update($data);
 
-            if($data['variants']){
+            if ($data['variants']) {
                 $item->variants()->delete();
             }
-            
+
             ItemService::createItemVariants($item, $data['variants'] ?? [], $data['images']);
             $item->categories()->sync([]);
             ItemService::assignCategories($item, $data['categories'] ?? null, $companyId);
             ItemService::assignTax($item, $data['tax_id'] ?? null);
-
-            if ($item->batches()->exists()) {
-                $batch = $item->batches()->first();
-                $batch->update([
-                    'purchase_price' => $data['cost_price'] ?? $batch->purchase_price,
-                    'quantity' => $data['quantity_count'] ?? $batch->quantity,
-                    'unit_of_measure' => $data['unit_of_measure'] ?? $batch->unit_of_measure,
-                    'units_in_peace' => $data['units_in_peace'] ?? $batch->units_in_peace,
-                    'price_per_unit' => $data['price_per_unit'] ?? $batch->price_per_unit,
-                    'date_of_manufacture' => $data['date_of_manufacture'] ?? $batch->date_of_manufacture,
-                    'date_of_expiry' => $data['date_of_expiry'] ?? $batch->date_of_expiry,
-                ]);
-            }
+            ItemService::updateBatch($item, $data);
 
             DB::commit();
 
-            return response()->json(['success' => true, 'message' => 'Item updated successfully.', 'item' => new ItemResource($item->load('variants.attributeValues', 'categories'))]);
+            return response()->json([
+                'success' => true,
+                'message' => 'Item updated successfully.',
+                'item'    => new ItemResource($item->load('variants.attributeValues', 'categories'))
+            ]);
         } catch (\Throwable $e) {
             DB::rollBack();
-            return response()->json(['success' => false, 'message' => 'Something went wrong while updating the item.', 'error' => $e->getMessage()], 500);
+            return response()->json([
+                'success' => false,
+                'message' => 'Something went wrong while updating the item.',
+                'error'   => $e->getMessage()
+            ], 500);
         }
     }
 
     public function destroy($id): JsonResponse
     {
         $item = Item::find($id);
-        if (!$item) return response()->json(['message' => 'Item not found.'], 404);
+        if (!$item) return response()->json([
+            'message' => 'Item not found.'
+        ], 404);
         $item->delete();
-        return response()->json(['message' => 'Item deleted successfully.'], 201);
+        return response()->json([
+            'message' => 'Item deleted successfully.'
+        ], 201);
     }
 }

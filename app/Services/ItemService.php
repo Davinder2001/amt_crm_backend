@@ -59,22 +59,24 @@ class ItemService
      * -------------------------------------------------------------- */
     public static function createBatch(Item $item, array $data): void
     {
-        ItemBatch::updateOrCreate(
-            [
-                'company_id' => $data['company_id'],
-                'item_id'    => $item->id,
-            ],
-            [
-                'batch_number'        => $data['batch_number'] ?? 'BATCH-' . strtoupper(uniqid()),
-                'purchase_price'      => $data['cost_price'],
-                'quantity'            => $data['quantity_count'],
-                'unit_of_measure'     => $data['unit_of_measure'] ?? null,
-                'units_in_peace'      => $data['units_in_peace']  ?? null,
-                'price_per_unit'      => $data['price_per_unit']  ?? null,
-                'date_of_manufacture' => $data['date_of_manufacture'] ?? null,
-                'date_of_expiry'      => $data['date_of_expiry']      ?? null,
-            ]
-        );
+        ItemBatch::create([
+            'company_id'           => $data['company_id'],
+            'item_id'              => $item->id,
+            'batch_number'         => $data['batch_number'] ?? 'BATCH-' . strtoupper(uniqid()),
+            'purchase_price'       => $data['cost_price'],
+            'quantity'             => $data['quantity_count'],
+        ]);
+    }
+
+    public static function updateBatch(Item $item, array $data): void
+    {
+        $batch = $item->batches()->first();
+        if (!$batch) return;
+
+        $batch->update([
+            'purchase_price'       => $data['cost_price'] ?? $batch->purchase_price,
+            'quantity'             => $data['quantity_count'] ?? $batch->quantity,
+        ]);
     }
 
     /* --------------------------------------------------------------

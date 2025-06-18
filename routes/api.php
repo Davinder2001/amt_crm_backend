@@ -38,7 +38,8 @@ use App\Http\Controllers\Api\{
     LeavesAndHolidayController,
     PaymentAndBillingController,
     StoreItemBrandController,
-    BulkActionsController
+    BulkActionsController,
+    MeasuringUnitController
 };
 
 
@@ -310,6 +311,13 @@ Route::prefix('v1')->group(function () {
             Route::get('items/{id}', [ItemsController::class, 'show']);
             Route::put('items/{id}', [ItemsController::class, 'update']);
             Route::delete('items/{id}', [ItemsController::class, 'destroy']);
+
+
+            Route::get('measuring-units', [MeasuringUnitController::class, 'index']);
+            Route::post('measuring-units', [MeasuringUnitController::class, 'store']);
+            Route::get('measuring-units/{id}', [MeasuringUnitController::class, 'show']);
+            Route::put('measuring-units/{id}', [MeasuringUnitController::class, 'update']);
+            Route::delete('measuring-units/{id}', [MeasuringUnitController::class, 'destroy']);
 
 
             Route::post('bulk-items', [BulkActionsController::class, 'storeBulkItems']);
