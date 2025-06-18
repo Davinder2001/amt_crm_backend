@@ -572,7 +572,7 @@ class InvoicesController extends Controller
                     $serviceChargeAmount = round(($data['serviceChargePercent'] / 100) * $total, 2);
                 }
                 $serviceChargeGstAmount = round($serviceChargeAmount * 0.18, 2);
-                $finalServiceCharge = $serviceChargeAmount + $serviceChargeGstAmount;
+                $finalServiceCharge     = $serviceChargeAmount + $serviceChargeGstAmount;
             }
 
             $subtotal = $total + $finalServiceCharge;
