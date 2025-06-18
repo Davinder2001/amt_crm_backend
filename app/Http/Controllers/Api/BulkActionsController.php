@@ -79,7 +79,7 @@ class BulkActionsController extends Controller
 
         $invoice = VendorInvoice::create([
             'vendor_id'   => $vendor->id,
-            'invoice_no'  => $data['invoice_no'],
+            'invoice_no'   => $data['invoice_no'],
             'invoice_date' => now(),
         ]);
 

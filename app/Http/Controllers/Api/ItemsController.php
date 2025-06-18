@@ -174,8 +174,8 @@ class ItemsController extends Controller
         }
 
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $companyId = $selectedCompany->company->id;
-        $item = Item::with('variants', 'categories', 'batches')->find($id);
+        $companyId       = $selectedCompany->company->id;
+        $item            = Item::with('variants', 'categories', 'batches')->find($id);
 
         if (!$item) return response()->json(['success' => false, 'message' => 'Item not found.'], 404);
         if (!$selectedCompany->super_admin && $item->company_id !== $companyId) return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);

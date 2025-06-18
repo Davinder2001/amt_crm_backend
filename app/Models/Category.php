@@ -29,9 +29,9 @@ class Category extends Model
      */
     public function items()
     {
-        return $this->belongsToMany( Item::class, 'category_item', 'category_id', 'store_item_id' );
+        return $this->belongsToMany(Item::class, 'category_item', 'category_id', 'store_item_id');
     }
-    
+
 
     /**
      * Child categories relationship
@@ -46,14 +46,21 @@ class Category extends Model
      */
     public function childrenRecursive()
     {
-        return $this->children()->with('childrenRecursive', 'items');
+        return $this->children()->with([
+            'childrenRecursive',
+            'items.variants.attributeValues.attribute',
+            'items.taxes',
+            'items.batches',
+            'items.categories'
+        ]);
     }
+
 
     /**
      * Parent category relationship
      */
     public function item()
     {
-        return $this->belongsToMany( Item::class, 'category_item', 'category_id', 'store_item_id');
+        return $this->belongsToMany(Item::class, 'category_item', 'category_id', 'store_item_id');
     }
 }
