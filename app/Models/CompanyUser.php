@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Scopes\CompanyScope;
 
 class CompanyUser extends Model
 {
@@ -20,13 +19,6 @@ class CompanyUser extends Model
         'updated_at',
     ];
 
-    /**
-     * The attributes that should be cast to native types.
-     */
-    // protected static function booted()
-    // {
-    //     static::addGlobalScope(new CompanyScope());
-    // }
 
     /**
      * The attributes that should be cast to native types.
