@@ -16,7 +16,7 @@ class ItemResource extends JsonResource
             : 0.0;
 
         // add tax to a base number
-        $addTax = fn (float $base) => round($base * (1 + $taxRate / 100), 2);
+        $addTax = fn(float $base) => round($base * (1 + $taxRate / 100), 2);
 
         /*--------------------------------------------------------------
         | Final cost (item level)
@@ -59,8 +59,10 @@ class ItemResource extends JsonResource
             'replacement'         => $this->replacement,
             'featured_image'      => $this->featured_image,
 
-            'categories' => $this->whenLoaded('categories', fn () =>
-                $this->categories->map(fn ($c) => [
+            'categories' => $this->whenLoaded(
+                'categories',
+                fn() =>
+                $this->categories->map(fn($c) => [
                     'id'   => $c->id,
                     'name' => $c->name,
                 ])
@@ -79,8 +81,10 @@ class ItemResource extends JsonResource
             'final_cost'    => $itemFinalCost,
 
             /* taxes */
-            'taxes' => $this->whenLoaded('taxes', fn () =>
-                $this->taxes->map(fn ($t) => [
+            'taxes' => $this->whenLoaded(
+                'taxes',
+                fn() =>
+                $this->taxes->map(fn($t) => [
                     'id'   => $t->id,
                     'name' => $t->name,
                     'rate' => $t->rate,
@@ -103,12 +107,12 @@ class ItemResource extends JsonResource
                         'variant_regular_price'  => $variant->variant_regular_price,
                         'variant_sale_price'     => $variant->variant_sale_price,
                         'variant_units_in_peace' => $variant->variant_units_in_peace,
-                        'variant_price_per_unit' => $variant->variant_price_per_unit,
+                        'variant_price_per_unit' => $variant->variant_price_per_unit !== null ? $addTax((float) $variant->variant_price_per_unit) : null,
                         'variant_stock'          => $variant->stock,
                         'images'                 => $variant->images,
                         'final_cost'             => $variantFinalCost,
 
-                        'attributes' => $variant->attributeValues->map(fn ($v) => [
+                        'attributes' => $variant->attributeValues->map(fn($v) => [
                             'attribute' => $v->attribute->name,
                             'value'     => $v->value,
                         ]),
@@ -117,8 +121,10 @@ class ItemResource extends JsonResource
             }),
 
             /* batches */
-            'batches' => $this->whenLoaded('batches', fn () =>
-                $this->batches->map(fn ($b) => [
+            'batches' => $this->whenLoaded(
+                'batches',
+                fn() =>
+                $this->batches->map(fn($b) => [
                     'id'                 => $b->id,
                     'batch_number'       => $b->batch_number,
                     'purchase_price'     => $b->purchase_price,
@@ -126,7 +132,7 @@ class ItemResource extends JsonResource
                     'unit_of_measure'    => $b->unit_of_measure,
                     'units_in_peace'     => $b->units_in_peace,
                     'price_per_unit'     => $b->price_per_unit,
-                    'date_of_manufacture'=> optional($b->date_of_manufacture)->format('Y-m-d'),
+                    'date_of_manufacture' => optional($b->date_of_manufacture)->format('Y-m-d'),
                     'date_of_expiry'     => optional($b->date_of_expiry)->format('Y-m-d'),
                     'created_at'         => optional($b->created_at)->format('Y-m-d H:i'),
                 ])

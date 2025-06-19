@@ -195,7 +195,7 @@ class InvoicesController extends Controller
             'items.*.item_id'     => 'required|exists:store_items,id',
             'items.*.variant_id'  => 'nullable|exists:item_variants,id',
             'items.*.quantity'    => 'required|integer|min:1',
-            'items.*.unit_price'  => 'nullable|numeric|min:0',   // optional override
+            'items.*.unit_price'  => 'nullable|numeric|min:0',
         ]);
 
         if ($validator->fails()) {

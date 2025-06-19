@@ -15,7 +15,7 @@ use App\Services\SelectedCompanyService;
 class ProductOcrController extends Controller
 {
 
-    
+
     public function scanAndSaveText(Request $request, OcrParsingService $ocr)
     {
         $validator = Validator::make($request->all(), [
@@ -48,20 +48,17 @@ class ProductOcrController extends Controller
             ], 500);
         }
 
+        // Try GPT parsing first
         $parsedBy = 'gpt';
         $extractedItems = $ocr->parseWithGpt($rawText);
 
+        // If GPT fails or gives invalid structure, fallback to manual
         if (!is_array($extractedItems) || count($extractedItems) === 0 || !isset($extractedItems[0]['name'])) {
-           
-            return response()->json([
-                'status'    => false,
-                'message'   => 'Failed to parse the text using GPT.',
-                'raw_text'  => $rawText,
-            ], 422);
             $parsedBy = 'manual';
             $extractedItems = $ocr->parseManually($rawText);
         }
 
+        // Calculate grand total
         $grandTotal = 0;
         foreach ($extractedItems as &$item) {
             $qty = (int)($item['quantity'] ?? 0);

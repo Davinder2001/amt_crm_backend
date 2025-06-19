@@ -8,6 +8,9 @@ use thiagoalessio\TesseractOCR\TesseractOCR;
 
 class OcrParsingService
 {
+    /**
+     * Extract text from a file using either PDF parser or Tesseract OCR
+     */
     public function extractText(string $filePath, string $extension): string
     {
         if ($extension === 'pdf') {
@@ -19,19 +22,22 @@ class OcrParsingService
         return (new TesseractOCR($filePath))->run();
     }
 
+    /**
+     * Use GPT via OpenRouter to parse structured product data
+     */
     public function parseWithGpt(string $rawText): ?array
     {
         try {
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer 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',
-                'HTTP-Referer'  => 'https://yourdomain.com',
-                'Content-Type'  => 'application/json',
+                // 'Authorization' => 'Bearer ' . env('OPENROUTER_API_KEY'),
+                'Authorization' => 'Bearer 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',
+                'Referer' => env('OPENROUTER_REFERER', 'http://localhost'),
             ])->timeout(20)->post('https://openrouter.ai/api/v1/chat/completions', [
                 'model' => 'mistralai/mistral-7b-instruct:free',
                 'messages' => [
                     [
                         'role' => 'system',
-                        'content' => 'You are a helpful assistant. Ignore headers like "Name Qty Price". Convert the OCR text below into a JSON array with keys: name, quantity, price.',
+                        'content' => 'You are a helpful assistant. Ignore headers like "Name Qty Price". Convert the OCR text below into a JSON array with keys: name, quantity, price. Only return a valid JSON array.',
                     ],
                     [
                         'role' => 'user',
@@ -41,23 +47,40 @@ class OcrParsingService
             ]);
 
             if (!$response->successful()) {
+                logger()->error('OpenRouter GPT error', [
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                ]);
                 return null;
             }
 
             $content = $response->json('choices.0.message.content');
 
+            // Attempt to extract valid JSON
             if (preg_match('/```json(.*?)```/s', $content, $matches)) {
                 $json = json_decode(trim($matches[1]), true);
+            } elseif (preg_match('/\[(.*?)\]/s', $content, $matches)) {
+                $json = json_decode('[' . trim($matches[1]) . ']', true);
             } else {
                 $json = json_decode($content, true);
             }
 
-            return is_array($json) ? $json : null;
+            // Validate format
+            if (is_array($json) && isset($json[0]['name']) && isset($json[0]['quantity']) && isset($json[0]['price'])) {
+                return $json;
+            }
+
+            logger()->warning('GPT returned invalid JSON', ['content' => $content]);
+            return null;
         } catch (\Throwable $e) {
+            logger()->error('GPT exception', ['message' => $e->getMessage()]);
             return null;
         }
     }
 
+    /**
+     * Fallback: Parse manually by splitting lines
+     */
     public function parseManually(string $rawText): array
     {
         $lines = explode("\n", trim($rawText));
@@ -74,9 +97,9 @@ class OcrParsingService
                 if (!is_numeric($quantity) || !is_numeric($price)) continue;
 
                 $items[] = [
-                    'name'      => $name,
-                    'quantity'  => (int)$quantity,
-                    'price'     => (float)$price,
+                    'name' => $name,
+                    'quantity' => (int)$quantity,
+                    'price' => (float)$price,
                 ];
             }
         }

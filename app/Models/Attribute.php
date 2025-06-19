@@ -7,7 +7,10 @@ use App\Models\Scopes\CompanyScope;
 
 class Attribute extends Model
 {
-    protected $fillable = ['name'];
+    protected $fillable = [
+        'name',
+        'company_id'
+    ];
 
     /*
      * The attributes that should be cast to native types.

@@ -7,39 +7,65 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
+use App\Services\SelectedCompanyService;
 
 class AttributeController extends Controller
 {
-    /**
-     * Show a list of all attributes with their values.
-     */
     public function index(): JsonResponse
     {
-        return response()->json(Attribute::with('values')->get());
+        $attributes = Attribute::with('values')->get();
+
+        $response = response()->json([
+            'status'  => true,
+            'message' => 'Attributes retrieved successfully.',
+            'data'    => $attributes
+        ]);
+
+        Log::info('Attributes list returned.', ['count' => $attributes->count()]);
+        return $response;
     }
-    
+
     public function variations(): JsonResponse
     {
-        return response()->json(Attribute::with('values')->where('status', 'active')->get());
+        $attributes = Attribute::with('values')->where('status', 'active')->get();
+
+        $response = response()->json([
+            'status'  => true,
+            'message' => 'Active attributes retrieved successfully.',
+            'data'    => $attributes
+        ]);
+
+        Log::info('Active attributes retrieved.', ['count' => $attributes->count()]);
+        return $response;
     }
 
-
-    /**
-     * Store a new attribute with its values.
-     */
     public function store(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'values' => 'nullable|array',
-            'values.*' => 'required|string|max:255'
+            'name'       => 'required|string|max:255',
+            'values'     => 'nullable|array',
+            'values.*'   => 'required|string|max:255'
         ]);
 
+        $company = SelectedCompanyService::getSelectedCompanyOrFail();
+        $company_id = $company->company->id;
+
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            $response = response()->json([
+                'status'  => false,
+                'message' => 'Validation failed.',
+                'errors'  => $validator->errors()
+            ], 422);
+
+            Log::warning('Attribute validation failed.', ['errors' => $validator->errors()]);
+            return $response;
         }
 
-        $attribute = Attribute::create(['name' => $request->name]);
+        $attribute = Attribute::create([
+            'name'       => $request->name,
+            'company_id' => $company_id,
+        ]);
 
         if ($request->has('values')) {
             foreach ($request->values as $value) {
@@ -47,44 +73,69 @@ class AttributeController extends Controller
             }
         }
 
-        return response()->json(['message' => 'Attribute created', 'data' => $attribute->load('values')]);
+        $response = response()->json([
+            'status'  => true,
+            'message' => 'Attribute created successfully.',
+            'data'    => $attribute->load('values')
+        ]);
+
+        Log::info('Attribute created.', ['attribute_id' => $attribute->id]);
+        return $response;
     }
 
-
-    /**
-     * Show a specific attribute with its values.
-     */
     public function show($id): JsonResponse
     {
         $attribute = Attribute::with('values')->find($id);
 
         if (!$attribute) {
-            return response()->json(['message' => 'Attribute not found'], 404);
+            $response = response()->json([
+                'status'  => false,
+                'message' => 'Attribute not found.'
+            ], 404);
+
+            Log::warning('Attempted to view non-existent attribute.', ['id' => $id]);
+            return $response;
         }
 
-        return response()->json($attribute);
+        $response = response()->json([
+            'status'  => true,
+            'message' => 'Attribute retrieved successfully.',
+            'data'    => $attribute
+        ]);
+
+        Log::info('Attribute retrieved.', ['id' => $attribute->id]);
+        return $response;
     }
 
-
-    /**
-     * Update an existing attribute and its values.
-     */
     public function update(Request $request, $id): JsonResponse
     {
         $attribute = Attribute::find($id);
 
         if (!$attribute) {
-            return response()->json(['message' => 'Attribute not found'], 404);
+            $response = response()->json([
+                'status'  => false,
+                'message' => 'Attribute not found.'
+            ], 404);
+
+            Log::warning('Update failed. Attribute not found.', ['id' => $id]);
+            return $response;
         }
 
         $validator = Validator::make($request->all(), [
-            'name' => 'sometimes|required|string|max:255',
-            'values' => 'nullable|array',
-            'values.*' => 'required|string|max:255'
+            'name'       => 'sometimes|required|string|max:255',
+            'values'     => 'nullable|array',
+            'values.*'   => 'required|string|max:255'
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            $response = response()->json([
+                'status'  => false,
+                'message' => 'Validation failed.',
+                'errors'  => $validator->errors()
+            ], 422);
+
+            Log::warning('Attribute update validation failed.', ['errors' => $validator->errors()]);
+            return $response;
         }
 
         if ($request->has('name')) {
@@ -98,45 +149,66 @@ class AttributeController extends Controller
             }
         }
 
-        return response()->json(['message' => 'Attribute updated', 'data' => $attribute->load('values')]);
+        $response = response()->json([
+            'status'  => true,
+            'message' => 'Attribute updated successfully.',
+            'data'    => $attribute->load('values')
+        ]);
+
+        Log::info('Attribute updated.', ['id' => $attribute->id]);
+        return $response;
     }
 
-
-    /**
-     * Delete an attribute and its values.
-     */
     public function destroy($id): JsonResponse
     {
         $attribute = Attribute::find($id);
 
         if (!$attribute) {
-            return response()->json(['message' => 'Attribute not found'], 404);
+            $response = response()->json([
+                'status'  => false,
+                'message' => 'Attribute not found.'
+            ], 404);
+
+            Log::warning('Delete failed. Attribute not found.', ['id' => $id]);
+            return $response;
         }
 
         $attribute->values()->delete();
         $attribute->delete();
 
-        return response()->json(['message' => 'Attribute deleted']);
+        $response = response()->json([
+            'status'  => true,
+            'message' => 'Attribute deleted successfully.'
+        ]);
+
+        Log::info('Attribute deleted.', ['id' => $id]);
+        return $response;
     }
 
-
-    /**
-     * Toggle the status of an attribute.
-     */
     public function toggleStatus($id): JsonResponse
     {
         $attribute = Attribute::find($id);
 
         if (!$attribute) {
-            return response()->json(['message' => 'Attribute not found'], 404);
+            $response = response()->json([
+                'status'  => false,
+                'message' => 'Attribute not found.'
+            ], 404);
+
+            Log::warning('Toggle status failed. Attribute not found.', ['id' => $id]);
+            return $response;
         }
 
         $attribute->status = $attribute->status === 'active' ? 'inactive' : 'active';
         $attribute->save();
 
-        return response()->json([
-            'message' => 'Attribute status updated',
-            'status' => $attribute->status
+        $response = response()->json([
+            'status'  => true,
+            'message' => 'Attribute status updated successfully.',
+            'data'    => ['status' => $attribute->status]
         ]);
+
+        Log::info('Attribute status toggled.', ['id' => $attribute->id, 'status' => $attribute->status]);
+        return $response;
     }
 }
