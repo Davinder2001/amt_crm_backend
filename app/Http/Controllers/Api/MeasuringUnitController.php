@@ -13,9 +13,10 @@ class MeasuringUnitController extends Controller
 {
     public function index(): JsonResponse
     {
-        $company = SelectedCompanyService::getSelectedCompanyOrFail()->company_id;
-        $companyId = $company->company->id;
-        $units = MeasuringUnit::where('company_id', $companyId)->get();
+        // $company = SelectedCompanyService::getSelectedCompanyOrFail()->company_id;
+        // $companyId = $company->company->id;
+        // $units = MeasuringUnit::where('company_id', $companyId)->get();
+        $units = MeasuringUnit::get();
 
         return response()->json(['units' => $units], 200);
     }
