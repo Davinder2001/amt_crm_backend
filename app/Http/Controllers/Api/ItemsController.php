@@ -205,45 +205,45 @@ class ItemsController extends Controller
         $data = array_merge($validator->validated(), ['company_id' => $companyId]);
 
         try {
-            DB::beginTransaction();
+        DB::beginTransaction();
 
-            $data['images'] = ImageHelper::updateImages(
-                $request->file('images') ?? [],
-                is_array($item->images) ? $item->images : (json_decode($item->images, true) ?? []),
-                $data['removed_images'] ?? []
-            );
+        $data['images'] = ImageHelper::updateImages(
+            $request->file('images') ?? [],
+            is_array($item->images) ? $item->images : (json_decode($item->images, true) ?? []),
+            $data['removed_images'] ?? []
+        );
 
-            $data['featured_image'] = $request->hasFile('featured_image')
-                ? ImageHelper::saveImage($request->file('featured_image'), 'featured_')
-                : $item->featured_image;
+        $data['featured_image'] = $request->hasFile('featured_image')
+            ? ImageHelper::saveImage($request->file('featured_image'), 'featured_')
+            : $item->featured_image;
 
-            $data['item_code'] = $item->item_code ?: ItemService::generateNextItemCode($companyId);
-            $item->update($data);
+        $data['item_code'] = $item->item_code ?: ItemService::generateNextItemCode($companyId);
+        $item->update($data);
 
-            if ($data['variants']) {
-                $item->variants()->delete();
-            }
+        if (!empty($data['variants'])) {
+            $item->variants()->delete();
+        }
 
-            ItemService::createItemVariants($item, $data['variants'] ?? [], $data['images']);
-            $item->categories()->sync([]);
-            ItemService::assignCategories($item, $data['categories'] ?? null, $companyId);
-            ItemService::assignTax($item, $data['tax_id'] ?? null);
-            ItemService::updateBatch($item, $data);
+        ItemService::createItemVariants($item, $data['variants'] ?? [], $data['images']);
+        $item->categories()->sync([]);
+        ItemService::assignCategories($item, $data['categories'] ?? null, $companyId);
+        ItemService::assignTax($item, $data['tax_id'] ?? null);
+        ItemService::updateBatch($item, $data);
 
-            DB::commit();
+        DB::commit();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Item updated successfully.',
-                'item'    => new ItemResource($item->load('variants.attributeValues', 'categories'))
-            ]);
+        return response()->json([
+            'success' => true,
+            'message' => 'Item updated successfully.',
+            'item'    => new ItemResource($item->load('variants.attributeValues', 'categories'))
+        ]);
         } catch (\Throwable $e) {
-            DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Something went wrong while updating the item.',
-                'error'   => $e->getMessage()
-            ], 500);
+        DB::rollBack();
+        return response()->json([
+            'success' => false,
+            'message' => 'Something went wrong while updating the item.',
+            'error'   => $e->getMessage()
+        ], 500);
         }
     }
 

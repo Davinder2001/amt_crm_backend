@@ -18,7 +18,9 @@ class MeasuringUnitController extends Controller
         // $units = MeasuringUnit::where('company_id', $companyId)->get();
         $units = MeasuringUnit::get();
 
-        return response()->json(['units' => $units], 200);
+        return response()->json([
+            'units' => $units
+        ], 200);
     }
 
     public function store(Request $request): JsonResponse
