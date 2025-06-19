@@ -51,10 +51,10 @@ class ProductOcrController extends Controller
         $parsedBy = 'gpt';
         $extractedItems = $ocr->parseWithGpt($rawText);
 
-        if (!is_array($extractedItems) || count($extractedItems) === 0 || !isset($extractedItems[0]['name'])) {
-            $parsedBy = 'manual';
-            $extractedItems = $ocr->parseManually($rawText);
-        }
+        // if (!is_array($extractedItems) || count($extractedItems) === 0 || !isset($extractedItems[0]['name'])) {
+        //     $parsedBy = 'manual';
+        //     $extractedItems = $ocr->parseManually($rawText);
+        // }
 
         $grandTotal = 0;
         foreach ($extractedItems as &$item) {
