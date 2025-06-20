@@ -100,8 +100,7 @@ class Item extends Model
         );
     }
 
-    // App\Models\Item.php
-    public function measuringUnit()   // call it whatever you like
+    public function measurement()
     {
         return $this->belongsTo(MeasuringUnit::class, 'measurement');
     }
