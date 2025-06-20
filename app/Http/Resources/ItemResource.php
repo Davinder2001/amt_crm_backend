@@ -23,9 +23,9 @@ class ItemResource extends JsonResource
         *--------------------------------------------------------------*/
         $itemFinalCost = null;
         if ($this->sale_price !== null) {
-            $itemFinalCost = $this->sale_price;          // use sale price directly
+            $itemFinalCost = $this->sale_price;
         } elseif ($this->regular_price !== null) {
-            $itemFinalCost = $addTax($this->regular_price); // regular + tax
+            $itemFinalCost = $addTax($this->regular_price);
         }
 
         /*--------------------------------------------------------------
@@ -45,7 +45,6 @@ class ItemResource extends JsonResource
                 'id'    => $this->measurement ?? null,
                 'name'  => $this->measurementDetails->name ?? null,
             ],
-
 
             /* unit-meta */
             'unit_of_measure'     => $this->unit_of_measure,

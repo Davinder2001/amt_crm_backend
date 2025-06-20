@@ -39,7 +39,8 @@ use App\Http\Controllers\Api\{
     PaymentAndBillingController,
     StoreItemBrandController,
     BulkActionsController,
-    MeasuringUnitController
+    MeasuringUnitController,
+    ItemBatchController
 };
 
 
@@ -311,6 +312,14 @@ Route::prefix('v1')->group(function () {
             Route::get('items/{id}', [ItemsController::class, 'show']);
             Route::put('items/{id}', [ItemsController::class, 'update']);
             Route::delete('items/{id}', [ItemsController::class, 'destroy']);
+
+            Route::prefix('item')->group(function () {
+                Route::get('batch', [ItemBatchController::class, 'index']);
+                Route::get('batch/{id}', [ItemBatchController::class, 'show']);
+                Route::post('batch', [ItemBatchController::class, 'store']);
+                Route::put('batch/{id}', [ItemBatchController::class, 'update']);
+                Route::delete('batch/{id}', [ItemBatchController::class, 'destroy']);
+            });
 
 
             Route::get('measuring-units', [MeasuringUnitController::class, 'index']);
