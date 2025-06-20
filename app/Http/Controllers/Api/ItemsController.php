@@ -14,7 +14,7 @@ class ItemsController extends Controller
 {
     public function index(): JsonResponse
     {
-        $items = Item::with(['variants.attributeValues.attribute', 'taxes', 'categories', 'batches'])->get();
+        $items = Item::with(['variants.attributeValues.attribute', 'taxes', 'categories', 'batches', 'measuringUnit'])->get();
         return response()->json(ItemResource::collection($items));
     }
 
@@ -25,7 +25,7 @@ class ItemsController extends Controller
 
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
-            'measurement' => 'nullable|string',
+            'measurement' => 'nullable|integer',
             'quantity_count' => 'required|integer',
             'cost_price' => 'required|numeric|min:0',
             'vendor_name' => 'nullable|string|max:255',
@@ -77,7 +77,7 @@ class ItemsController extends Controller
         }
 
         $itemQuery = Item::where('company_id', $companyId);
-        $now = now();
+        $now       = now();
 
         if ($package->package_type === 'monthly') {
             $itemQuery->whereYear('created_at', $now->year)->whereMonth('created_at', $now->month);
@@ -142,7 +142,7 @@ class ItemsController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'name' => 'sometimes|required|string|max:255',
-            'measurement' => 'sometimes|nullable|string',
+            'measurement' => 'sometimes|nullable|integer',
             'quantity_count' => 'sometimes|nullable|integer',
             'cost_price' => 'sometimes|nullable|numeric|min:0',
             'vendor_name' => 'sometimes|nullable|string|max:255',

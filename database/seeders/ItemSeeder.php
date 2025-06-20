@@ -79,7 +79,7 @@ class ItemSeeder extends Seeder
                         'item_code'           => $itemIndex,
                         'name'                => $productName,
                         'quantity_count'      => rand(50, 200),
-                        'measurement'         => 'pcs',
+                        'measurement'         => null,
                         'purchase_date'       => now()->subDays(rand(1, 30)),
                         'date_of_manufacture' => now()->subMonths(1),
                         'date_of_expiry'      => now()->addMonths(12),

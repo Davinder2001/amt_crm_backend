@@ -39,7 +39,11 @@ class ItemResource extends JsonResource
 
             'name'                => $this->name,
             'quantity_count'      => $this->quantity_count,
-            'measurement'         => $this->measurement,
+
+            'measurement' => [
+                'id'   => $this->measurement,
+                'name' => $this->measuringUnit->name,
+            ],
 
             /* unit-meta */
             'unit_of_measure'     => $this->unit_of_measure,

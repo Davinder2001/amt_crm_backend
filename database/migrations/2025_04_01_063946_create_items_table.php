@@ -35,7 +35,9 @@ return new class extends Migration
             $table->integer('quantity_count');
 
             /* measurement + NEW unit meta */
-            $table->string('measurement')->nullable();
+            $table->unsignedBigInteger('measurement')->nullable();
+            $table->foreign('measurement')->references('id')->on('measuring_units')->onDelete('set null');
+            
             $table->enum('unit_of_measure', ['pieces', 'unit'])->nullable();
 
             /* dates */
@@ -46,7 +48,7 @@ return new class extends Migration
             /* brand / product / sales meta */
             $table->string('brand_name')->nullable();
             $table->enum('product_type', ['simple_product', 'variable_product'])
-                  ->default('simple_product');
+                ->default('simple_product');
             $table->string('sale_type')->nullable();        // NEW
 
             /* misc text fields */
