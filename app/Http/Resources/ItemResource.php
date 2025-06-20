@@ -42,8 +42,8 @@ class ItemResource extends JsonResource
 
             /* measurement */
             'measurement' =>[ 
-                'id'   => $this->measurement,
-                'there'   => $this->measurementDetails->name,
+                'id'   => $this->measurement ?? null,
+                'there'   => $this->measurementDetails->name ?? null,
             ],
 
 
