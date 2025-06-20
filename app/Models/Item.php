@@ -100,7 +100,7 @@ class Item extends Model
         );
     }
 
-    public function measurement()
+    public function measurementDetails()
     {
         return $this->belongsTo(MeasuringUnit::class, 'measurement');
     }

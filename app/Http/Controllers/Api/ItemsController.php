@@ -14,7 +14,8 @@ class ItemsController extends Controller
 {
     public function index(): JsonResponse
     {
-        $items = Item::with(['variants.attributeValues.attribute', 'taxes', 'categories', 'batches', 'measurement'])->get();
+        $items = Item::with(['variants.attributeValues.attribute', 'taxes', 'categories', 'batches', 'measurementDetails'])->get();
+        
         return response()->json(ItemResource::collection($items));
     }
 
@@ -132,7 +133,7 @@ class ItemsController extends Controller
 
     public function show($id): JsonResponse
     {
-        $item = Item::with(['variants.attributeValues.attribute', 'taxes', 'categories', 'batches', 'measurement'])->find($id);
+        $item = Item::with(['variants.attributeValues.attribute', 'taxes', 'categories', 'batches', 'measurementDetails'])->find($id);
         return $item ? response()->json(new ItemResource($item)) : response()->json([
             'message' => 'Item not found.'
         ], 404);

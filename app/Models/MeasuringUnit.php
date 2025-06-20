@@ -17,4 +17,9 @@ class MeasuringUnit extends Model
     {
         static::addGlobalScope(new CompanyScope);
     }
+
+    public function items()
+    {
+        return $this->hasMany(Item::class, 'measurement');
+    }
 }

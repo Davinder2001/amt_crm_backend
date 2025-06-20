@@ -34,10 +34,10 @@ return new class extends Migration
             $table->string('name');
             $table->integer('quantity_count');
 
-            /* measurement + NEW unit meta */
             $table->unsignedBigInteger('measurement')->nullable();
-            $table->foreign('measurement')->references('id')->on('measuring_units')->onDelete('set null');
-            
+            $table->foreign('measurement')->references('id')->on('measuring_units')->onDelete('set null')->onUpdate('cascade');
+
+
             $table->enum('unit_of_measure', ['pieces', 'unit'])->nullable();
 
             /* dates */
