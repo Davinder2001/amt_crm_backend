@@ -40,7 +40,8 @@ use App\Http\Controllers\Api\{
     StoreItemBrandController,
     BulkActionsController,
     MeasuringUnitController,
-    ItemBatchController
+    ItemBatchController,
+    ExpenseController
 };
 
 
@@ -521,6 +522,17 @@ Route::prefix('v1')->group(function () {
             Route::get('/', [PaymentAndBillingController::class, 'adminBilling']);
             Route::post('/refund-request/{transaction_id}', [PaymentAndBillingController::class, 'refundRequest']);
             Route::post('/upgrade-package', [PaymentAndBillingController::class, 'upgradePackage']);
+        });
+
+
+
+
+        Route::prefix('expenses')->group(function () {
+            Route::get('/', [ExpenseController::class, 'index'])->name('expenses.index');         // GET /api/expenses
+            Route::post('/store', [ExpenseController::class, 'store'])->name('expenses.store');   // POST /api/expenses/store
+            Route::get('/{expense}', [ExpenseController::class, 'show'])->name('expenses.show');  // GET /api/expenses/{id}
+            Route::post('/{expense}/update', [ExpenseController::class, 'update'])->name('expenses.update'); // POST /api/expenses/{id}/update
+            Route::delete('/{expense}/delete', [ExpenseController::class, 'destroy'])->name('expenses.destroy'); // DELETE /api/expenses/{id}/delete
         });
     });
 });
