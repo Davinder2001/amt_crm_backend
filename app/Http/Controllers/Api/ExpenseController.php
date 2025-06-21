@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\ExpenseResource;
 use App\Models\Expense;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -11,29 +12,56 @@ use App\Services\SelectedCompanyService;
 
 class ExpenseController extends Controller
 {
-    /* --------------------------------------------------------------
-     |  List expenses for the selected company
-     * --------------------------------------------------------------*/
-    public function index()
+    /**
+     * Get the validation rules for storing/updating an expense.
+     *
+     * @param bool $isStore
+     * @return array
+     */
+    protected function rules($isStore = true)
     {
-        $expenses = Expense::get();
-        return response()->json($expenses);
+        $rules = [
+            'heading'        => ['required', 'string', 'max:255'],
+            'price'      => ['required', 'numeric', 'min:0'],
+            'status'      => ['nullable', 'string', 'in:pending,approved,rejected'],
+            'file'        => [$isStore ? 'required' : 'sometimes', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:2048'],
+            'description' => ['nullable', 'string'],
+            // add other fields as needed
+        ];
+
+        if (!$isStore) {
+            // For update, file is not required
+            $rules['file'][0] = 'sometimes';
+        }
+
+        return $rules;
     }
 
     /* --------------------------------------------------------------
-     |  Store a new expense
-     * --------------------------------------------------------------*/
+     |  List / index
+     * -------------------------------------------------------------*/
+    public function index()
+    {
+        $query = Expense::query();
+
+        if (request()->filled('status')) {
+            $query->where('status', request('status'));
+        }
+
+        // If you prefer pagination, swap ->get() for ->paginate(20)
+        return ExpenseResource::collection(
+            $query->latest()->get()
+        );
+    }
+
+    /* --------------------------------------------------------------
+     |  Store
+     * -------------------------------------------------------------*/
     public function store(Request $request)
     {
         $companyId = SelectedCompanyService::getSelectedCompanyOrFail()->company_id;
 
-        $validator = Validator::make($request->all(), [
-            'heading'     => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'price'       => 'required|numeric|min:0',
-            'file'        => 'required|file|mimes:jpg,jpeg,png,pdf,webp|max:2048',
-        ]);
-
+        $validator = Validator::make($request->all(), $this->rules(true));
         if ($validator->fails()) {
             return response()->json([
                 'message' => 'Validation failed',
@@ -45,47 +73,29 @@ class ExpenseController extends Controller
         $data['company_id'] = $companyId;
 
         if ($request->hasFile('file')) {
-            $data['file_path'] = $request->file('file')->store('expenses', 'public');
+            $data['file_path'] = $request->file('file')
+                                         ->store('expenses', 'public');
         }
 
         $expense = Expense::create($data);
 
-        return response()->json($expense, 201);
+        return (new ExpenseResource($expense))->response()->setStatusCode(201);
     }
 
-    /* -------------------------------------------------------------- */
-    public function show(Expense $id)
+    /* --------------------------------------------------------------
+     |  Show
+     * -------------------------------------------------------------*/
+    public function show(Expense $expense)
     {
-        $expense = Expense::get($id);
-        
-        if ($expense) {
-            return response()->json([
-                'message' => 'Forbidden'
-            ], 403);
-        }
-
-        return response()->json($expense);
+        return new ExpenseResource($expense);
     }
 
-    /* -------------------------------------------------------------- */
-    public function update(Request $request, Expense $id)
+    /* --------------------------------------------------------------
+     |  Update
+     * -------------------------------------------------------------*/
+    public function update(Request $request, Expense $expense)
     {
-        
-         $expense = Expense::get($id);
-        
-        if ($expense) {
-            return response()->json([
-                'message' => 'Forbidden'
-            ], 403);
-        }
-
-        $validator = Validator::make($request->all(), [
-            'heading'     => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'price'       => 'required|numeric|min:0',
-            'file'        => 'nullable|file|mimes:jpg,jpeg,png,pdf,webp|max:2048',
-        ]);
-
+        $validator = Validator::make($request->all(), $this->rules(false));
         if ($validator->fails()) {
             return response()->json([
                 'message' => 'Validation failed',
@@ -99,15 +109,18 @@ class ExpenseController extends Controller
             if ($expense->file_path) {
                 Storage::disk('public')->delete($expense->file_path);
             }
-            $data['file_path'] = $request->file('file')->store('expenses', 'public');
+            $data['file_path'] = $request->file('file')
+                                         ->store('expenses', 'public');
         }
 
         $expense->update($data);
 
-        return response()->json($expense);
+        return new ExpenseResource($expense->refresh());
     }
 
-    /* -------------------------------------------------------------- */
+    /* --------------------------------------------------------------
+     |  Destroy
+     * -------------------------------------------------------------*/
     public function destroy(Expense $expense)
     {
         $companyId = SelectedCompanyService::getSelectedCompanyOrFail()->company_id;

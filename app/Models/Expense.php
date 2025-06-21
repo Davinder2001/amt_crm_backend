@@ -15,6 +15,8 @@ class Expense extends Model
         'heading',
         'description',
         'price',
+        'status',
+        'tags',
         'file_path',
     ];
 

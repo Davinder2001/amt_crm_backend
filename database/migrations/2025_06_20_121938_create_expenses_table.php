@@ -14,8 +14,10 @@ return new class extends Migration {
             $table->text('description')->nullable();
             $table->string('file_path')->nullable();
             $table->decimal('price', 12, 2)->default(0);
+            $table->enum('status', ['pending', 'approved', 'paid', 'rejected' ])->default('pending');
+            $table->json('tags')->nullable();
             $table->timestamps();
-            
+
             $table->foreign('company_id')->references('id')->on('companies')->onDelete('cascade');
         });
     }
