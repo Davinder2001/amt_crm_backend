@@ -6,39 +6,28 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\ExpenseResource;
 use App\Models\Expense;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\File;          // <— use File instead of Storage
 use Illuminate\Support\Facades\Validator;
 use App\Services\SelectedCompanyService;
 
 class ExpenseController extends Controller
 {
-    /**
-     * Get the validation rules for storing/updating an expense.
-     *
-     * @param bool $isStore
-     * @return array
-     */
-    protected function rules($isStore = true)
+    /* --------------------------------------------------------------
+     |  Centralised validation rules
+     * -------------------------------------------------------------*/
+    protected function rules(bool $isStore = true): array
     {
-        $rules = [
-            'heading'        => ['required', 'string', 'max:255'],
-            'price'      => ['required', 'numeric', 'min:0'],
-            'status'      => ['nullable', 'string', 'in:pending,approved,rejected'],
+        return [
+            'heading'     => ['required', 'string', 'max:255'],
+            'price'       => ['required', 'numeric', 'min:0'],
+            'status'      => ['nullable', 'in:pending,approved,rejected'],
             'file'        => [$isStore ? 'required' : 'sometimes', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:2048'],
             'description' => ['nullable', 'string'],
-            // add other fields as needed
         ];
-
-        if (!$isStore) {
-            // For update, file is not required
-            $rules['file'][0] = 'sometimes';
-        }
-
-        return $rules;
     }
 
     /* --------------------------------------------------------------
-     |  List / index
+     |  List
      * -------------------------------------------------------------*/
     public function index()
     {
@@ -48,7 +37,6 @@ class ExpenseController extends Controller
             $query->where('status', request('status'));
         }
 
-        // If you prefer pagination, swap ->get() for ->paginate(20)
         return ExpenseResource::collection(
             $query->latest()->get()
         );
@@ -72,14 +60,16 @@ class ExpenseController extends Controller
         $data               = $validator->validated();
         $data['company_id'] = $companyId;
 
+        /* ----------  Handle file upload directly to /public/uploads/expenses  ---------- */
         if ($request->hasFile('file')) {
-            $data['file_path'] = $request->file('file')
-                                         ->store('expenses', 'public');
+            $data['file_path'] = $this->saveFile($request->file('file'));
         }
 
         $expense = Expense::create($data);
 
-        return (new ExpenseResource($expense))->response()->setStatusCode(201);
+        return (new ExpenseResource($expense))
+               ->response()
+               ->setStatusCode(201);
     }
 
     /* --------------------------------------------------------------
@@ -105,12 +95,14 @@ class ExpenseController extends Controller
 
         $data = $validator->validated();
 
+        /* ----------  Replace file if a new one is sent  ---------- */
         if ($request->hasFile('file')) {
-            if ($expense->file_path) {
-                Storage::disk('public')->delete($expense->file_path);
+            // delete old file if it exists
+            if ($expense->file_path && File::exists(public_path($expense->file_path))) {
+                File::delete(public_path($expense->file_path));
             }
-            $data['file_path'] = $request->file('file')
-                                         ->store('expenses', 'public');
+            // save new file
+            $data['file_path'] = $this->saveFile($request->file('file'));
         }
 
         $expense->update($data);
@@ -129,12 +121,32 @@ class ExpenseController extends Controller
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
-        if ($expense->file_path) {
-            Storage::disk('public')->delete($expense->file_path);
+        // delete associated file
+        if ($expense->file_path && File::exists(public_path($expense->file_path))) {
+            File::delete(public_path($expense->file_path));
         }
 
         $expense->delete();
 
         return response()->json(['message' => 'Expense deleted.']);
+    }
+
+    /* ==============================================================
+     |  Helper: save file to /public/uploads/expenses and return path
+     * ==============================================================*/
+    protected function saveFile($uploadedFile): string
+    {
+        $uploadDir = public_path('uploads/expenses');
+
+        // ensure directory exists
+        if (!File::isDirectory($uploadDir)) {
+            File::makeDirectory($uploadDir, 0755, true);
+        }
+
+        $filename = time() . '_' . preg_replace('/\s+/', '_', $uploadedFile->getClientOriginalName());
+        $uploadedFile->move($uploadDir, $filename);
+
+        // store relative path in DB
+        return 'uploads/expenses/' . $filename;
     }
 }

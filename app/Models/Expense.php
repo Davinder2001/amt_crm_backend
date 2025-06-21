@@ -36,7 +36,7 @@ class Expense extends Model
     public function getFileUrlAttribute(): ?string
     {
         return $this->file_path
-            ? asset("storage/expenses/{$this->file_path}")
+            ? asset("{$this->file_path}")
             : null;
     }
     
