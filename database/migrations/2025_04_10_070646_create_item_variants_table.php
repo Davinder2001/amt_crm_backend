@@ -15,6 +15,7 @@ return new class extends Migration
         Schema::create('item_variants', function (Blueprint $table) {
             $table->id();
             $table->foreignId('item_id')->constrained('store_items')->onDelete('cascade');
+            $table->foreignId('batch_id')->constrained('item_batches')->onDelete('cascade');
             $table->decimal('variant_regular_price', 10, 2)->nullable(); 
             $table->decimal('variant_sale_price', 10, 2)->nullable();
             $table->decimal('variant_units_in_peace', 10, 2)->nullable();

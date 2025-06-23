@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -17,13 +16,27 @@ return new class extends Migration
             $table->unsignedBigInteger('company_id');
             $table->unsignedBigInteger('item_id');
 
-            $table->string('batch_number')->unique();
-            $table->decimal('purchase_price', 20, 2);
-            $table->decimal('quantity', 20, 2);
+            $table->decimal('quantity', 20, 2)->nullable();
+
+            $table->date('purchase_date')->nullable();
+            $table->date('date_of_manufacture')->nullable();
+            $table->date('date_of_expiry')->nullable();
+
+            $table->string('replacement')->nullable();
+
+            $table->decimal('cost_price', 20, 2)->nullable();
+            $table->decimal('regular_price', 20, 2)->nullable();
+            $table->decimal('sale_price', 20, 2)->nullable();
+
+            $table->string('product_type')->nullable();
+            $table->string('unit_of_measure')->nullable();
+            $table->unsignedBigInteger('unit_id')->nullable();
+
             $table->timestamps();
 
             $table->foreign('company_id')->references('id')->on('companies')->onDelete('cascade');
             $table->foreign('item_id')->references('id')->on('store_items')->onDelete('cascade');
+            $table->foreign('unit_id')->references('id')->on('measuring_units')->onDelete('set null');
         });
     }
 
