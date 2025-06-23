@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\ExpenseResource;
 use App\Models\Expense;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\File;          // <— use File instead of Storage
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Validator;
 use App\Services\SelectedCompanyService;
 
@@ -21,8 +21,12 @@ class ExpenseController extends Controller
             'heading'     => ['required', 'string', 'max:255'],
             'price'       => ['required', 'numeric', 'min:0'],
             'status'      => ['nullable', 'in:pending,approved,rejected'],
-            'file'        => [$isStore ? 'required' : 'sometimes', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:2048'],
+            'file'        => [$isStore ? 'nullable' : 'sometimes', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:2048'],
             'description' => ['nullable', 'string'],
+
+            // 🔸 tags validation
+            'tags'            => ['nullable', 'array'],
+            'tags.*.name'     => ['required', 'string', 'max:50'],
         ];
     }
 
@@ -65,6 +69,9 @@ class ExpenseController extends Controller
             $data['file_path'] = $this->saveFile($request->file('file'));
         }
 
+        /* ----------  Persist tags as JSON  ---------- */
+        $data['tags'] = $data['tags'] ?? [];   // ensure array even if null
+
         $expense = Expense::create($data);
 
         return (new ExpenseResource($expense))
@@ -97,12 +104,15 @@ class ExpenseController extends Controller
 
         /* ----------  Replace file if a new one is sent  ---------- */
         if ($request->hasFile('file')) {
-            // delete old file if it exists
             if ($expense->file_path && File::exists(public_path($expense->file_path))) {
                 File::delete(public_path($expense->file_path));
             }
-            // save new file
             $data['file_path'] = $this->saveFile($request->file('file'));
+        }
+
+        /* ----------  Normalise tags  ---------- */
+        if (array_key_exists('tags', $data)) {
+            $data['tags'] = $data['tags'] ?? [];
         }
 
         $expense->update($data);
@@ -121,7 +131,6 @@ class ExpenseController extends Controller
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
-        // delete associated file
         if ($expense->file_path && File::exists(public_path($expense->file_path))) {
             File::delete(public_path($expense->file_path));
         }
@@ -131,14 +140,13 @@ class ExpenseController extends Controller
         return response()->json(['message' => 'Expense deleted.']);
     }
 
-    /* ==============================================================
+    /* ==============================================================	
      |  Helper: save file to /public/uploads/expenses and return path
      * ==============================================================*/
     protected function saveFile($uploadedFile): string
     {
         $uploadDir = public_path('uploads/expenses');
 
-        // ensure directory exists
         if (!File::isDirectory($uploadDir)) {
             File::makeDirectory($uploadDir, 0755, true);
         }
@@ -146,7 +154,6 @@ class ExpenseController extends Controller
         $filename = time() . '_' . preg_replace('/\s+/', '_', $uploadedFile->getClientOriginalName());
         $uploadedFile->move($uploadDir, $filename);
 
-        // store relative path in DB
         return 'uploads/expenses/' . $filename;
     }
 }

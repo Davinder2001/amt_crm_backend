@@ -23,10 +23,7 @@ class ItemBatchController extends Controller
     public function show($id): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $batch = ItemBatch::with('item')
-            ->where('company_id', $selectedCompany->company_id)
-            ->findOrFail($id);
-
+        $batch = ItemBatch::with('item')->where('company_id', $selectedCompany->company_id)->findOrFail($id);
         return response()->json($batch);
     }
 

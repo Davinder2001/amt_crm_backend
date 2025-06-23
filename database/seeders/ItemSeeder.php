@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use App\Models\Item;
 use App\Models\Category;
-use App\Models\StoreVendor;
 
 class ItemSeeder extends Seeder
 {
@@ -38,23 +37,16 @@ class ItemSeeder extends Seeder
         ];
 
         foreach ($companies as $company) {
-
-            $vendorNames = [];
-            for ($v = 1; $v <= 3; $v++) {
-                $vendor = StoreVendor::create([
-                    'company_id'  => $company['id'],
-                    'vendor_name' => "Vendor {$v} of {$company['company_name']}",
-                ]);
-                $vendorNames[] = $vendor->vendor_name;
-            }
-
             $categoryMap = [];
+
+            // Create categories and subcategories
             foreach ($baseCategories as $parent => $subs) {
                 $parentCat = Category::create([
                     'company_id' => $company['id'],
                     'name'       => $parent,
                     'parent_id'  => null,
                 ]);
+
                 foreach ($subs as $sub) {
                     $childCat = Category::create([
                         'company_id' => $company['id'],
@@ -66,40 +58,31 @@ class ItemSeeder extends Seeder
             }
 
             $itemIndex = 1;
+
             foreach ($sampleProducts as $subCategory => $productNames) {
-                if (!isset($categoryMap[$subCategory])) {
-                    continue;
-                }
+                if (!isset($categoryMap[$subCategory])) continue;
 
                 foreach ($productNames as $productName) {
                     if ($itemIndex > 25) break;
 
                     $item = Item::create([
-                        'company_id'          => $company['id'],
-                        'item_code'           => $itemIndex,
-                        'name'                => $productName,
-                        'quantity_count'      => rand(50, 200),
-                        'measurement'         => null,
-                        'purchase_date'       => now()->subDays(rand(1, 30)),
-                        'date_of_manufacture' => now()->subMonths(1),
-                        'date_of_expiry'      => now()->addMonths(12),
-                        'brand_name'          => 'Brand ' . chr(64 + rand(1, 26)),
-                        'replacement'         => 'Replace after 1 year',
-                        'vendor_name'         => $vendorNames[array_rand($vendorNames)],
-                        'availability_stock'  => rand(10, 100),
-                        'cost_price'          => rand(100, 800),
-                        'sale_price'       => rand(900, 1500),
-                        'images'              => json_encode([]),
-                        'catalog'             => false,
-                        'online_visibility'   => true,
+                        'company_id'         => $company['id'],
+                        'item_code'          => 'ITEM-' . $itemIndex,
+                        'name'               => $productName,
+                        'measurement'        => null,
+                        'featured_image'     => null,
+                        'availability_stock' => rand(10, 100),
+                        'images'             => [],
+                        'catalog'            => (bool)rand(0, 1),
+                        'online_visibility'  => true,
                     ]);
 
+                    // Attach main + one optional random category
                     $attachIds = [$categoryMap[$subCategory]];
-
-                    $otherCategories = array_diff_key($categoryMap, [$subCategory => true]);
-                    if (!empty($otherCategories) && rand(0, 1)) {
-                        $randomOtherKey = array_rand($otherCategories);
-                        $attachIds[] = $categoryMap[$randomOtherKey];
+                    $otherCats = array_diff_key($categoryMap, [$subCategory => true]);
+                    if (!empty($otherCats) && rand(0, 1)) {
+                        $randomOther = array_rand($otherCats);
+                        $attachIds[] = $categoryMap[$randomOther];
                     }
 
                     $item->categories()->attach($attachIds);

@@ -22,6 +22,10 @@ class Expense extends Model
 
     protected $appends = ['file_url'];
 
+    protected $casts = [
+        'tags' => 'array',
+    ];
+
     /**
      * Get the company that owns the expense.
      */
@@ -39,7 +43,7 @@ class Expense extends Model
             ? asset("{$this->file_path}")
             : null;
     }
-    
+
     /**
      * Relationship: EmployeeDetail belongs to a Company.
      */
