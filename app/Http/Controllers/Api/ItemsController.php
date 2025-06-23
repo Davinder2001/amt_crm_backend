@@ -17,7 +17,15 @@ class ItemsController extends Controller
 {
     public function index(): JsonResponse
     {
-        $items = Item::with(['variants.attributeValues.attribute', 'taxes', 'categories', 'batches', 'measurementDetails'])->get();
+        $items = Item::with([
+            'variants.attributeValues.attribute',
+            'taxes',
+            'categories',
+            'batches',
+            'measurementDetails',
+            'brand',
+        ])->get();
+
         return response()->json(ItemResource::collection($items));
     }
 
@@ -68,7 +76,9 @@ class ItemsController extends Controller
 
             $data['item_code'] = ItemService::generateNextItemCode($companyId);
             $data['images'] = ImageHelper::processImages($request->file('images') ?? []);
-            $data['featured_image'] = $request->hasFile('featured_image') ? ImageHelper::saveImage($request->file('featured_image'), 'featured_') : null;
+            $data['featured_image'] = $request->hasFile('featured_image')
+                ? ImageHelper::saveImage($request->file('featured_image'), 'featured_')
+                : null;
 
             $item = Item::create($data);
 
@@ -80,17 +90,36 @@ class ItemsController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Item created successfully.',
-                'item' => new ItemResource($item->load('variants.attributeValues', 'categories'))
+                'item'    => new ItemResource($item->load([
+                    'variants.attributeValues.attribute',
+                    'categories',
+                    'taxes',
+                    'batches',
+                    'measurementDetails',
+                    'brand',
+                ]))
             ], 201);
         } catch (\Throwable $e) {
             DB::rollBack();
-            return response()->json(['success' => false, 'message' => 'Error creating item.', 'error' => $e->getMessage()], 500);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error creating item.',
+                'error'   => $e->getMessage()
+            ], 500);
         }
     }
 
     public function show($id): JsonResponse
     {
-        $item = Item::with(['variants.attributeValues.attribute', 'taxes', 'categories', 'batches', 'measurementDetails'])->find($id);
+        $item = Item::with([
+            'variants.attributeValues.attribute',
+            'taxes',
+            'categories',
+            'batches',
+            'measurementDetails',
+            'brand',
+        ])->find($id);
+
         return $item
             ? response()->json(new ItemResource($item))
             : response()->json(['message' => 'Item not found.'], 404);
@@ -99,17 +128,17 @@ class ItemsController extends Controller
     public function update(Request $request, int $id): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'sometimes|required|string|max:255',
-            'measurement' => 'sometimes|nullable|integer',
-            'brand_id' => 'sometimes|nullable|integer',
-            'tax_id' => 'sometimes|nullable|integer|exists:taxes,id',
-            'featured_image' => 'sometimes|nullable|image|mimes:jpg,jpeg,png|max:5120',
-            'images' => 'sometimes|array',
-            'images.*' => 'image|mimes:jpg,jpeg,png|max:5120',
-            'removed_images' => 'sometimes|array',
+            'name'             => 'sometimes|required|string|max:255',
+            'measurement'      => 'sometimes|nullable|integer',
+            'brand_id'         => 'sometimes|nullable|integer',
+            'tax_id'           => 'sometimes|nullable|integer|exists:taxes,id',
+            'featured_image'   => 'sometimes|nullable|image|mimes:jpg,jpeg,png|max:5120',
+            'images'           => 'sometimes|array',
+            'images.*'         => 'image|mimes:jpg,jpeg,png|max:5120',
+            'removed_images'   => 'sometimes|array',
             'removed_images.*' => 'string',
-            'categories' => 'sometimes|nullable|array',
-            'categories.*' => 'integer|exists:categories,id',
+            'categories'       => 'sometimes|nullable|array',
+            'categories.*'     => 'integer|exists:categories,id',
         ]);
 
         if ($validator->fails()) {
@@ -118,11 +147,15 @@ class ItemsController extends Controller
 
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
         $companyId = $selectedCompany->company->id;
-        $item = Item::with(['variants', 'categories', 'batches'])->find($id);
 
-        if (!$item) return response()->json(['success' => false, 'message' => 'Item not found.'], 404);
-        if (!$selectedCompany->super_admin && $item->company_id !== $companyId)
+        $item = Item::with(['variants', 'categories', 'batches'])->find($id);
+        if (!$item) {
+            return response()->json(['success' => false, 'message' => 'Item not found.'], 404);
+        }
+
+        if (!$selectedCompany->super_admin && $item->company_id !== $companyId) {
             return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
+        }
 
         $data = array_merge($validator->validated(), ['company_id' => $companyId]);
 
@@ -152,11 +185,22 @@ class ItemsController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Item updated successfully.',
-                'item' => new ItemResource($item->load('variants.attributeValues', 'categories'))
+                'item'    => new ItemResource($item->load([
+                    'variants.attributeValues.attribute',
+                    'categories',
+                    'taxes',
+                    'batches',
+                    'measurementDetails',
+                    'brand',
+                ]))
             ]);
         } catch (\Throwable $e) {
             DB::rollBack();
-            return response()->json(['success' => false, 'message' => 'Error updating item.', 'error' => $e->getMessage()], 500);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error updating item.',
+                'error'   => $e->getMessage()
+            ], 500);
         }
     }
 
