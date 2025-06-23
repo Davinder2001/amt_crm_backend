@@ -40,7 +40,7 @@ use App\Http\Controllers\Api\{
     StoreItemBrandController,
     BulkActionsController,
     MeasuringUnitController,
-    ItemBatchController,
+    ItemStockController,
     ExpenseController
 };
 
@@ -315,11 +315,11 @@ Route::prefix('v1')->group(function () {
             Route::delete('items/{id}', [ItemsController::class, 'destroy']);
 
             Route::prefix('item')->group(function () {
-                Route::get('batch', [ItemBatchController::class, 'index']);
-                Route::get('batch/{id}', [ItemBatchController::class, 'show']);
-                Route::post('batch', [ItemBatchController::class, 'store']);
-                Route::put('batch/{id}', [ItemBatchController::class, 'update']);
-                Route::delete('batch/{id}', [ItemBatchController::class, 'destroy']);
+                Route::get('batch', [ItemStockController::class, 'index']);
+                Route::get('batch/{id}', [ItemStockController::class, 'show']);
+                Route::post('batch', [ItemStockController::class, 'store']);
+                Route::put('batch/{id}', [ItemStockController::class, 'update']);
+                Route::delete('batch/{id}', [ItemStockController::class, 'destroy']);
             });
 
 

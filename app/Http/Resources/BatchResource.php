@@ -16,6 +16,8 @@ class BatchResource extends JsonResource
             'date_of_manufacture' => optional($this->date_of_manufacture)->format('Y-m-d'),
             'date_of_expiry'      => optional($this->date_of_expiry)->format('Y-m-d'),
             'created_at'          => optional($this->created_at)->format('Y-m-d H:i'),
+
+            'variants'            => VariantResource::collection($this->whenLoaded('variants')),
         ];
     }
 }
