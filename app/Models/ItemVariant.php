@@ -12,6 +12,7 @@ class ItemVariant extends Model
         'variant_sale_price',
         'variant_units_in_peace',
         'variant_price_per_unit',
+        'quntity',
         'stock',
         'images',
     ];

@@ -36,7 +36,7 @@ class ItemStockController extends Controller
             'variants.*.variant_sale_price'     => 'nullable|numeric',
             'variants.*.variant_units_in_peace' => 'nullable|numeric',
             'variants.*.variant_price_per_unit' => 'nullable|numeric',
-            'variants.*.stock'                  => 'nullable|numeric',
+            'variants.*.variant_stock'                  => 'nullable|numeric',
             'variants.*.images'                 => 'nullable|array',
             'variants.*.attributes'             => 'nullable|array',
             'variants.*.attributes.*.attribute_id'       => 'required|integer',
@@ -76,7 +76,8 @@ class ItemStockController extends Controller
                 'variant_sale_price'    => $variantData['variant_sale_price'] ?? null,
                 'variant_units_in_peace'=> $variantData['variant_units_in_peace'] ?? null,
                 'variant_price_per_unit'=> $variantData['variant_price_per_unit'] ?? null,
-                'stock'                 => $variantData['stock'] ?? null,
+                'quntity'                 => $variantData['variant_stock'],
+                'stock'                 => $variantData['variant_stock'] ,
                 'images'                => $variantData['images'] ?? [],
             ]);
             $variant->batch_id = $batch->id;
@@ -125,7 +126,7 @@ class ItemStockController extends Controller
             'variants.*.variant_sale_price'   => 'nullable|numeric',
             'variants.*.variant_units_in_peace'=> 'nullable|numeric',
             'variants.*.variant_price_per_unit'=> 'nullable|numeric',
-            'variants.*.stock'                => 'nullable|numeric',
+            'variants.*.variant_stock'                => 'nullable|numeric',
             'variants.*.images'               => 'nullable|array',
             'variants.*.attributes'           => 'nullable|array',
             'variants.*.attributes.*.attribute_id'       => 'required|integer',
@@ -167,7 +168,8 @@ class ItemStockController extends Controller
                 'variant_sale_price'    => $variantData['variant_sale_price'] ?? null,
                 'variant_units_in_peace'=> $variantData['variant_units_in_peace'] ?? null,
                 'variant_price_per_unit'=> $variantData['variant_price_per_unit'] ?? null,
-                'stock'                 => $variantData['stock'] ?? null,
+                'quntity'               => $variantData['variant_stock'],
+                'stock'                 => $variantData['variant_stock'],
                 'images'                => $variantData['images'] ?? [],
             ]);
             $variant->batch_id = $batch->id;

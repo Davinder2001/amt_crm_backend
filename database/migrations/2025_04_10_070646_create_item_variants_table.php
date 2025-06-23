@@ -20,6 +20,7 @@ return new class extends Migration
             $table->decimal('variant_sale_price', 10, 2)->nullable();
             $table->decimal('variant_units_in_peace', 10, 2)->nullable();
             $table->decimal('variant_price_per_unit', 10, 2)->nullable();
+            $table->integer('quntity')->nullable();
             $table->integer('stock')->nullable();
             $table->json('images')->nullable();
             $table->timestamps();

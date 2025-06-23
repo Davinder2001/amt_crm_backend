@@ -39,7 +39,6 @@ class ItemSeeder extends Seeder
         foreach ($companies as $company) {
             $categoryMap = [];
 
-            // Create categories and subcategories
             foreach ($baseCategories as $parent => $subs) {
                 $parentCat = Category::create([
                     'company_id' => $company['id'],
@@ -77,7 +76,6 @@ class ItemSeeder extends Seeder
                         'online_visibility'  => true,
                     ]);
 
-                    // Attach main + one optional random category
                     $attachIds = [$categoryMap[$subCategory]];
                     $otherCats = array_diff_key($categoryMap, [$subCategory => true]);
                     if (!empty($otherCats) && rand(0, 1)) {
