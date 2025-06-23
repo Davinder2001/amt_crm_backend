@@ -18,10 +18,9 @@ class ItemsController extends Controller
     public function index(): JsonResponse
     {
         $items = Item::with([
-            'variants.attributeValues.attribute',
             'taxes',
             'categories',
-            'batches',
+            'batches.variants.attributeValues.attribute',
             'measurementDetails',
             'brand',
         ])->get();
@@ -112,10 +111,9 @@ class ItemsController extends Controller
     public function show($id): JsonResponse
     {
         $item = Item::with([
-            'variants.attributeValues.attribute',
             'taxes',
             'categories',
-            'batches',
+            'batches.variants.attributeValues.attribute',
             'measurementDetails',
             'brand',
         ])->find($id);
@@ -186,10 +184,9 @@ class ItemsController extends Controller
                 'success' => true,
                 'message' => 'Item updated successfully.',
                 'item'    => new ItemResource($item->load([
-                    'variants.attributeValues.attribute',
                     'categories',
                     'taxes',
-                    'batches',
+                    'batches.variants.attributeValues.attribute',
                     'measurementDetails',
                     'brand',
                 ]))
@@ -208,10 +205,14 @@ class ItemsController extends Controller
     {
         $item = Item::find($id);
         if (!$item) {
-            return response()->json(['message' => 'Item not found.'], 404);
+            return response()->json([
+                'message' => 'Item not found.'
+            ], 404);
         }
 
         $item->delete();
-        return response()->json(['message' => 'Item deleted successfully.'], 200);
+        return response()->json([
+            'message' => 'Item deleted successfully.'
+        ], 200);
     }
 }

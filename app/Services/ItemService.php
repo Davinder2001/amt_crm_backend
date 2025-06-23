@@ -14,45 +14,6 @@ use Illuminate\Support\Facades\DB;
 
 class ItemService
 {
-    /* --------------------------------------------------------------
-     |  Item code helpers
-     * -------------------------------------------------------------- */
-    public static function generateNextItemCode(int $companyId): int
-    {
-        return (int) Item::where('company_id', $companyId)
-            ->select(DB::raw('MAX(CAST(item_code AS UNSIGNED)) as max_code'))
-            ->value('max_code') + 1;
-    }
-
-    /* --------------------------------------------------------------
-     |  Categories
-     * -------------------------------------------------------------- */
-    public static function assignCategories(Item $item, ?array $categories, int $companyId): void
-    {
-        if (!$categories || empty($categories)) {
-            $categories = [
-                Category::firstOrCreate([
-                    'company_id' => $companyId,
-                    'name'       => 'Uncategorized',
-                ])->id,
-            ];
-        }
-
-        $item->categories()->syncWithoutDetaching($categories);
-    }
-
-    /* --------------------------------------------------------------
-     |  Tax
-     * -------------------------------------------------------------- */
-    public static function assignTax(Item $item, $taxId): void
-    {
-        if (!$taxId || !Tax::find($taxId)) return;
-
-        ItemTax::updateOrCreate(
-            ['store_item_id' => $item->id],
-            ['tax_id' => $taxId]
-        );
-    }
 
     /* --------------------------------------------------------------
      |  Batch / stock
