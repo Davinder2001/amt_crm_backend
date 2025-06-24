@@ -109,7 +109,7 @@ class ItemStockController extends Controller
 
     public function show($id)
     {
-        $batch = ItemBatch::with(['item', 'variants.attributeValues.attribute', 'unit'])->find($id);
+        $batch = ItemBatch::with(['item', 'variants.attributeValues.attribute', 'unit', 'vendor'])->find($id);
 
         if (!$batch) {
             return response()->json(['status' => false, 'message' => 'Batch not found.'], 404);
