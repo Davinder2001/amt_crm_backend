@@ -264,11 +264,7 @@ Route::prefix('v1')->group(function () {
         });
 
 
-
-
         // Selected Companies API's
-
-
         Route::get('selectedCompanies', [CompanyController::class, 'getSelectedCompanies']);
         Route::post('selectedCompanies/{id}', [CompanyController::class, 'selectedCompanies']);
 

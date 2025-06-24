@@ -143,8 +143,8 @@ class StoreVendorController extends Controller
         $vendor->update([
             'vendor_name'    => $data['vendor_name'],
             'vendor_number'  => $data['vendor_number'],
-            'vendor_email'   => $data['vendor_email'] ?? 'NA',
-            'vendor_address' => $data['vendor_address'] ?? 'NA',
+            'vendor_email'   => $data['vendor_email'],
+            'vendor_address' => $data['vendor_address'],
         ]);
 
         return response()->json([
