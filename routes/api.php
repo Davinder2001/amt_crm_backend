@@ -316,7 +316,6 @@ Route::prefix('v1')->group(function () {
                 Route::get('batch/{id}', [ItemStockController::class, 'show']);
                 Route::post('batch', [ItemStockController::class, 'store']);
                 Route::put('batch/{id}', [ItemStockController::class, 'update']);
-                // Route::patch('batch/{id}', [ItemStockController::class, 'update']);
                 Route::delete('batch/{id}', [ItemStockController::class, 'destroy']);
             });
 

@@ -12,6 +12,10 @@ use App\Http\Resources\BatchResource;
 
 class ItemStockController extends Controller
 {
+    /**
+     * Display a listing of the item batches.
+     *
+     */
     public function index()
     {
         $batches = ItemBatch::with(['item', 'variants.attributeValues.attribute', 'unit', 'vendor'])->latest()->get();
@@ -22,6 +26,10 @@ class ItemStockController extends Controller
         ]);
     }
 
+    /**
+     * Store a newly created item batch in storage.
+     *
+     */
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -107,6 +115,10 @@ class ItemStockController extends Controller
         ], 201);
     }
 
+    /**
+     * Display the specified item batch.
+     *
+    */
     public function show($id)
     {
         $batch = ItemBatch::with(['item', 'variants.attributeValues.attribute', 'unit', 'vendor'])->find($id);
@@ -118,6 +130,10 @@ class ItemStockController extends Controller
         return response()->json(['status' => true, 'batch' => new BatchResource($batch)]);
     }
 
+    /**
+     * Update the specified item batch in storage.
+     *
+     */
     public function update(Request $request, $id)
     {
         $validator = Validator::make($request->all(), [
@@ -230,6 +246,10 @@ class ItemStockController extends Controller
         ]);
     }
 
+    /**
+     * Remove the specified item batch from storage.
+     *
+     */
     public function destroy($id)
     {
         $batch = ItemBatch::find($id);

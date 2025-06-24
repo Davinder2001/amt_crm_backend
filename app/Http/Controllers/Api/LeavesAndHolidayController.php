@@ -260,23 +260,6 @@ class LeavesAndHolidayController extends Controller
         return response()->json(['message' => 'Holiday deleted successfully.']);
     }
 
-    // public function bulkDeleteHolidays(Request $request)
-    // {
-    //     $validator = Validator::make($request->all(), [
-    //         'ids' => 'required|array|min:1',
-    //         'ids.*' => 'integer|exists:holidays,id',
-    //     ]);
-
-    //     if ($validator->fails()) {
-    //         return response()->json(['errors' => $validator->errors()], 422);
-    //     }
-
-    //     $deletedCount = Holiday::whereIn('id', $request->ids)->delete();
-
-    //     return response()->json([
-    //         'message' => "$deletedCount holiday(s) deleted successfully.",
-    //     ]);
-    // }
 
     public function bulkDeleteHolidays(Request $request)
     {
