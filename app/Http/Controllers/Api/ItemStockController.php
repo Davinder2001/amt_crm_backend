@@ -14,7 +14,7 @@ class ItemStockController extends Controller
 {
     public function index()
     {
-        $batches = ItemBatch::with(['item', 'variants.attributeValues.attribute', 'unit'])->latest()->get();
+        $batches = ItemBatch::with(['item', 'variants.attributeValues.attribute', 'unit', 'vendor'])->latest()->get();
 
         return response()->json([
             'status'  => true,
@@ -30,30 +30,32 @@ class ItemStockController extends Controller
             'product_type'      => 'required|string|max:50',
             'unit_of_measure'   => 'nullable|string|max:50',
             'unit_id'           => 'nullable|exists:measuring_units,id',
-            'variants'          => 'nullable|array',
+            'invoice_number'    => 'nullable|string|max:500',
+            'vendor_id'         => 'nullable|exists:store_vendors,id',
+            'tax_type'          => 'required|in:include,exclude',
 
-            'variants.*.variant_regular_price'              => 'nullable|numeric',
-            'variants.*.variant_sale_price'                 => 'nullable|numeric',
-            'variants.*.variant_units_in_peace'             => 'nullable|numeric',
-            'variants.*.variant_price_per_unit'             => 'nullable|numeric',
-            'variants.*.variant_stock'                      => 'nullable|numeric',
-            'variants.*.images'                             => 'nullable|array',
-            'variants.*.attributes'                         => 'nullable|array',
-            'variants.*.attributes.*.attribute_id'          => 'required|integer',
-            'variants.*.attributes.*.attribute_value_id'    => 'required|integer',
+            'variants'          => 'nullable|array',
+            'variants.*.variant_regular_price'           => 'nullable|numeric',
+            'variants.*.variant_sale_price'              => 'nullable|numeric',
+            'variants.*.variant_units_in_peace'          => 'nullable|numeric',
+            'variants.*.variant_price_per_unit'          => 'nullable|numeric',
+            'variants.*.variant_stock'                   => 'nullable|numeric',
+            'variants.*.images'                          => 'nullable|array',
+            'variants.*.attributes'                      => 'nullable|array',
+            'variants.*.attributes.*.attribute_id'       => 'required|integer',
+            'variants.*.attributes.*.attribute_value_id' => 'required|integer',
 
             'purchase_date'       => 'nullable|date',
             'date_of_manufacture' => 'nullable|date',
             'date_of_expiry'      => 'nullable|date',
             'replacement'         => 'nullable|string|max:255',
             'cost_price'          => 'nullable|numeric|min:0',
+            'regular_price'       => 'nullable|numeric',
+            'sale_price'          => 'nullable|numeric',
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'status' => false,
-                'errors' => $validator->errors()
-            ], 422);
+            return response()->json(['status' => false, 'errors' => $validator->errors()], 422);
         }
 
         $companyId = SelectedCompanyService::getSelectedCompanyOrFail()->company->id;
@@ -61,6 +63,7 @@ class ItemStockController extends Controller
         $batch = ItemBatch::create([
             'company_id'          => $companyId,
             'item_id'             => $request->item_id,
+            'invoice_number'      => $request->invoice_number,
             'quantity'            => $request->quantity_count,
             'purchase_date'       => $request->purchase_date,
             'date_of_manufacture' => $request->date_of_manufacture,
@@ -68,8 +71,12 @@ class ItemStockController extends Controller
             'replacement'         => $request->replacement,
             'cost_price'          => $request->cost_price,
             'product_type'        => $request->product_type,
+            'vendor_id'           => $request->vendor_id,
             'unit_of_measure'     => $request->unit_of_measure,
             'unit_id'             => $request->unit_id,
+            'regular_price'       => $request->regular_price,
+            'sale_price'          => $request->sale_price,
+            'tax_type'            => $request->tax_type,
         ]);
 
         foreach ($request->variants ?? [] as $variantData) {
@@ -105,16 +112,10 @@ class ItemStockController extends Controller
         $batch = ItemBatch::with(['item', 'variants.attributeValues.attribute', 'unit'])->find($id);
 
         if (!$batch) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Batch not found.'
-            ], 404);
+            return response()->json(['status' => false, 'message' => 'Batch not found.'], 404);
         }
 
-        return response()->json([
-            'status' => true,
-            'batch'  => new BatchResource($batch),
-        ]);
+        return response()->json(['status' => true, 'batch' => new BatchResource($batch)]);
     }
 
     public function update(Request $request, $id)
@@ -124,9 +125,12 @@ class ItemStockController extends Controller
             'quantity_count'                            => 'sometimes|numeric|min:0',
             'product_type'                              => 'sometimes|string|max:50',
             'unit_of_measure'                           => 'sometimes|string|max:50',
+            'invoice_number'                            => 'sometimes|string|max:50',
             'unit_id'                                   => 'sometimes|exists:measuring_units,id',
-            'variants'                                  => 'sometimes|array',
+            'vendor_id'                                 => 'sometimes|exists:store_vendors,id',
+            'tax_type'                                  => 'sometimes|in:include,exclude',
 
+            'variants'                                  => 'sometimes|array',
             'variants.*.id'                             => 'sometimes|exists:item_variants,id',
             'variants.*.variant_regular_price'          => 'sometimes|numeric',
             'variants.*.variant_sale_price'             => 'sometimes|numeric',
@@ -136,13 +140,15 @@ class ItemStockController extends Controller
             'variants.*.images'                         => 'sometimes|array',
             'variants.*.attributes'                     => 'sometimes|array',
             'variants.*.attributes.*.attribute_id'      => 'required_with:variants.*.attributes|integer',
-            'variants.*.attributes.*.attribute_value_id' => 'required_with:variants.*.attributes|integer',
+            'variants.*.attributes.*.attribute_value_id'=> 'required_with:variants.*.attributes|integer',
 
             'purchase_date'                             => 'sometimes|date',
             'date_of_manufacture'                       => 'sometimes|date',
             'date_of_expiry'                            => 'sometimes|date',
             'replacement'                               => 'sometimes|string|max:255',
             'cost_price'                                => 'sometimes|numeric|min:0',
+            'regular_price'                             => 'sometimes|numeric',
+            'sale_price'                                => 'sometimes|numeric',
         ]);
 
         if ($validator->fails()) {
@@ -152,20 +158,24 @@ class ItemStockController extends Controller
         $batch = ItemBatch::findOrFail($id);
 
         $fillableFields = [
-            'item_id' => 'item_id',
-            'quantity_count' => 'quantity',
-            'purchase_date' => 'purchase_date',
+            'item_id'             => 'item_id',
+            'quantity_count'      => 'quantity',
+            'vendor_id'           => 'vendor_id',
+            'invoice_number'      => 'invoice_number',
+            'purchase_date'       => 'purchase_date',
             'date_of_manufacture' => 'date_of_manufacture',
-            'date_of_expiry' => 'date_of_expiry',
-            'replacement' => 'replacement',
-            'cost_price' => 'cost_price',
-            'product_type' => 'product_type',
-            'unit_of_measure' => 'unit_of_measure',
-            'unit_id' => 'unit_id',
+            'date_of_expiry'      => 'date_of_expiry',
+            'replacement'         => 'replacement',
+            'cost_price'          => 'cost_price',
+            'product_type'        => 'product_type',
+            'unit_of_measure'     => 'unit_of_measure',
+            'unit_id'             => 'unit_id',
+            'regular_price'       => 'regular_price',
+            'sale_price'          => 'sale_price',
+            'tax_type'            => 'tax_type',
         ];
 
         $updateData = [];
-
         foreach ($fillableFields as $requestKey => $dbColumn) {
             if ($request->has($requestKey)) {
                 $updateData[$dbColumn] = $request->$requestKey;
@@ -174,12 +184,9 @@ class ItemStockController extends Controller
 
         $batch->update($updateData);
 
-        // Handle variant sync
         if ($request->has('variants')) {
-            // 🧹 Delete old variants for this batch
             ItemVariant::where('batch_id', $batch->id)->delete();
 
-            // 🔁 Add new variants
             foreach ($request->variants as $variantData) {
                 $variant = new ItemVariant();
                 $variant->item_id = $request->item_id ?? $batch->item_id;
@@ -223,16 +230,12 @@ class ItemStockController extends Controller
         ]);
     }
 
-
     public function destroy($id)
     {
         $batch = ItemBatch::find($id);
 
         if (!$batch) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Batch not found.'
-            ], 404);
+            return response()->json(['status' => false, 'message' => 'Batch not found.'], 404);
         }
 
         $batch->variants()->delete();

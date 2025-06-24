@@ -21,8 +21,10 @@ class ItemsController extends Controller
             'taxes',
             'categories',
             'batches.variants.attributeValues.attribute',
+            'batches.vendor',
             'measurementDetails',
             'brand',
+            'vendor'
         ])->get();
 
         return response()->json(ItemResource::collection($items));
@@ -114,8 +116,10 @@ class ItemsController extends Controller
             'taxes',
             'categories',
             'batches.variants.attributeValues.attribute',
+            'batches.vendor',
             'measurementDetails',
             'brand',
+            'vendor',
         ])->find($id);
 
         return $item

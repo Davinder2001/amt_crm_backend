@@ -93,4 +93,9 @@ class Item extends Model
             'tax_id'
         )->withTimestamps();
     }
+
+    public function vendor()
+    {
+        return $this->belongsTo(StoreVendor::class, 'vendor_id');
+    }
 }

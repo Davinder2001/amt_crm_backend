@@ -15,6 +15,8 @@ return new class extends Migration {
 
             $table->unsignedBigInteger('company_id');
             $table->unsignedBigInteger('item_id');
+            $table->unsignedBigInteger('vendor_id')->nullable();
+            $table->string('invoice_number')->nullable();
 
             $table->decimal('quantity', 20, 2)->nullable();
 
@@ -23,6 +25,8 @@ return new class extends Migration {
             $table->date('date_of_expiry')->nullable();
 
             $table->string('replacement')->nullable();
+            $table->enum('tax_type', ['include', 'exclude'])->default('exclude');
+
 
             $table->decimal('cost_price', 20, 2)->nullable();
             $table->decimal('regular_price', 20, 2)->nullable();
@@ -34,6 +38,7 @@ return new class extends Migration {
 
             $table->timestamps();
 
+            $table->foreign('vendor_id')->references('id')->on('store_vendors')->onDelete('cascade');
             $table->foreign('company_id')->references('id')->on('companies')->onDelete('cascade');
             $table->foreign('item_id')->references('id')->on('store_items')->onDelete('cascade');
             $table->foreign('unit_id')->references('id')->on('measuring_units')->onDelete('set null');
