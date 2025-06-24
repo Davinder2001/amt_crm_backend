@@ -37,12 +37,11 @@ class ItemStockController extends Controller
             'quantity_count'    => 'required|numeric|min:0',
             'product_type'      => 'required|string|max:50',
             'unit_of_measure'   => 'nullable|string|max:50',
-            'unit_id'           => 'nullable|exists:measuring_units,id',
             'invoice_number'    => 'nullable|string|max:500',
             'vendor_id'         => 'nullable|exists:store_vendors,id',
             'tax_type'          => 'required|in:include,exclude',
 
-            'variants'          => 'nullable|array',
+            'variants'                                   => 'nullable|array',
             'variants.*.variant_regular_price'           => 'nullable|numeric',
             'variants.*.variant_sale_price'              => 'nullable|numeric',
             'variants.*.variant_units_in_peace'          => 'nullable|numeric',
@@ -81,7 +80,6 @@ class ItemStockController extends Controller
             'product_type'        => $request->product_type,
             'vendor_id'           => $request->vendor_id,
             'unit_of_measure'     => $request->unit_of_measure,
-            'unit_id'             => $request->unit_id,
             'regular_price'       => $request->regular_price,
             'sale_price'          => $request->sale_price,
             'tax_type'            => $request->tax_type,
@@ -124,10 +122,16 @@ class ItemStockController extends Controller
         $batch = ItemBatch::with(['item', 'variants.attributeValues.attribute', 'unit', 'vendor'])->find($id);
 
         if (!$batch) {
-            return response()->json(['status' => false, 'message' => 'Batch not found.'], 404);
+            return response()->json([
+                'status' => false, 
+                'message' => 'Batch not found.'
+            ], 404);
         }
 
-        return response()->json(['status' => true, 'batch' => new BatchResource($batch)]);
+        return response()->json([
+            'status' => true, 
+            'batch' => new BatchResource($batch)
+        ], 201);
     }
 
     /**
@@ -142,7 +146,6 @@ class ItemStockController extends Controller
             'product_type'                              => 'sometimes|string|max:50',
             'unit_of_measure'                           => 'sometimes|string|max:50',
             'invoice_number'                            => 'sometimes|string|max:50',
-            'unit_id'                                   => 'sometimes|exists:measuring_units,id',
             'vendor_id'                                 => 'sometimes|exists:store_vendors,id',
             'tax_type'                                  => 'sometimes|in:include,exclude',
 
@@ -168,7 +171,10 @@ class ItemStockController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['status' => false, 'errors' => $validator->errors()], 422);
+            return response()->json([
+                'status' => false, 
+                'errors' => $validator->errors()
+            ], 422);
         }
 
         $batch = ItemBatch::findOrFail($id);
@@ -185,7 +191,6 @@ class ItemStockController extends Controller
             'cost_price'          => 'cost_price',
             'product_type'        => 'product_type',
             'unit_of_measure'     => 'unit_of_measure',
-            'unit_id'             => 'unit_id',
             'regular_price'       => 'regular_price',
             'sale_price'          => 'sale_price',
             'tax_type'            => 'tax_type',
@@ -243,7 +248,7 @@ class ItemStockController extends Controller
             'status'  => true,
             'message' => 'Item batch updated successfully.',
             'batch'   => new BatchResource($batch->load('item', 'variants.attributeValues.attribute', 'unit')),
-        ]);
+        ], 200);
     }
 
     /**

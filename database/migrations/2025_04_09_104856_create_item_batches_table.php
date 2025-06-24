@@ -34,14 +34,12 @@ return new class extends Migration {
 
             $table->string('product_type')->nullable();
             $table->string('unit_of_measure')->nullable();
-            $table->unsignedBigInteger('unit_id')->nullable();
 
             $table->timestamps();
 
             $table->foreign('vendor_id')->references('id')->on('store_vendors')->onDelete('cascade');
             $table->foreign('company_id')->references('id')->on('companies')->onDelete('cascade');
             $table->foreign('item_id')->references('id')->on('store_items')->onDelete('cascade');
-            $table->foreign('unit_id')->references('id')->on('measuring_units')->onDelete('set null');
         });
     }
 
