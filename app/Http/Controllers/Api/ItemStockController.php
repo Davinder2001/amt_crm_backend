@@ -174,13 +174,15 @@ class ItemStockController extends Controller
 
         $batch->update($updateData);
 
+        // Handle variant sync
         if ($request->has('variants')) {
-            foreach ($request->variants as $variantData) {
-                $variant = !empty($variantData['id'])
-                    ? ItemVariant::find($variantData['id'])
-                    : new ItemVariant();
+            // 🧹 Delete old variants for this batch
+            ItemVariant::where('batch_id', $batch->id)->delete();
 
-                $variant->item_id = $request->item_id ?? $variant->item_id;
+            // 🔁 Add new variants
+            foreach ($request->variants as $variantData) {
+                $variant = new ItemVariant();
+                $variant->item_id = $request->item_id ?? $batch->item_id;
                 $variant->batch_id = $batch->id;
 
                 $variantFields = [
