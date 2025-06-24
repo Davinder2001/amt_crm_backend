@@ -260,6 +260,7 @@ Route::prefix('v1')->group(function () {
             Route::post('holidays', [LeavesAndHolidayController::class, 'createHoliday']);
             Route::put('holidays/{id}', [LeavesAndHolidayController::class, 'updateHoliday']);
             Route::delete('holidays/{id}', [LeavesAndHolidayController::class, 'deleteHoliday']);
+            Route::post('holidays/bulk-delete', [LeavesAndHolidayController::class, 'bulkDeleteHolidays']);
         });
 
 

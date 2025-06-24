@@ -71,14 +71,14 @@ class ItemStockController extends Controller
 
         foreach ($request->variants ?? [] as $variantData) {
             $variant = new ItemVariant([
-                'item_id'               => $request->item_id,
-                'variant_regular_price' => $variantData['variant_regular_price'] ?? null,
-                'variant_sale_price'    => $variantData['variant_sale_price'] ?? null,
-                'variant_units_in_peace'=> $variantData['variant_units_in_peace'] ?? null,
-                'variant_price_per_unit'=> $variantData['variant_price_per_unit'] ?? null,
+                'item_id'                 => $request->item_id,
+                'variant_regular_price'   => $variantData['variant_regular_price'],
+                'variant_sale_price'      => $variantData['variant_sale_price'],
+                'variant_units_in_peace'  => $variantData['variant_units_in_peace'],
+                'variant_price_per_unit'  => $variantData['variant_price_per_unit'],
                 'quntity'                 => $variantData['variant_stock'],
-                'stock'                 => $variantData['variant_stock'] ,
-                'images'                => $variantData['images'] ?? [],
+                'stock'                   => $variantData['variant_stock'] ,
+                'images'                  => $variantData['images'] ?? [],
             ]);
             $variant->batch_id = $batch->id;
             $variant->save();

@@ -196,7 +196,7 @@ class LeavesAndHolidayController extends Controller
         $createdHolidays = [];
 
         if (in_array($type, ['weekly', 'monthly'])) {
-           
+
             Holiday::where('company_id', $companyId)->where('type', $holiday->type)->where('name', $holiday->name)->delete();
 
             $year = now()->year;
@@ -260,21 +260,43 @@ class LeavesAndHolidayController extends Controller
         return response()->json(['message' => 'Holiday deleted successfully.']);
     }
 
+    // public function bulkDeleteHolidays(Request $request)
+    // {
+    //     $validator = Validator::make($request->all(), [
+    //         'ids' => 'required|array|min:1',
+    //         'ids.*' => 'integer|exists:holidays,id',
+    //     ]);
+
+    //     if ($validator->fails()) {
+    //         return response()->json(['errors' => $validator->errors()], 422);
+    //     }
+
+    //     $deletedCount = Holiday::whereIn('id', $request->ids)->delete();
+
+    //     return response()->json([
+    //         'message' => "$deletedCount holiday(s) deleted successfully.",
+    //     ]);
+    // }
+
     public function bulkDeleteHolidays(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'ids' => 'required|array|min:1',
-            'ids.*' => 'integer|exists:holidays,id',
+            'type' => 'required|in:weekly,monthly,general',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $deletedCount = Holiday::whereIn('id', $request->ids)->delete();
+        $company = SelectedCompanyService::getSelectedCompanyOrFail();
+        $type    = $request->input('type');
+
+        $deletedCount = Holiday::where('company_id', $company->company->id)
+            ->where('type', $type)
+            ->delete();
 
         return response()->json([
-            'message' => "$deletedCount holiday(s) deleted successfully.",
+            'message' => "$deletedCount $type holiday(s) deleted successfully.",
         ]);
     }
 }
