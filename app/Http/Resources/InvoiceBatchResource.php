@@ -41,6 +41,8 @@ class InvoiceBatchResource extends JsonResource
             'invoice_number'         => $this->invoice_number,
             'tax_type'               => $this->tax_type,
             'unit_of_measure'        => $this->unit_of_measure,
+            'units_in_peace'      => $this->units_in_peace,
+            'price_per_unit'      => $this->price_per_unit,
 
             'vendor'                 => new StoreVendorResource($this->whenLoaded('vendor')),
             'variants'               => InvoiceVariantResource::collection($this->whenLoaded('variants')),

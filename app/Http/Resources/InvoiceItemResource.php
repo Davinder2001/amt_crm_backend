@@ -22,8 +22,6 @@ class InvoiceItemResource extends JsonResource
             'images'             => $this->images,
             'availability_stock' => $this->availability_stock,
             'catalog'            => (bool) $this->catalog,
-            'units_in_peace'      => $this->units_in_peace,
-            'price_per_unit'      => $this->price_per_unit,
             'online_visibility'  => (bool) $this->online_visibility,
 
             'brand'              => new ItemBrandResource($this->whenLoaded('brand')),
