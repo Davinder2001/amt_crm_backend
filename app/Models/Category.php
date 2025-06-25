@@ -31,6 +31,10 @@ class Category extends Model
     {
         return $this->belongsToMany(Item::class, 'category_item', 'category_id', 'store_item_id');
     }
+    public function invoice_items()
+    {
+        return $this->belongsToMany(Item::class, 'category_item', 'category_id', 'store_item_id');
+    }
 
 
     /**

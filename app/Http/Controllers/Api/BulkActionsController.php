@@ -23,7 +23,15 @@ class BulkActionsController extends Controller
      */
     public function getItemCatTree(): JsonResponse
     {
-        $categories = Category::with(['childrenRecursive', 'items.taxes', 'items.categories', 'items.batches.variants.attributeValues.attribute'])->get();
+        $categories = Category::with([
+            'childrenRecursive',
+            'invoice_items.taxes',
+            'invoice_items.categories',
+            'invoice_items.batches.variants.attributeValues.attribute',
+            'invoice_items.batches.item.taxes', // required for variant tax calculation
+        ])->get();
+
+
         return response()->json(CategoryTreeResource::collection($categories), 200);
     }
 

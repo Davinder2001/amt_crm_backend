@@ -18,7 +18,7 @@ class CategoryTreeResource extends JsonResource
             'id'         => $this->id,
             'name'       => $this->name,
             'children'   => CategoryTreeResource::collection($this->whenLoaded('childrenRecursive')),
-            'items'      => ItemResource::collection($this->whenLoaded('items')),
+            'invoice_items'      => InvoiceItemResource::collection($this->whenLoaded('invoice_items')),
         ];
     }
 }

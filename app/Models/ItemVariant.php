@@ -35,6 +35,13 @@ class ItemVariant extends Model
             AttributeValue::class,
             'item_variant_attribute_value'
         )->withPivot('attribute_id')
-         ->withTimestamps();
+            ->withTimestamps();
+    }
+
+    // app/Models/ItemVariant.php
+
+    public function batch()
+    {
+        return $this->belongsTo(ItemBatch::class, 'batch_id');
     }
 }
