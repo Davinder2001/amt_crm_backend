@@ -528,7 +528,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/', [ExpenseController::class, 'index']);
             Route::post('/store', [ExpenseController::class, 'store']);
             Route::get('/{id}', [ExpenseController::class, 'show']);
-            Route::put('/{id}/update', [ExpenseController::class, 'update']);
+            Route::post('/{id}/update', [ExpenseController::class, 'update']);
             Route::delete('/{id}/delete', [ExpenseController::class, 'destroy']);
         });
     });

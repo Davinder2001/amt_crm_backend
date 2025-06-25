@@ -12,19 +12,6 @@ use App\Services\SelectedCompanyService;
 
 class ExpenseController extends Controller
 {
-    protected function rules(bool $isStore = true): array
-    {
-        return [
-            'heading'     => ['required', 'string', 'max:255'],
-            'price'       => ['required', 'numeric', 'min:0'],
-            'status'      => ['nullable', 'in:pending,approved,rejected'],
-            'file'        => [$isStore ? 'nullable' : 'sometimes', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:2048'],
-            'description' => ['nullable', 'string'],
-            'tags'        => ['nullable', 'array'],
-            'tags.*.name' => ['required', 'string', 'max:50'],
-        ];
-    }
-
     public function index()
     {
         $query = Expense::query();
@@ -42,7 +29,16 @@ class ExpenseController extends Controller
     {
         $companyId = SelectedCompanyService::getSelectedCompanyOrFail()->company_id;
 
-        $validator = Validator::make($request->all(), $this->rules(true));
+        $validator = Validator::make($request->all(), [
+            'heading'     => ['required', 'string', 'max:255'],
+            'price'       => ['required', 'numeric', 'min:0'],
+            'status'      => ['nullable', 'in:pending,approved,rejected'],
+            'file'        => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:2048'],
+            'description' => ['nullable', 'string'],
+            'tags'        => ['nullable', 'array'],
+            'tags.*.name' => ['required', 'string', 'max:50'],
+        ]);
+
         if ($validator->fails()) {
             return response()->json([
                 'message' => 'Validation failed',
@@ -76,7 +72,16 @@ class ExpenseController extends Controller
     {
         $expense = Expense::findOrFail($id);
 
-        $validator = Validator::make($request->all(), $this->rules(false));
+        $validator = Validator::make($request->all(), [
+            'heading'     => ['sometimes', 'string', 'max:255'],
+            'price'       => ['sometimes', 'numeric', 'min:0'],
+            'status'      => ['nullable', 'in:pending,approved,rejected'],
+            'file'        => ['sometimes', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:2048'],
+            'description' => ['nullable', 'string'],
+            'tags'        => ['nullable', 'array'],
+            'tags.*.name' => ['required', 'string', 'max:50'],
+        ]);
+
         if ($validator->fails()) {
             return response()->json([
                 'message' => 'Validation failed',
