@@ -91,7 +91,7 @@ class ItemStockController extends Controller
                 'variant_regular_price'   => $variantData['variant_regular_price'],
                 'variant_sale_price'      => $variantData['variant_sale_price'],
                 'variant_units_in_peace'  => $variantData['variant_units_in_peace'] ?? null,
-                'variant_price_per_unit'  => $variantData['variant_price_per_unit'],
+                'variant_price_per_unit'  => $variantData['variant_price_per_unit'] ?? null, 
                 'quntity'                 => $variantData['variant_stock'],
                 'stock'                   => $variantData['variant_stock'],
                 'images'                  => $variantData['images'] ?? [],
