@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\Package;
 use App\Models\Payment;
+use App\Models\BusinessCategory;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
@@ -38,16 +39,22 @@ class PaymentAndBillingController extends Controller
      * Upgrade the package for the currently selected company.
      *
      */
-    public function upgradePackage(Request $request)
-    {
-        // dd($id);
-        $activeCompany      = SelectedCompanyService::getSelectedCompanyOrFail();
-        $packageId          = $activeCompany->company->package_id;
-        $activeCompanyId    = $activeCompany->company->id;
-        $businessId         = $activeCompany->company->business_category;
-        $canSubscribe       = Package::where('business_category_id', $businessId)->exists();
-        dd($canSubscribe);
-    }
+public function upgradePackage(Request $request)
+{
+    $activeCompany      = SelectedCompanyService::getSelectedCompanyOrFail();
+    $packageId          = $activeCompany->company->package_id;
+    $businessId         = $activeCompany->company->business_category;
+
+    // Get all related packages except the current one
+    $otherPackages = BusinessCategory::with(['packages' => function ($query) use ($packageId) {
+        $query->where('id', '!=', $packageId);
+    }])->findOrFail($businessId)->packages;
+
+    return response()->json([
+        'success' => true,
+        'packages' => $otherPackages
+    ]);
+}
 
     /**
      * Request a refund for a payment by transaction ID.

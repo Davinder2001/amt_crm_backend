@@ -22,6 +22,8 @@ class ItemBatch extends Model
         'sale_price',
         'product_type',
         'unit_of_measure',
+        'units_in_peace',
+        'price_per_unit',
     ];
 
     public function item()

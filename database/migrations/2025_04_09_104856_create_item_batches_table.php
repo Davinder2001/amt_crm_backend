@@ -31,6 +31,8 @@ return new class extends Migration {
             $table->decimal('cost_price', 20, 2)->nullable();
             $table->decimal('regular_price', 20, 2)->nullable();
             $table->decimal('sale_price', 20, 2)->nullable();
+            $table->decimal('units_in_peace')->nullable();
+            $table->decimal('price_per_unit', 20, 2)->nullable();
 
             $table->string('product_type')->nullable();
             $table->string('unit_of_measure')->nullable();

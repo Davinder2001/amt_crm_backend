@@ -22,6 +22,8 @@ class BatchResource extends JsonResource
             'regular_price'       => $this->regular_price,
             'sale_price'          => $this->sale_price,
             'unit_of_measure'     => $this->unit_of_measure,
+            'units_in_peace'      => $this->units_in_peace,
+            'price_per_unit'      => $this->price_per_unit,
 
             'vendor'              => new StoreVendorResource($this->whenLoaded('vendor')),
             'variants'            => VariantResource::collection($this->whenLoaded('variants')),

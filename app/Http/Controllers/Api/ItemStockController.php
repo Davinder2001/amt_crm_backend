@@ -58,6 +58,8 @@ class ItemStockController extends Controller
             'replacement'         => 'nullable|string|max:255',
             'cost_price'          => 'nullable|numeric|min:0',
             'regular_price'       => 'nullable|numeric',
+            'units_in_peace'      => 'nullable|numeric',
+            'price_per_unit'      => 'nullable|numeric',
             'sale_price'          => 'nullable|numeric',
         ]);
 
@@ -83,6 +85,8 @@ class ItemStockController extends Controller
             'regular_price'       => $request->regular_price,
             'sale_price'          => $request->sale_price,
             'tax_type'            => $request->tax_type,
+            'units_in_peace'      => $request->units_in_peace,
+            'price_per_unit'      => $request->price_per_unit,
         ]);
 
         foreach ($request->variants ?? [] as $variantData) {
@@ -168,6 +172,8 @@ class ItemStockController extends Controller
             'cost_price'                                => 'sometimes|numeric|min:0',
             'regular_price'                             => 'sometimes|numeric',
             'sale_price'                                => 'sometimes|numeric',
+            'units_in_peace'                            => 'sometimes|numeric',
+            'price_per_unit'                            => 'sometimes|numeric',
         ]);
 
         if ($validator->fails()) {
@@ -194,6 +200,8 @@ class ItemStockController extends Controller
             'regular_price'       => 'regular_price',
             'sale_price'          => 'sale_price',
             'tax_type'            => 'tax_type',
+            'units_in_peace'      => 'units_in_peace',
+            'price_per_unit'      => 'price_per_unit',
         ];
 
         $updateData = [];
