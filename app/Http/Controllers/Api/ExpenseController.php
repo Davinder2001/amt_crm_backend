@@ -75,8 +75,8 @@ class ExpenseController extends Controller
         $expense = Expense::create($data);
 
         return (new ExpenseResource($expense))
-               ->response()
-               ->setStatusCode(201);
+            ->response()
+            ->setStatusCode(201);
     }
 
     /* --------------------------------------------------------------
@@ -125,12 +125,6 @@ class ExpenseController extends Controller
      * -------------------------------------------------------------*/
     public function destroy(Expense $expense)
     {
-        $companyId = SelectedCompanyService::getSelectedCompanyOrFail()->company_id;
-
-        if ($expense->company_id !== $companyId) {
-            return response()->json(['message' => 'Forbidden'], 403);
-        }
-
         if ($expense->file_path && File::exists(public_path($expense->file_path))) {
             File::delete(public_path($expense->file_path));
         }
