@@ -12,9 +12,6 @@ use App\Services\SelectedCompanyService;
 
 class ExpenseController extends Controller
 {
-    /* --------------------------------------------------------------
-     |  Centralised validation rules
-     * -------------------------------------------------------------*/
     protected function rules(bool $isStore = true): array
     {
         return [
@@ -23,16 +20,11 @@ class ExpenseController extends Controller
             'status'      => ['nullable', 'in:pending,approved,rejected'],
             'file'        => [$isStore ? 'nullable' : 'sometimes', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:2048'],
             'description' => ['nullable', 'string'],
-
-            // 🔸 tags validation
-            'tags'            => ['nullable', 'array'],
-            'tags.*.name'     => ['required', 'string', 'max:50'],
+            'tags'        => ['nullable', 'array'],
+            'tags.*.name' => ['required', 'string', 'max:50'],
         ];
     }
 
-    /* --------------------------------------------------------------
-     |  List
-     * -------------------------------------------------------------*/
     public function index()
     {
         $query = Expense::query();
@@ -46,9 +38,6 @@ class ExpenseController extends Controller
         );
     }
 
-    /* --------------------------------------------------------------
-     |  Store
-     * -------------------------------------------------------------*/
     public function store(Request $request)
     {
         $companyId = SelectedCompanyService::getSelectedCompanyOrFail()->company_id;
@@ -61,16 +50,14 @@ class ExpenseController extends Controller
             ], 422);
         }
 
-        $data               = $validator->validated();
+        $data = $validator->validated();
         $data['company_id'] = $companyId;
 
-        /* ----------  Handle file upload directly to /public/uploads/expenses  ---------- */
         if ($request->hasFile('file')) {
             $data['file_path'] = $this->saveFile($request->file('file'));
         }
 
-        /* ----------  Persist tags as JSON  ---------- */
-        $data['tags'] = $data['tags'] ?? [];   // ensure array even if null
+        $data['tags'] = $data['tags'] ?? [];
 
         $expense = Expense::create($data);
 
@@ -79,19 +66,16 @@ class ExpenseController extends Controller
             ->setStatusCode(201);
     }
 
-    /* --------------------------------------------------------------
-     |  Show
-     * -------------------------------------------------------------*/
-    public function show(Expense $expense)
+    public function show($id)
     {
+        $expense = Expense::findOrFail($id);
         return new ExpenseResource($expense);
     }
 
-    /* --------------------------------------------------------------
-     |  Update
-     * -------------------------------------------------------------*/
-    public function update(Request $request, Expense $expense)
+    public function update(Request $request, $id)
     {
+        $expense = Expense::findOrFail($id);
+
         $validator = Validator::make($request->all(), $this->rules(false));
         if ($validator->fails()) {
             return response()->json([
@@ -102,7 +86,6 @@ class ExpenseController extends Controller
 
         $data = $validator->validated();
 
-        /* ----------  Replace file if a new one is sent  ---------- */
         if ($request->hasFile('file')) {
             if ($expense->file_path && File::exists(public_path($expense->file_path))) {
                 File::delete(public_path($expense->file_path));
@@ -110,7 +93,6 @@ class ExpenseController extends Controller
             $data['file_path'] = $this->saveFile($request->file('file'));
         }
 
-        /* ----------  Normalise tags  ---------- */
         if (array_key_exists('tags', $data)) {
             $data['tags'] = $data['tags'] ?? [];
         }
@@ -120,11 +102,10 @@ class ExpenseController extends Controller
         return new ExpenseResource($expense->refresh());
     }
 
-    /* --------------------------------------------------------------
-     |  Destroy
-     * -------------------------------------------------------------*/
-    public function destroy(Expense $expense)
+    public function destroy($id)
     {
+        $expense = Expense::findOrFail($id);
+
         if ($expense->file_path && File::exists(public_path($expense->file_path))) {
             File::delete(public_path($expense->file_path));
         }
@@ -134,9 +115,6 @@ class ExpenseController extends Controller
         return response()->json(['message' => 'Expense deleted.']);
     }
 
-    /* ==============================================================	
-     |  Helper: save file to /public/uploads/expenses and return path
-     * ==============================================================*/
     protected function saveFile($uploadedFile): string
     {
         $uploadDir = public_path('uploads/expenses');
