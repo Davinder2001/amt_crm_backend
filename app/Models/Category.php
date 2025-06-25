@@ -52,10 +52,10 @@ class Category extends Model
     {
         return $this->children()->with([
             'childrenRecursive',
-            'items.variants.attributeValues.attribute',
-            'items.taxes',
-            'items.batches',
-            'items.categories'
+            'invoice_items.variants.attributeValues.attribute',
+            'invoice_items.taxes',
+            'invoice_items.batches',
+            'invoice_items.categories'
         ]);
     }
 
