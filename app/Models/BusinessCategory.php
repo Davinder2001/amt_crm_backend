@@ -10,8 +10,8 @@ class BusinessCategory extends Model
     use HasFactory;
 
     protected $fillable = [
-        'name',           // Name of the business category
-        'description',    // Description of the category (optional)
+        'name',
+        'description',
     ];
 
     public function packages()

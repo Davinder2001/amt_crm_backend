@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\Package;
 use App\Models\Payment;
-use App\Models\BusinessCategory;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
@@ -39,22 +39,112 @@ class PaymentAndBillingController extends Controller
      * Upgrade the package for the currently selected company.
      *
      */
-public function upgradePackage(Request $request)
-{
-    $activeCompany      = SelectedCompanyService::getSelectedCompanyOrFail();
-    $packageId          = $activeCompany->company->package_id;
-    $businessId         = $activeCompany->company->business_category;
 
-    // Get all related packages except the current one
-    $otherPackages = BusinessCategory::with(['packages' => function ($query) use ($packageId) {
-        $query->where('id', '!=', $packageId);
-    }])->findOrFail($businessId)->packages;
+    public function upgradePackage(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'package_id'   => 'required|exists:packages,id',
+            'package_type' => 'required|in:monthly,annual,three_years',
+        ]);
 
-    return response()->json([
-        'success' => true,
-        'packages' => $otherPackages
-    ]);
-}
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation errors',
+                'errors'  => $validator->errors()
+            ], 422);
+        }
+
+        $data = $validator->validated();
+
+        $activeCompany     = SelectedCompanyService::getSelectedCompanyOrFail();
+        $currentPackageId  = $activeCompany->company->package_id;
+        $company           = $activeCompany->company;
+        $newPackageId      = $data['package_id'];
+        $selectedType      = $data['package_type'];
+
+        $newPackage = Package::findOrFail($newPackageId);
+
+        $price = match ($selectedType) {
+            'monthly'     => $newPackage->monthly_price,
+            'annual'      => $newPackage->annual_price,
+            'three_years' => $newPackage->three_years_price,
+        };
+
+        $merchantOrderId = 'UPGRADE_' . uniqid();
+        $amount = (int) ($price * 100);
+
+        $oauthResponse = Http::asForm()->post(env('PHONEPE_OAUTH_URL'), [
+            'client_id'      => env('PHONEPE_CLIENT_ID'),
+            'client_version' => env('PHONEPE_CLIENT_VERSION'),
+            'client_secret'  => env('PHONEPE_CLIENT_SECRET'),
+            'grant_type'     => env('PHONEPE_GRANT_TYPE'),
+        ]);
+
+        if (!$oauthResponse->ok() || !$oauthResponse->json('access_token')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to get PhonePe access token',
+                'details' => $oauthResponse->json()
+            ], 500);
+        }
+
+        $accessToken = $oauthResponse->json('access_token');
+
+        $host = request()->getHost();
+
+        if (str_contains($host, 'localhost')) {
+            $baseUrl     = env('PHONEPE_CALLBACK_BASE_URL_COMPANY');
+            $callbackUrl = env('PHONEPE_CALLBACK_BASE_URL');
+        } elseif (str_contains($host, 'amt.sparkweb.co.in')) {
+            $baseUrl     = env('PHONEPE_CALLBACK_BASE_URL_COMPANY_PROD');
+            $callbackUrl = env('PHONEPE_CALLBACK_BASE_URL_PROD');
+        } else {
+            $baseUrl     = env('PHONEPE_CALLBACK_BASE_URL_COMPANY_PROD');
+            $callbackUrl = env('PHONEPE_CALLBACK_BASE_URL_PROD');
+        }
+
+        $callbackUrl = $callbackUrl . "/api/v1/upgrade-package/{$merchantOrderId}";
+        $redirectUrl = $baseUrl . "/confirm-upgrade-payment/?orderId={$merchantOrderId}";
+
+        $checkoutPayload = [
+            "merchantOrderId" => $merchantOrderId,
+            "amount"          => $amount,
+            "paymentFlow"     => [
+                "type" => "PG_CHECKOUT",
+                "merchantUrls" => [
+                    "redirectUrl" => $redirectUrl,
+                    "callbackUrl" => $callbackUrl
+                ]
+            ]
+        ];
+
+        $checkoutResponse = Http::withHeaders([
+            'Authorization' => 'O-Bearer ' . $accessToken,
+            'Content-Type'  => 'application/json',
+        ])->post(env('PHONEPE_CHECKOUT_URL'), $checkoutPayload);
+
+        $responseData = $checkoutResponse->json();
+        $paymentUrl   = $responseData['redirectUrl'] ?? $responseData['data']['redirectUrl'] ?? null;
+
+        if (!$checkoutResponse->ok() || !$paymentUrl) {
+            return response()->json([
+                'success'  => false,
+                'message'  => 'Failed to initialize payment',
+                'response' => $responseData
+            ], 500);
+        }
+
+        return response()->json([
+            'success'         => true,
+            'package_name'    => $newPackage->name,
+            'package_type'    => $selectedType,
+            'price'           => $price,
+            'merchantOrderId' => $merchantOrderId,
+            'redirect_url'    => $paymentUrl
+        ]);
+    }
+
 
     /**
      * Request a refund for a payment by transaction ID.
