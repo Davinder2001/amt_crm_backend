@@ -18,8 +18,6 @@ class PackageController extends Controller
         return response()->json($packages);
     }
 
-
-
     /**
      * Store a newly created resource in storage.
      */
@@ -33,6 +31,7 @@ class PackageController extends Controller
             'invoices_number'           => 'required|integer|min:0',
             'monthly_price'             => 'required|numeric|min:0',
             'annual_price'              => 'required|numeric|min:0',
+            'three_years_price'         => 'required|numeric|min:0',
             'business_category_ids'     => 'required|array',
             'business_category_ids.*'   => 'integer|exists:business_categories,id',
         ]);
@@ -54,6 +53,7 @@ class PackageController extends Controller
             'invoices_number'       => $data['invoices_number'],
             'monthly_price'         => $data['monthly_price'],
             'annual_price'          => $data['annual_price'],
+            'three_years_price'     => $data['three_years_price'],
         ]);
 
         $package->businessCategories()->sync($data['business_category_ids']);
@@ -90,6 +90,7 @@ class PackageController extends Controller
             'invoices_number'           => 'sometimes|integer|min:0',
             'monthly_price'             => 'sometimes|numeric|min:0',
             'annual_price'              => 'sometimes|numeric|min:0',
+            'three_years_price'         => 'sometimes|numeric|min:0',
             'business_category_ids'     => 'sometimes|array',
             'business_category_ids.*'   => 'integer|exists:business_categories,id',
         ]);
@@ -124,6 +125,8 @@ class PackageController extends Controller
     {
         $package = Package::findOrFail($id);
         $package->delete();
-        return response()->json(['message' => 'Package deleted successfully']);
+        return response()->json([
+            'message' => 'Package deleted successfully'
+        ]);
     }
 }

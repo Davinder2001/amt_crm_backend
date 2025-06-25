@@ -35,6 +35,7 @@ class PackageSeeder extends Seeder
                 'invoices_number'    => 100,
                 'monthly_price'      => 499.00,
                 'annual_price'       => 4990.00,
+                'three_years_price'       => 48990.00,
                 'category'           => 'Retail',
             ],
             [
@@ -45,6 +46,7 @@ class PackageSeeder extends Seeder
                 'invoices_number' => 300,
                 'monthly_price' => 999.00,
                 'annual_price' => 9990.00,
+                'three_years_price' => 93990.00,
                 'category' => 'Services',
             ],
             [
@@ -55,6 +57,7 @@ class PackageSeeder extends Seeder
                 'invoices_number' => 1000,
                 'monthly_price' => 1999.00,
                 'annual_price' => 19990.00,
+                'three_years_price' => 139990.00,
                 'category' => 'Manufacturing',
             ],
         ];
@@ -68,6 +71,7 @@ class PackageSeeder extends Seeder
                     'daily_tasks_number'    => $pkg['daily_tasks_number'],
                     'invoices_number'       => $pkg['invoices_number'],
                     'monthly_price'         => $pkg['monthly_price'],
+                    'three_years_price'         => $pkg['three_years_price'],
                     'annual_price'          => $pkg['annual_price'],
                 ]
             );

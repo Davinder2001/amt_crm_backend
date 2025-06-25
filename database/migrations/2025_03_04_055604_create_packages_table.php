@@ -20,6 +20,7 @@ return new class extends Migration
             $table->unsignedInteger('invoices_number');
             $table->decimal('monthly_price', 10, 2);
             $table->decimal('annual_price', 10, 2);
+            $table->decimal('three_years_price', 10, 2);
             $table->unsignedBigInteger('business_category_id')->nullable();
             $table->foreign('business_category_id')->references('id')->on('business_categories')->onDelete('set null');
             $table->timestamps();

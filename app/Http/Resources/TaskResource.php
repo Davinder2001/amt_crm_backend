@@ -12,7 +12,7 @@ class TaskResource extends JsonResource
             'id'                => $this->id,
             'name'              => $this->name,
             'description'       => $this->description,
-            'company_id'        => $this->company_id,
+            // 'company_id'        => $this->company_id,
             'company_name'      => $this->company?->name,
             'assigned_by_id'    => $this->assigned_by,
             'assigned_by_name'  => $this->assigner?->name,

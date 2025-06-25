@@ -14,6 +14,7 @@ class Package extends Model
         'invoices_number',
         'monthly_price',
         'annual_price',
+        'three_years_price',
     ];
 
     public function businessCategories()

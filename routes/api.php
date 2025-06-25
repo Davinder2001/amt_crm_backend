@@ -106,13 +106,23 @@ Route::prefix('v1')->group(function () {
             Route::get('/admins/{id}', [AdminManagementController::class, 'show']);
 
 
+            // Pricing and Packages API's
+            Route::prefix('pricing-packages')->group(function () {
+                Route::post('/', [PackageController::class, 'store']);
+                Route::get('/{id}', [PackageController::class, 'show']);
+                Route::put('/{id}', [PackageController::class, 'update']);
+                Route::patch('/{id}', [PackageController::class, 'update']);
+                Route::delete('/{id}', [PackageController::class, 'destroy']);
+            });
+            
 
             // Crud for businedd catagery
             Route::apiResource('business-categories', BusinessCategoryController::class);
         });
+        
 
-
-
+        
+        Route::get('/pricing-packages', [PackageController::class, 'index']);
 
 
 
@@ -491,15 +501,6 @@ Route::prefix('v1')->group(function () {
 
         Route::get('company-details', [CompanyController::class, 'companyDetails']);
 
-        // Pricing and Packages API's
-        Route::prefix('pricing-packages')->group(function () {
-            Route::get('/', [PackageController::class, 'index']);
-            Route::post('/', [PackageController::class, 'store']);
-            Route::get('/{id}', [PackageController::class, 'show']);
-            Route::put('/{id}', [PackageController::class, 'update']);
-            Route::patch('/{id}', [PackageController::class, 'update']);
-            Route::delete('/{id}', [PackageController::class, 'destroy']);
-        });
 
 
 
@@ -513,16 +514,12 @@ Route::prefix('v1')->group(function () {
         Route::post('/table-column/store', [TableColumnController::class, 'storeColumn']);
 
 
-
         // Payments and refund API's
         Route::prefix('payments')->group(function () {
             Route::get('/', [PaymentAndBillingController::class, 'adminBilling']);
             Route::post('/refund-request/{transaction_id}', [PaymentAndBillingController::class, 'refundRequest']);
             Route::post('/upgrade-package', [PaymentAndBillingController::class, 'upgradePackage']);
         });
-
-
-
 
         Route::prefix('expenses')->group(function () {
             Route::get('/', [ExpenseController::class, 'index']);
