@@ -15,10 +15,10 @@ class CategoryTreeResource extends JsonResource
     public function toArray($request)
     {
         return [
-            'id'         => $this->id,
-            'name'       => $this->name,
-            'children'   => CategoryTreeResource::collection($this->whenLoaded('childrenRecursive')),
-            'invoice_items'      => InvoiceItemResource::collection($this->whenLoaded('invoice_items')),
+            'id'            => $this->id,
+            'name'          => $this->name,
+            'children'      => CategoryTreeResource::collection($this->whenLoaded('childrenRecursive')),
+            'invoice_items' => InvoiceItemResource::collection($this->whenLoaded('invoice_items')),
         ];
     }
 }

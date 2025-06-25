@@ -29,14 +29,15 @@ class ItemVariant extends Model
         return $this->belongsTo(Item::class);
     }
 
+    // App\Models\ItemVariant.php
+
     public function attributeValues()
     {
-        return $this->belongsToMany(
-            AttributeValue::class,
-            'item_variant_attribute_value'
-        )->withPivot('attribute_id')
+        return $this->belongsToMany(AttributeValue::class, 'item_variant_attribute_value')
+            ->with('attribute')  // this is critical!
             ->withTimestamps();
     }
+
 
     // app/Models/ItemVariant.php
 

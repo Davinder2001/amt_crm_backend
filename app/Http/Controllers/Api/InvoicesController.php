@@ -237,20 +237,13 @@ class InvoicesController extends Controller
      | 3. Helper closure – pick correct price
      ───────────────────────────────────────────────────────────── */
         $unitPriceFor = static function (Item $item, ?int $variantId = null): float {
-            // ▼ Variable product (variant supplied)
+
             if (!empty($variantId)) {
-                $variant = ItemVariant::where('id', $variantId)
-                    ->where('item_id', $item->id)
-                    ->firstOrFail();
-                return $variant->price         // sale price
-                    ?? $variant->ragular_price // fallback to regular
-                    ?? 0.0;
+                $variant = ItemVariant::where('id', $variantId)->where('item_id', $item->id)->firstOrFail();
+                return $variant->price ?? $variant->ragular_price ?? 0.0;
             }
 
-            // ▼ Simple product – prefer sale price
-            return $item->sale_price          // sale price
-                ?? $item->regular_price       // fallback to regular
-                ?? 0.0;
+            return $item->sale_price ?? $item->regular_price  ?? 0.0;
         };
 
         /* ─────────────────────────────────────────────────────────────
@@ -264,7 +257,6 @@ class InvoicesController extends Controller
             $unitPriceFor
         ) {
 
-            /* 4-a  Stock availability check */
             foreach ($data['items'] as $row) {
                 $item = Item::findOrFail($row['item_id']);
                 if ($item->quantity_count < $row['quantity']) {
@@ -272,7 +264,6 @@ class InvoicesController extends Controller
                 }
             }
 
-            /* 4-b  Subtotal (price+tax × qty for every row) */
             $total = collect($data['items'])->sum(function ($row) use ($unitPriceFor) {
                 $item   = Item::findOrFail($row['item_id']);
                 $price  = $unitPriceFor($item, $row['variant_id'] ?? null);
@@ -286,7 +277,6 @@ class InvoicesController extends Controller
                 return $priceWithTax * $row['quantity'];
             });
 
-            /* 4-c  Service charge (+18 % GST) */
             $serviceChargeAmount    = 0;
             $serviceChargePercent   = 0;
             $serviceChargeGstAmount = 0;
@@ -317,7 +307,6 @@ class InvoicesController extends Controller
 
             $subtotal = $total + $finalServiceCharge;
 
-            /* 4-d  Discount */
             if ($data['discount_type'] === 'amount' && $data['discount_price'] > 0) {
                 $discountAmount     = $data['discount_price'];
                 $discountPercentage = $subtotal > 0
@@ -334,12 +323,10 @@ class InvoicesController extends Controller
                 $finalAmount        = round($subtotal);
             }
 
-            /* 4-e  Delivery charge */
             if (isset($data['delivery_charge']) && is_numeric($data['delivery_charge'])) {
                 $finalAmount += $data['delivery_charge'];
             }
 
-            /* 4-f  Customer record */
             $customer = Customer::firstOrCreate(
                 ['number' => $data['number'], 'company_id' => $selectedCompany->company_id],
                 [
@@ -350,7 +337,6 @@ class InvoicesController extends Controller
                 ]
             );
 
-            /* 4-g  Invoice number (YYYYMMDD + 4-digit seq) */
             $companyCode  = $selectedCompany->company->company_id;
             $datePrefix   = now()->format('Ymd');
             $lastInv      = Invoice::where('company_id', $selectedCompany->company_id)
@@ -360,7 +346,6 @@ class InvoicesController extends Controller
             $nextSeq      = $lastInv ? ((int) substr($lastInv->invoice_number, -4)) + 1 : 1;
             $invoiceNo    = "{$companyCode}{$datePrefix}" . str_pad($nextSeq, 4, '0', STR_PAD_LEFT);
 
-            /* 4-h  Save invoice header */
             $inv = Invoice::create([
                 'invoice_number'         => $invoiceNo,
                 'client_name'            => $data['client_name'] ?? 'Guest',
@@ -387,7 +372,6 @@ class InvoicesController extends Controller
                 'company_id'             => $selectedCompany->company_id,
             ]);
 
-            /* 4-i  Line items + stock decrement + customer history */
             $historyItems = [];
 
             foreach ($data['items'] as $row) {
@@ -433,7 +417,6 @@ class InvoicesController extends Controller
                 'subtotal'      => $subtotal,
             ]);
 
-            /* 4-j  Credit handling */
             if ($data['payment_method'] === 'credit') {
                 $amountPaid = null;
                 $totalDue   = $finalAmount;

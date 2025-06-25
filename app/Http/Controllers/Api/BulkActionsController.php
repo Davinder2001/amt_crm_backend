@@ -28,7 +28,7 @@ class BulkActionsController extends Controller
             'invoice_items.taxes',
             'invoice_items.categories',
             'invoice_items.batches.variants.attributeValues.attribute',
-            'invoice_items.batches.item.taxes', // required for variant tax calculation
+            'invoice_items.batches.item.taxes',
         ])->get();
 
 

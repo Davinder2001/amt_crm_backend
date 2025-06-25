@@ -31,6 +31,11 @@ class Category extends Model
     {
         return $this->belongsToMany(Item::class, 'category_item', 'category_id', 'store_item_id');
     }
+
+    /**
+     * Invoice items related to this category
+     * This is used for the invoice item resource
+     */
     public function invoice_items()
     {
         return $this->belongsToMany(Item::class, 'category_item', 'category_id', 'store_item_id');

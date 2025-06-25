@@ -43,7 +43,7 @@ class InvoiceBatchResource extends JsonResource
             'unit_of_measure'        => $this->unit_of_measure,
 
             'vendor'                 => new StoreVendorResource($this->whenLoaded('vendor')),
-            'variants' => InvoiceVariantResource::collection($this->whenLoaded('variants')),
+            'variants'               => InvoiceVariantResource::collection($this->whenLoaded('variants')),
 
         ];
     }

@@ -16,10 +16,7 @@ class VariantResource extends JsonResource
             'variant_units_in_peace' => $this->variant_units_in_peace,
             'variant_price_per_unit' => $this->variant_price_per_unit,
             'images'                 => $this->images,
-            'attributes'             => $this->attributeValues->map(fn($v) => [
-                'attribute' => $v->attribute->name,
-                'value'     => $v->value,
-            ]),
+            'attributes'             => AttributeValueResource::collection($this->attributeValues),
         ];
     }
 }
