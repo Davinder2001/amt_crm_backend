@@ -42,13 +42,6 @@ class InvoiceVariantResource extends JsonResource
             'variant_units_in_peace' => $this->variant_units_in_peace,
             'images'                 => $this->images,
 
-            'tax_percent'            => round($taxPercent, 2), // Optional
-            'taxes' => $taxes->map(fn($tax) => [
-                'id'   => $tax->id,
-                'name' => $tax->name,
-                'rate' => (float) $tax->rate,
-            ]),
-
             'attributes' => $this->attributeValues->map(fn($v) => [
                 'attribute' => $v->attribute->name,
                 'value'     => $v->value,
