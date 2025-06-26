@@ -9,7 +9,11 @@ use Illuminate\Support\Carbon;
 
 class PhonePePaymentService
 {
-    public function initiateCompanyPayment(array $data, string $merchantOrderId, int $amount): array
+
+    /**
+     * Initiate Payment
+     */
+    public function initiateCompanyPayment(string $merchantOrderId, int $amount): array
     {
         $token = $this->getAccessToken();
         if (!$token) {
@@ -69,7 +73,9 @@ class PhonePePaymentService
         ];
     }
 
-
+    /**
+     * Check payment status and update the payment status 
+     */
     public function checkAndUpdateStatus(string $orderId): array
     {
 
@@ -149,6 +155,9 @@ class PhonePePaymentService
         ];
     }
 
+    /**
+     * Get Access Token
+     */
     private function getAccessToken(): ?string
     {
         $response = Http::asForm()->post(env('PHONEPE_OAUTH_URL'), [

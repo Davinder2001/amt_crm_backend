@@ -127,16 +127,6 @@ Route::prefix('v1')->group(function () {
 
 
 
-
-
-
-
-
-
-
-
-
-
         // Auth API's
         Route::post('logout', [AuthController::class, 'logout']);
         Route::post('password/change', [AuthController::class, 'resetPassword']);
@@ -215,11 +205,6 @@ Route::prefix('v1')->group(function () {
             Route::post('{id}/approve', [TaskHistoryController::class, 'approve']);
             Route::post('{id}/reject', [TaskHistoryController::class, 'reject']);
         });
-
-
-
-
-
 
 
 

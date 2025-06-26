@@ -97,7 +97,7 @@ class PaymentAndBillingController extends Controller
         if (str_contains($host, 'localhost')) {
             $baseUrl     = env('PHONEPE_CALLBACK_BASE_URL_COMPANY');
             $callbackUrl = env('PHONEPE_CALLBACK_BASE_URL');
-        } elseif (str_contains($host, 'amt.sparkweb.co.in')) {
+        } elseif (str_contains($host, 'amt.sparkweb.sbs')) {
             $baseUrl     = env('PHONEPE_CALLBACK_BASE_URL_COMPANY_PROD');
             $callbackUrl = env('PHONEPE_CALLBACK_BASE_URL_PROD');
         } else {
@@ -106,8 +106,8 @@ class PaymentAndBillingController extends Controller
         }
 
         $callbackUrl = $callbackUrl . "/api/v1/upgrade-package/{$merchantOrderId}";
-        // $redirectUrl = $baseUrl . "/confirm-upgrade-payment/?orderId={$merchantOrderId}";
-        $redirectUrl = "http://localhost:3000/confirm-upgrade-payment/?orderId={$merchantOrderId}";
+        $redirectUrl = $baseUrl . "/confirm-upgrade-payment/?orderId={$merchantOrderId}";
+        // $redirectUrl = "http://localhost:3000/confirm-upgrade-payment/?orderId={$merchantOrderId}";
 
         $checkoutPayload = [
             "merchantOrderId" => $merchantOrderId,
@@ -147,10 +147,10 @@ class PaymentAndBillingController extends Controller
         ]);
     }
 
-
-
-
-
+    /**
+     * Package payment confirmation
+     *
+     */
     public function confirmUpgradePackage(Request $request, $order_id)
     {
         $paymentStatusData  = app(PhonePePaymentService::class)->checkAndUpdateStatus($order_id);
@@ -185,7 +185,7 @@ class PaymentAndBillingController extends Controller
             'subscription_type'      => $validated['package_type'],
             'order_id'               => $order_id,
             'transation_id'          => $paymentStatusData['transaction_id'] ?? null,
-            'payment_recoad_status'  => 'recorded', 
+            'payment_recoad_status'  => 'recorded',
             'payment_status'         => $paymentStatusData['status'] ?? 'UNKNOWN',
             'verification_status'    => 'verified',
         ]);
