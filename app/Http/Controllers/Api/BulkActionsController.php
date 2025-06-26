@@ -25,15 +25,16 @@ class BulkActionsController extends Controller
     {
         $categories = Category::with([
             'childrenRecursive',
-            'invoice_items.taxes',
+            'childrenRecursive.invoice_items.taxes',
             'invoice_items.categories',
-            'invoice_items.batches.variants.attributeValues.attribute',
-            'invoice_items.batches.item.taxes',
-        ])->get();
-
+            'childrenRecursive.invoice_items.batches.variants.attributeValues.attribute',
+            'childrenRecursive.invoice_items.batches.item.taxes',
+        ])
+            ->whereNull('parent_id')->get();
 
         return response()->json(CategoryTreeResource::collection($categories), 200);
     }
+
 
 
     /**
