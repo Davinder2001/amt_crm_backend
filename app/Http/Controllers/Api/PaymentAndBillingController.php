@@ -105,7 +105,8 @@ class PaymentAndBillingController extends Controller
         }
 
         $callbackUrl = $callbackUrl . "/api/v1/upgrade-package/{$merchantOrderId}";
-        $redirectUrl = $baseUrl . "/confirm-upgrade-payment/?orderId={$merchantOrderId}";
+        // $redirectUrl = $baseUrl . "/confirm-upgrade-payment/?orderId={$merchantOrderId}";
+        $redirectUrl = "http://localhost:3000/confirm-upgrade-payment/?orderId={$merchantOrderId}";
 
         $checkoutPayload = [
             "merchantOrderId" => $merchantOrderId,
@@ -144,6 +145,18 @@ class PaymentAndBillingController extends Controller
             'redirect_url'    => $paymentUrl
         ]);
     }
+
+    public function confirmUpgradePackage($order_id)
+    {
+        return response()->json([
+            'success' => true,
+            'message' => 'Package upgrade confirmed successfully.',
+            'data'    => [
+                'merchantOrderId' => $order_id,
+            ],
+        ]);
+    }
+
 
 
     /**

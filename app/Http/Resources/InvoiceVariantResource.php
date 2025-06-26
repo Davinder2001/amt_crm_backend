@@ -8,16 +8,14 @@ class InvoiceVariantResource extends JsonResource
 {
     public function toArray($request)
     {
-        $batch = $this->batch;
-        $item  = $batch?->item;
-
-        // Corrected tax loading (eager or fallback)
-        $taxes = collect();
+        $batch      = $this->batch;
+        $item       = $batch?->item;
+        $taxes      = collect();
         $taxPercent = 0;
 
         if ($item) {
             $taxes = $item->relationLoaded('taxes') ? $item->taxes : $item->taxes()->get();
-            $taxPercent = $taxes->sum('rate'); // ✅ use 'rate'
+            $taxPercent = $taxes->sum('rate');
         }
 
         $taxRate    = $taxPercent / 100;
