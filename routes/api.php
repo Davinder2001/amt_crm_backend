@@ -519,7 +519,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/', [PaymentAndBillingController::class, 'adminBilling']);
             Route::post('/refund-request/{transaction_id}', [PaymentAndBillingController::class, 'refundRequest']);
             Route::post('/upgrade-package', [PaymentAndBillingController::class, 'upgradePackage']);
-            Route::post('/confirm-upgrade-package', [PaymentAndBillingController::class, 'confirmUpgradePackage']);
+            Route::get('/confirm-upgrade-package/{order_id}', [PaymentAndBillingController::class, 'confirmUpgradePackage']);
         });
 
         Route::prefix('expenses')->group(function () {

@@ -5,26 +5,24 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use Carbon\Carbon;
+use App\Services\PhonePePaymentService;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Role;
 use App\Models\Company;
 use App\Models\Tax;
-use App\Models\Payment;
 use App\Models\CompanyUser;
-use App\Models\Package;
 use App\Models\Shift;
 use App\Services\CompanyIdService;
+use App\Models\Package;
 
 class AddNewCompanyController extends Controller
 {
     /**
      * Initiates PhonePe payment after validating company registration data
      */
-    public function paymentInitiate(Request $request)
+    public function paymentInitiate(Request $request, PhonePePaymentService $paymentService)
     {
         $validator = Validator::make($request->all(), [
             'company_name'          => 'required|string|max:255',
@@ -37,13 +35,14 @@ class AddNewCompanyController extends Controller
             'business_id'           => 'nullable|string|max:255',
             'business_proof_front'  => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'business_proof_back'   => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'subscription_type'     => 'required|in:monthly,annual',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation errors',
-                'errors'  => $validator->errors()
+                'errors'  => $validator->errors(),
             ], 422);
         }
 
@@ -58,85 +57,16 @@ class AddNewCompanyController extends Controller
             ], 409);
         }
 
-        $merchantOrderId    = 'ORDER_' . uniqid();
-        $package            = Package::find($data['package_id']);
-        $supType = $data['subscription_type'] ?? 'monthly';
+        $merchantOrderId = 'ORDER_' . uniqid();
+        $package = Package::find($data['package_id']);
+        $subType = $data['subscription_type'] ?? 'monthly';
+        $amount  = ($subType === 'annual') ? 100 * $package->annual_price : 100 * $package->monthly_price;
 
-        if ($supType === 'annual') {
-            $amount = 100 * $package->annual_price;
-        } else {
-            $amount = 100 * $package->monthly_price;
-        }
+        $result = $paymentService->initiateCompanyPayment($data, $merchantOrderId, $amount);
 
-        
-        $oauthResponse = Http::asForm()->post(env('PHONEPE_OAUTH_URL'), [
-            'client_id'      => env('PHONEPE_CLIENT_ID'),
-            'client_version' => env('PHONEPE_CLIENT_VERSION'),
-            'client_secret'  => env('PHONEPE_CLIENT_SECRET'),
-            'grant_type'     => env('PHONEPE_GRANT_TYPE'),
-        ]);
-
-        if (!$oauthResponse->ok() || !$oauthResponse->json('access_token')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to get PhonePe access token',
-                'details' => $oauthResponse->json()
-            ], 500);
-        }
-
-
-        $accessToken = $oauthResponse->json('access_token');
-        $host = request()->getHost();
-
-        if (str_contains($host, 'localhost')) {
-            $baseUrl = env('PHONEPE_CALLBACK_BASE_URL_COMPANY');
-            $callbackUrl = env('PHONEPE_CALLBACK_BASE_URL');
-        } elseif (str_contains($host, 'amt.sparkweb.co.in')) {
-            $baseUrl = env('PHONEPE_CALLBACK_BASE_URL_COMPANY_PROD');
-            $callbackUrl = env('PHONEPE_CALLBACK_BASE_URL_PROD');
-        } else {
-            // Optional fallback if needed
-            $baseUrl = env('PHONEPE_CALLBACK_BASE_URL_COMPANY_PROD');
-            $callbackUrl = env('PHONEPE_CALLBACK_BASE_URL_PROD');
-        }
-
-        $callbackUrl = "http://localhost:8000/api/v1/add-new-company/{$merchantOrderId}";
-        $redirectUrl = $baseUrl . "/confirm-company-payment/?orderId={$merchantOrderId}";
-
-        $checkoutPayload = [
-            "merchantOrderId" => $merchantOrderId,
-            "amount"          => $amount,
-            "paymentFlow"     => [
-                "type" => "PG_CHECKOUT",
-                "merchantUrls" => [
-                    "redirectUrl" => $redirectUrl,
-                    "callbackUrl" => $callbackUrl
-                ]
-            ]
-        ];
-
-        $checkoutResponse = Http::withHeaders([
-            'Authorization' => 'O-Bearer ' . $accessToken,
-            'Content-Type'  => 'application/json',
-        ])->post(env('PHONEPE_CHECKOUT_URL'), $checkoutPayload);
-
-        $responseData   = $checkoutResponse->json();
-        $paymentUrl     = $responseData['redirectUrl'] ?? $responseData['data']['redirectUrl'] ?? null;
-
-        if (!$checkoutResponse->ok() || !$paymentUrl) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to initialize payment',
-                'response' => $responseData
-            ], 500);
-        }
-
-        return response()->json([
-            'success'          => true,
-            'merchantOrderId'  => $merchantOrderId,
-            'redirect_url'     => $paymentUrl
-        ]);
+        return response()->json($result, $result['success'] ? 200 : 500);
     }
+
 
 
     /**
@@ -166,9 +96,9 @@ class AddNewCompanyController extends Controller
             ], 422);
         }
 
-        $data            = $validator->validated();
-        $recoadedPayment = Company::where('order_id', $orderId)->where('payment_recoad_status', 'recorded')->first();
+        $data = $validator->validated();
 
+        $recoadedPayment = Company::where('order_id', $orderId)->where('payment_recoad_status', 'recorded')->first();
         if ($recoadedPayment) {
             return response()->json([
                 'success' => true,
@@ -177,69 +107,24 @@ class AddNewCompanyController extends Controller
             ], 201);
         }
 
-        $oauthResponse = Http::asForm()->post(env('PHONEPE_OAUTH_URL'), [
-            'client_id'      => env('PHONEPE_CLIENT_ID'),
-            'client_version' => env('PHONEPE_CLIENT_VERSION'),
-            'client_secret'  => env('PHONEPE_CLIENT_SECRET'),
-            'grant_type'     => env('PHONEPE_GRANT_TYPE'),
-        ]);
+        $statusService = new PhonePePaymentService();
+        $paymentCheck = $statusService->checkAndUpdateStatus($orderId);
 
-        $accessToken = $oauthResponse->json('access_token');
-
-        if (!$accessToken) {
+        if (!$paymentCheck['success']) {
             return response()->json([
                 'success' => false,
-                'message' => 'Missing authorization token.'
-            ], 401);
-        }
-
-        $statusResponse = Http::withHeaders([
-            'Authorization' => 'O-Bearer ' . $accessToken,
-            'Content-Type'  => 'application/json',
-        ])->get(env('PHONEPE_STATUS_URL') . "/{$orderId}/status");
-
-        if (!$statusResponse->ok()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to check payment status.',
-                'details' => $statusResponse->json()
-            ], 500);
-        }
-
-        $status             = strtoupper($statusResponse->json('state'));
-        $paymentCheck       = $statusResponse->json();
-        $paymentMode        = isset($paymentCheck['paymentDetails'][0]['paymentMode']) ? $paymentCheck['paymentDetails'][0]['paymentMode'] : null;
-        $transactionId      = $paymentCheck['orderId'];
-        $userId             = Auth::id();
-        $transactionAmount  = $paymentCheck['amount'] / 100;
-        $orderIdExists      = Payment::where('order_id', $orderId)->exists();
-
-
-        if (!$orderIdExists) {
-
-            $nowIST = Carbon::now('Asia/Kolkata');
-            Payment::create([
-                'user_id'              => $userId,
-                'order_id'             => $orderId,
-                'transaction_id'       => $transactionId,
-                'payment_status'       => $status,
-                'payment_method'       => $paymentMode,
-                'payment_reason'       => 'Company registration for package ID ' . $data['package_id'],
-                'payment_fail_reason'  => null,
-                'transaction_amount'   => $transactionAmount,
-                'payment_date'         => $nowIST->format('d/m/Y'),
-                'payment_time'         => $nowIST->format('h:i A'),
-            ]);
-        }
-
-        if ($status !== 'COMPLETED') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Payment was not successful.',
-                'payment_status' => $status
+                'message' => 'Failed to confirm payment.',
+                'details' => $paymentCheck['message'] ?? 'Unknown error',
             ], 402);
         }
 
+        if ($paymentCheck['status'] !== 'COMPLETED') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment was not successful.',
+                'payment_status' => $paymentCheck['status'],
+            ], 402);
+        }
 
         $slug = Str::slug($data['company_name']);
         if (Company::where('company_slug', $slug)->exists()) {
@@ -248,33 +133,11 @@ class AddNewCompanyController extends Controller
             ]);
         }
 
-        $frontPath = null;
-        if ($request->hasFile('business_proof_front')) {
-            $file = $request->file('business_proof_front');
-            $name = uniqid('proof_front_') . '.' . $file->getClientOriginalExtension();
-            $file->move(public_path('uploads/business_proofs'), $name);
-            $frontPath = 'uploads/business_proofs/' . $name;
-        }
+        $frontPath = $request->file('business_proof_front')?->storeAs('uploads/business_proofs', uniqid('proof_front_') . '.' . $request->file('business_proof_front')->getClientOriginalExtension(), 'public');
+        $backPath = $request->file('business_proof_back')?->storeAs('uploads/business_proofs', uniqid('proof_back_') . '.' . $request->file('business_proof_back')->getClientOriginalExtension(), 'public');
+        $logoPath = $request->file('company_logo')?->storeAs('uploads/business_proofs', uniqid('company_logo_') . '.' . $request->file('company_logo')->getClientOriginalExtension(), 'public');
 
-        $backPath = null;
-        if ($request->hasFile('business_proof_back')) {
-            $file = $request->file('business_proof_back');
-            $name = uniqid('proof_back_') . '.' . $file->getClientOriginalExtension();
-            $file->move(public_path('uploads/business_proofs'), $name);
-            $backPath = 'uploads/business_proofs/' . $name;
-        }
-
-        $logoPath = null;
-        if ($request->hasFile('company_logo')) {
-            $file = $request->file('company_logo');
-            $name = uniqid('company_logo_') . '.' . $file->getClientOriginalExtension();
-            $file->move(public_path('uploads/business_proofs'), $name);
-            $logoPath = 'uploads/business_proofs/' . $name;
-        }
-
-        $subscriptionDate = now()->setTimezone('Asia/Kolkata')->toDateTimeString();
-        $companyId        = CompanyIdService::generateNewCompanyId();
-
+        $companyId = CompanyIdService::generateNewCompanyId();
         $company = Company::create([
             'company_id'            => $companyId,
             'company_name'          => $data['company_name'],
@@ -283,9 +146,9 @@ class AddNewCompanyController extends Controller
             'subscription_type'     => $data['subscription_type'],
             'business_category'     => $data['business_category_id'],
             'company_slug'          => $slug,
-            'payment_status'        => $status ,
+            'payment_status'        => $paymentCheck['status'],
             'order_id'              => $orderId,
-            'transation_id'         => $statusResponse['orderId'],
+            'transation_id'         => $paymentCheck['transaction_id'],
             'payment_recoad_status' => 'recorded',
             'verification_status'   => 'pending',
             'business_address'      => $data['business_address'] ?? null,
@@ -294,7 +157,7 @@ class AddNewCompanyController extends Controller
             'business_id'           => $data['business_id'] ?? null,
             'business_proof_front'  => $frontPath,
             'business_proof_back'   => $backPath,
-            'subscription_date'     => $subscriptionDate,
+            'subscription_date'     => now('Asia/Kolkata')->toDateTimeString(),
             'subscription_status'   => 'active',
         ]);
 
@@ -320,9 +183,7 @@ class AddNewCompanyController extends Controller
             'weekly_off_day' => 'Sunday',
         ]);
 
-
         $roles = ['admin', 'employee', 'hr', 'supervisor', 'sales'];
-
         foreach ($roles as $roleName) {
             Role::firstOrCreate([
                 'name'       => $roleName,

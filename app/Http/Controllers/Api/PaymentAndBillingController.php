@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
+use App\Services\PhonePePaymentService;
 use Carbon\Carbon;
 use App\Models\User;
 use App\Notifications\SystemNotification;
@@ -146,16 +147,25 @@ class PaymentAndBillingController extends Controller
         ]);
     }
 
+
+
     public function confirmUpgradePackage($order_id)
     {
+        $paymentStatusData = app(PhonePePaymentService::class)->checkAndUpdateStatus($order_id);
+
         return response()->json([
             'success' => true,
             'message' => 'Package upgrade confirmed successfully.',
             'data'    => [
-                'merchantOrderId' => $order_id,
+                'merchantOrderId'  => $order_id,
+                'payment_status'   => $paymentStatusData['status'] ?? 'UNKNOWN',
+                'payment_mode'     => $paymentStatusData['mode'] ?? null,
+                'transaction_id'   => $paymentStatusData['transaction_id'] ?? null,
+                'transaction_amt'  => $paymentStatusData['amount'] ?? null,
             ],
         ]);
     }
+
 
 
 
