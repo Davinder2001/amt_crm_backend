@@ -167,7 +167,7 @@ class PaymentAndBillingController extends Controller
 
         $validator = Validator::make($request->all(), [
             'package_id'   => 'required|exists:packages,id',
-            'package_type' => 'required', 
+            'package_type' => 'required',
         ]);
 
         if ($validator->fails()) {
@@ -181,8 +181,13 @@ class PaymentAndBillingController extends Controller
         $validated = $validator->validated();
 
         $company->update([
-            'package_id'   => $validated['package_id'],
-            'package_type' => $validated['package_type'],
+            'package_id'             => $validated['package_id'],
+            'subscription_type'      => $validated['package_type'],
+            'order_id'               => $order_id,
+            'transation_id'          => $paymentStatusData['transaction_id'] ?? null,
+            'payment_recoad_status'  => 'recorded', 
+            'payment_status'         => $paymentStatusData['status'] ?? 'UNKNOWN',
+            'verification_status'    => 'verified',
         ]);
 
         return response()->json([

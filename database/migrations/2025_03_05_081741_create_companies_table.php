@@ -25,7 +25,7 @@ return new class extends Migration
 
             $table->dateTime('subscription_date')->nullable();
             $table->enum('subscription_status', ['active', 'expired']);
-            $table->enum('subscription_type', ['monthly', 'annual']);
+            $table->enum('subscription_type', ['monthly', 'annual', 'three_years']);
 
 
             $table->string('company_name')->unique();
