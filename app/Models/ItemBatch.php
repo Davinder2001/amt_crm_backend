@@ -45,4 +45,10 @@ class ItemBatch extends Model
     {
         return $this->belongsTo(MeasuringUnit::class, 'unit_id');
     }
+
+    // Accessor to simulate a virtual 'taxes' property from item
+    public function getTaxesAttribute()
+    {
+        return $this->item ? ($this->item->taxes ?? collect()) : collect();
+    }
 }

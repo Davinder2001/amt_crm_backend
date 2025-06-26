@@ -8,10 +8,18 @@ class InvoiceVariantResource extends JsonResource
 {
     public function toArray($request)
     {
+        $batch = $this->batch;
+        $item  = $batch?->item;
 
-        $batch      = $this->batch;
-        $item       = $batch?->item;
-        $taxPercent = $item && $item->relationLoaded('taxes') ? $item->taxes->sum('percentage') : 0;
+        // Corrected tax loading (eager or fallback)
+        $taxes = collect();
+        $taxPercent = 0;
+
+        if ($item) {
+            $taxes = $item->relationLoaded('taxes') ? $item->taxes : $item->taxes()->get();
+            $taxPercent = $taxes->sum('rate'); // ✅ use 'rate'
+        }
+
         $taxRate    = $taxPercent / 100;
         $isExcluded = $batch && $batch->tax_type === 'exclude';
 
@@ -33,6 +41,13 @@ class InvoiceVariantResource extends JsonResource
             'variant_stock'          => $this->stock,
             'variant_units_in_peace' => $this->variant_units_in_peace,
             'images'                 => $this->images,
+
+            'tax_percent'            => round($taxPercent, 2), // Optional
+            'taxes' => $taxes->map(fn($tax) => [
+                'id'   => $tax->id,
+                'name' => $tax->name,
+                'rate' => (float) $tax->rate,
+            ]),
 
             'attributes' => $this->attributeValues->map(fn($v) => [
                 'attribute' => $v->attribute->name,
