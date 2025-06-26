@@ -149,23 +149,56 @@ class PaymentAndBillingController extends Controller
 
 
 
-    public function confirmUpgradePackage($order_id)
+
+
+    public function confirmUpgradePackage(Request $request, $order_id)
     {
-        $paymentStatusData = app(PhonePePaymentService::class)->checkAndUpdateStatus($order_id);
+        $paymentStatusData  = app(PhonePePaymentService::class)->checkAndUpdateStatus($order_id);
+        $activeCompany      = SelectedCompanyService::getSelectedCompanyOrFail();
+        $company            = $activeCompany->company;
+
+        if (($paymentStatusData['status'] ?? '') !== 'COMPLETED') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment not successful.',
+                'data'    => $paymentStatusData,
+            ], 422);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'package_id'   => 'required|exists:packages,id',
+            'package_type' => 'required', 
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        $validated = $validator->validated();
+
+        $company->update([
+            'package_id'   => $validated['package_id'],
+            'package_type' => $validated['package_type'],
+        ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Package upgrade confirmed successfully.',
+            'message' => 'Package upgrade confirmed and updated successfully.',
             'data'    => [
-                'merchantOrderId'  => $order_id,
-                'payment_status'   => $paymentStatusData['status'] ?? 'UNKNOWN',
-                'payment_mode'     => $paymentStatusData['mode'] ?? null,
-                'transaction_id'   => $paymentStatusData['transaction_id'] ?? null,
-                'transaction_amt'  => $paymentStatusData['amount'] ?? null,
+                'merchantOrderId' => $order_id,
+                'payment_status'  => $paymentStatusData['status'],
+                'payment_mode'    => $paymentStatusData['mode'],
+                'transaction_id'  => $paymentStatusData['transaction_id'],
+                'transaction_amt' => $paymentStatusData['amount'],
+                'package_id'      => $validated['package_id'],
+                'package_type'    => $validated['package_type'],
             ],
         ]);
     }
-
 
 
 

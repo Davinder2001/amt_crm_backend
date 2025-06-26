@@ -72,6 +72,22 @@ class PhonePePaymentService
 
     public function checkAndUpdateStatus(string $orderId): array
     {
+
+        $existingPayment = Payment::where('order_id', $orderId)->first();
+
+        if ($existingPayment) {
+            return [
+                'success'         => false,
+                'message'         => 'Payment already recorded.',
+                'payment_status'  => $existingPayment->payment_status,
+                'transaction_id'  => $existingPayment->transaction_id,
+                'amount'          => $existingPayment->transaction_amount,
+                'payment_mode'    => $existingPayment->payment_method,
+                'payment_date'    => $existingPayment->payment_date,
+                'payment_time'    => $existingPayment->payment_time,
+            ];
+        }
+
         $token = $this->getAccessToken();
 
         if (!$token) {
