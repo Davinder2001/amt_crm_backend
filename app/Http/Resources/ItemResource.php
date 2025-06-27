@@ -15,15 +15,17 @@ class ItemResource extends JsonResource
 {
     public function toArray($request)
     {
+
+        $totalStock = $this->whenLoaded('batches', function () {
+            return $this->batches->sum('stock');
+        });
+
         return [
             'id'                 => $this->id,
-            'item_code'          => $this->item_code,
             'name'               => $this->name,
             'featured_image'     => $this->featured_image,
             'images'             => $this->images,
-            'availability_stock' => $this->availability_stock,
-            'catalog'            => (bool) $this->catalog,
-            'online_visibility'  => (bool) $this->online_visibility,
+            'availability_stock' => $totalStock,
 
             'brand'              => new ItemBrandResource($this->whenLoaded('brand')),
             'measurement'        => new ItemMeasurementResource($this->whenLoaded('measurementDetails')),
