@@ -24,18 +24,22 @@ class BulkActionsController extends Controller
     public function getItemCatTree(): JsonResponse
     {
         $categories = Category::with([
+            'invoice_items.taxes',
+            'invoice_items.batches.variants.attributeValues.attribute',
+            'invoice_items.batches.item.taxes',
+            'invoice_items.categories',
+
             'childrenRecursive',
             'childrenRecursive.invoice_items.taxes',
-            'invoice_items.categories',
             'childrenRecursive.invoice_items.batches.variants.attributeValues.attribute',
             'childrenRecursive.invoice_items.batches.item.taxes',
+            'childrenRecursive.invoice_items.categories',
         ])
-            ->whereNull('parent_id')->get();
+            ->whereNull('parent_id')
+            ->get();
 
         return response()->json(CategoryTreeResource::collection($categories), 200);
     }
-
-
 
     /**
      * Store multiple items in bulk.
