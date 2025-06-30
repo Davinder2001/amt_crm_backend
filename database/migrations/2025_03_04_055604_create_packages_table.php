@@ -14,10 +14,6 @@ return new class extends Migration
         Schema::create('packages', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->unsignedInteger('employee_numbers');
-            $table->unsignedInteger('items_number');
-            $table->unsignedInteger('daily_tasks_number');
-            $table->unsignedInteger('invoices_number');
             $table->decimal('monthly_price', 10, 2);
             $table->decimal('annual_price', 10, 2);
             $table->decimal('three_years_price', 10, 2);
