@@ -485,6 +485,7 @@ Route::prefix('v1')->group(function () {
         });
 
         Route::get('company-details', [CompanyController::class, 'companyDetails']);
+        Route::get('company-status/{id}', [AddNewCompanyController::class, 'getCompanyStatus']);
 
 
 
