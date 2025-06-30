@@ -112,7 +112,7 @@ class AddNewCompanyController extends Controller
             'subscription_status'   => 'active',
         ]);
 
-               // Attach user to company and run setup
+        // Attach user to company and run setup
         $user = Auth::user();
 
         CompanyUser::create([
@@ -170,14 +170,12 @@ class AddNewCompanyController extends Controller
             ], 402);
         }
 
-        // Update company payment details
         $company->update([
             'payment_status'        => $paymentCheck['status'],
             'transation_id'         => $paymentCheck['transaction_id'],
             'payment_recoad_status' => 'recorded',
         ]);
 
-        // Attach user to company and run setup
         $user = Auth::user();
 
         CompanySetupService::setupDefaults($company, $user);
@@ -185,7 +183,7 @@ class AddNewCompanyController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Company payment confirmed and setup completed.',
-            'company' => $company->name,
+            'company' => $company->company_name,
         ], 200);
     }
 }
