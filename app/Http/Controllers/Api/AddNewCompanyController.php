@@ -202,14 +202,14 @@ class AddNewCompanyController extends Controller
             'success' => true,
             'message' => 'Company status retrieved successfully.',
             'data' => [
-                'company_name'         => $company->company_name,
-                'company_id'           => $company->company_id,
-                'order_id'             => $company->order_id,
-                'payment_status'       => $company->payment_status,
+                'company_name'          => $company->company_name,
+                'company_id'            => $company->company_id,
+                'order_id'              => $company->order_id,
+                'payment_status'        => $company->payment_status,
                 'payment_recoad_status' => $company->payment_recoad_status,
-                'subscription_status'  => $company->subscription_status,
-                'verification_status'  => $company->verification_status,
-                'subscription_date'    => $company->subscription_date,
+                'subscription_status'   => $company->subscription_status,
+                'verification_status'   => $company->verification_status,
+                'subscription_date'     => $company->subscription_date,
             ],
         ], 200);
     }
