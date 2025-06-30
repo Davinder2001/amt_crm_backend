@@ -145,9 +145,11 @@ class UserController extends Controller
      */
     public function authUser(Request $request)
     {
+        $user = new UserResource($request->user()->load('roles', 'companies'));
+        
         return response()->json([
             'message' => 'Authenticated user retrieved successfully.',
-            'user'    => new UserResource($request->user()->load('roles', 'companies')),
+            'user'    => $user,
         ]);
     }
 }

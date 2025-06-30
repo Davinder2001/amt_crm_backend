@@ -17,9 +17,6 @@ use App\Models\Package;
 
 class AddNewCompanyController extends Controller
 {
-    /**
-     * Initiates PhonePe payment after validating company registration data
-     */
     public function paymentInitiate(Request $request, PhonePePaymentService $paymentService)
     {
         $validator = Validator::make($request->all(), [
@@ -56,79 +53,21 @@ class AddNewCompanyController extends Controller
         }
 
         $merchantOrderId = 'ORDER_' . uniqid();
-        
+
         $package = Package::find($data['package_id']);
-        $subType = $data['subscription_type'] ?? 'monthly';
-        $amount  = ($subType === 'annual') ? 100 * $package->annual_price : 100 * $package->monthly_price;
-        $result  = $paymentService->initiateCompanyPayment($merchantOrderId, $amount);
+        $subType = $data['subscription_type'];
 
-        return response()->json($result, $result['success'] ? 200 : 500);
-    }
+        $amount = match ($subType) {
+            'monthly'     => 100 * $package->monthly_price,
+            'annual'      => 100 * $package->annual_price,
+            'three_years' => 100 * $package->three_years_price,
+            default       => 100 * $package->monthly_price,
+        };
 
+        $result = $paymentService->initiateCompanyPayment($merchantOrderId, $amount);
 
-
-    /**
-     * Store the company after payment is completed
-     */
-    public function store(Request $request, $orderId)
-    {
-        $validator = Validator::make($request->all(), [
-            'company_name'          => 'required|string|max:255',
-            'company_logo'          => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-            'package_id'            => 'required|exists:packages,id',
-            'business_category_id'  => 'required|exists:business_categories,id',
-            'subscription_type'     => 'required|string',
-            'business_address'      => 'nullable|string',
-            'pin_code'              => 'nullable|string|max:10',
-            'business_proof_type'   => 'nullable|string|max:255',
-            'business_id'           => 'nullable|string|max:255',
-            'business_proof_front'  => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-            'business_proof_back'   => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed.',
-                'errors'  => $validator->errors(),
-            ], 422);
-        }
-
-        $data = $validator->validated();
-        $recoadedPayment = Company::where('order_id', $orderId)->where('payment_recoad_status', 'recorded')->first();
-
-        if ($recoadedPayment) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Payment recorded. Company already exists.',
-                'company' => $recoadedPayment,
-            ], 201);
-        }
-
-        $statusService = new PhonePePaymentService();
-        $paymentCheck = $statusService->checkAndUpdateStatus($orderId);
-
-        if (!$paymentCheck['success']) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to confirm payment.',
-                'details' => $paymentCheck['message'] ?? 'Unknown error',
-            ], 402);
-        }
-
-        if ($paymentCheck['status'] !== 'COMPLETED') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Payment was not successful.',
-                'payment_status' => $paymentCheck['status'],
-            ], 402);
-        }
-
-        $slug = Str::slug($data['company_name']);
-        if (Company::where('company_slug', $slug)->exists()) {
-            throw ValidationException::withMessages([
-                'company_name' => ['Company slug already exists. Please choose a different company name.']
-            ]);
+        if (!$result['success']) {
+            return response()->json($result, 500);
         }
 
         $frontPath = $request->file('business_proof_front')?->storeAs(
@@ -150,6 +89,7 @@ class AddNewCompanyController extends Controller
         );
 
         $companyId = CompanyIdService::generateNewCompanyId();
+
         $company = Company::create([
             'company_id'            => $companyId,
             'company_name'          => $data['company_name'],
@@ -158,10 +98,9 @@ class AddNewCompanyController extends Controller
             'subscription_type'     => $data['subscription_type'],
             'business_category'     => $data['business_category_id'],
             'company_slug'          => $slug,
-            'payment_status'        => $paymentCheck['status'],
-            'order_id'              => $orderId,
-            'transation_id'         => $paymentCheck['transaction_id'],
-            'payment_recoad_status' => 'recorded',
+            'payment_status'        => 'PENDING',
+            'order_id'              => $merchantOrderId,
+            'payment_recoad_status' => 'initiated',
             'verification_status'   => 'pending',
             'business_address'      => $data['business_address'] ?? null,
             'pin_code'              => $data['pin_code'] ?? null,
@@ -173,20 +112,80 @@ class AddNewCompanyController extends Controller
             'subscription_status'   => 'active',
         ]);
 
+               // Attach user to company and run setup
         $user = Auth::user();
 
         CompanyUser::create([
             'user_id'    => $user->id,
             'company_id' => $company->id,
-            'user_type'  => 'admin'
+            'user_type'  => 'admin',
         ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Payment initiated and company created with pending payment status.',
+            'payment' => $result,
+            'company' => $company->company_name,
+        ], 200);
+    }
+
+
+
+    public function confirmCompanyPayment($orderId)
+    {
+        $company = Company::where('order_id', $orderId)->first();
+
+        if (!$company) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No matching company found for this order ID.',
+            ], 404);
+        }
+
+        if ($company->payment_recoad_status === 'recorded') {
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment already recorded.',
+                'company' => $company,
+            ], 200);
+        }
+
+        $statusService = new PhonePePaymentService();
+        $paymentCheck = $statusService->checkAndUpdateStatus($orderId);
+
+
+        if (!$paymentCheck['success']) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to confirm payment.',
+                'details' => $paymentCheck['message'] ?? 'Unknown error',
+            ], 402);
+        }
+
+        if ($paymentCheck['status'] !== 'COMPLETED') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment was not successful.',
+                'payment_status' => $paymentCheck['status'],
+            ], 402);
+        }
+
+        // Update company payment details
+        $company->update([
+            'payment_status'        => $paymentCheck['status'],
+            'transation_id'         => $paymentCheck['transaction_id'],
+            'payment_recoad_status' => 'recorded',
+        ]);
+
+        // Attach user to company and run setup
+        $user = Auth::user();
 
         CompanySetupService::setupDefaults($company, $user);
 
         return response()->json([
             'success' => true,
-            'message' => 'Company created successfully after successful payment.',
+            'message' => 'Company payment confirmed and setup completed.',
             'company' => $company->name,
-        ], 201);
+        ], 200);
     }
 }

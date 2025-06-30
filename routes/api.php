@@ -481,7 +481,7 @@ Route::prefix('v1')->group(function () {
         // Add new company API's
         Route::prefix('add-new-company')->group(function () {
             Route::post('/pay', [AddNewCompanyController::class, 'paymentInitiate']);
-            Route::post('/{id}', [AddNewCompanyController::class, 'store']);
+            Route::post('/{id}', [AddNewCompanyController::class, 'confirmCompanyPayment']);
         });
 
         Route::get('company-details', [CompanyController::class, 'companyDetails']);
