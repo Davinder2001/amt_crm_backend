@@ -54,7 +54,7 @@ class Task extends Model
     public function getAttachmentUrlAttribute()
     {
         return $this->attachment_path 
-            ? asset('storage/' . $this->attachment_path) 
+            ? asset($this->attachment_path) 
             : null;
     }
 }

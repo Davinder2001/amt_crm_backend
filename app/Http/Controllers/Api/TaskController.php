@@ -36,12 +36,15 @@ class TaskController extends Controller
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
         $company         = $selectedCompany->company;
 
+        // Load package with limits
         $package = Package::with('limits')->find($company->package_id);
         $subscriptionType = $company->subscription_type;
 
+        // Get task limit
         $limit = collect($package->limits)->firstWhere('variant_type', $subscriptionType);
         $dailyTasksLimit = $limit->daily_tasks_number ?? 0;
 
+        // Check if today's task count exceeds limit
         $taskCount = Task::where('company_id', $company->id)
             ->whereDate('created_at', now())
             ->count();
@@ -52,12 +55,12 @@ class TaskController extends Controller
             ], 403);
         }
 
-        // Normalize boolean input
+        // Normalize notify boolean
         $request->merge([
             'notify' => filter_var($request->input('notify'), FILTER_VALIDATE_BOOLEAN)
         ]);
 
-        // Validation
+        // Validate input
         $validator = Validator::make($request->all(), [
             'name'          => 'required|string|max:255',
             'description'   => 'required|string',
@@ -77,7 +80,7 @@ class TaskController extends Controller
 
         $data = $validator->validated();
 
-        // Upload all attachments and collect paths
+        // Upload attachments and store paths
         $attachmentPaths = [];
         if ($request->hasFile('attachments')) {
             foreach ($request->file('attachments') as $file) {
@@ -86,7 +89,7 @@ class TaskController extends Controller
             }
         }
 
-        // Merge additional fields
+        // Add extra fields
         $data['assigned_by'] = $authUser->id;
         $data['company_id']  = $company->id;
         $data['status']      = $data['status'] ?? 'pending';
@@ -95,7 +98,7 @@ class TaskController extends Controller
         // Create task
         $task = Task::create($data);
 
-        // Notify admins if enabled
+        // Notify admins
         if ($data['notify']) {
             $this->notifyAdmins(
                 'New Task Added',
@@ -106,7 +109,6 @@ class TaskController extends Controller
 
         return response()->json(new TaskResource($task), 201);
     }
-
 
 
 
