@@ -32,23 +32,32 @@ class TaskController extends Controller
      */
     public function store(Request $request)
     {
-        $authUser            = $request->user();
-        $activeCompanyId     = SelectedCompanyService::getSelectedCompanyOrFail();
-        $packageId           = $activeCompanyId->company->package_id;
-        $package             = Package::find($packageId);
-        $packageType         = $package['package_type'];
-        $daily_tasks_number  = $package['daily_tasks_number'];
+        $authUser        = $request->user();
+        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+        $company         = $selectedCompany->company;
 
-        $taskCount = Task::where('company_id', $activeCompanyId->company->id)
-            ->whereDate('created_at', Carbon::today())
+        $package = Package::with('limits')->find($company->package_id);
+        $subscriptionType = $company->subscription_type;
+
+        $limit = collect($package->limits)->firstWhere('variant_type', $subscriptionType);
+        $dailyTasksLimit = $limit->daily_tasks_number ?? 0;
+
+        $taskCount = Task::where('company_id', $company->id)
+            ->whereDate('created_at', now())
             ->count();
 
-        if ($taskCount >= $daily_tasks_number) {
+        if ($taskCount >= $dailyTasksLimit) {
             return response()->json([
-                'message' => "Daily task limit of {$daily_tasks_number} reached for this company."
+                'message' => "Daily task limit of {$dailyTasksLimit} reached for this company."
             ], 403);
         }
 
+        // Normalize boolean input
+        $request->merge([
+            'notify' => filter_var($request->input('notify'), FILTER_VALIDATE_BOOLEAN)
+        ]);
+
+        // Validation
         $validator = Validator::make($request->all(), [
             'name'          => 'required|string|max:255',
             'description'   => 'required|string',
@@ -58,33 +67,47 @@ class TaskController extends Controller
             'end_date'      => 'required|date',
             'notify'        => 'required|boolean',
             'status'        => 'nullable|in:pending,completed,approved,rejected',
-            'attachment'    => 'nullable|file|mimes:jpg,jpeg,png,pdf,docx|max:2048',
+            'attachments'   => 'nullable|array',
+            'attachments.*' => 'file|mimes:jpg,jpeg,png,pdf,docx|max:2048',
         ]);
 
         if ($validator->fails()) {
             return response()->json($validator->errors(), 422);
         }
 
-        $data = $request->except('attachment');
+        $data = $validator->validated();
 
-        if ($request->hasFile('attachment')) {
-            $path                    = $request->file('attachment')->store('task_attachments', 'public');
-            $data['attachment_path'] = $path;
+        // Upload all attachments and collect paths
+        $attachmentPaths = [];
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments') as $file) {
+                $path = $file->store('task_attachments', 'public');
+                $attachmentPaths[] = $path;
+            }
         }
 
+        // Merge additional fields
         $data['assigned_by'] = $authUser->id;
-        $data['company_id']  = $activeCompanyId->company_id;
-        $data['notify']      = (bool) $request->notify;
-        $data['status']      = $request->input('status', 'pending');
+        $data['company_id']  = $company->id;
+        $data['status']      = $data['status'] ?? 'pending';
+        $data['attachments'] = $attachmentPaths;
 
+        // Create task
         $task = Task::create($data);
 
+        // Notify admins if enabled
         if ($data['notify']) {
-            $this->notifyAdmins('New Task Added', "A new task '{$task->name}' has been added.", "/tasks/{$task->id}");
+            $this->notifyAdmins(
+                'New Task Added',
+                "A new task '{$task->name}' has been added.",
+                "/tasks/{$task->id}"
+            );
         }
 
         return response()->json(new TaskResource($task), 201);
     }
+
+
 
 
     /**

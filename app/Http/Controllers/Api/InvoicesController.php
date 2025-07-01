@@ -286,7 +286,7 @@ class InvoicesController extends Controller
             $inv = Invoice::create([
                 'invoice_number'         => $invoiceNo,
                 'client_name'            => $data['client_name'] ?? 'Guest',
-                'client_phone'           => $data['number'] ?? null,
+                'client_phone'           => $data['number'],
                 'client_email'           => $data['email'] ?? null,
                 'invoice_date'           => $data['invoice_date'],
                 'total_amount'           => $subtotal,

@@ -18,15 +18,16 @@ class Task extends Model
         'assigned_role',
         'start_date',
         'end_date',
-        'attachment_path',
+        'attachments',
         'notify',
         'status',
     ];
 
     protected $casts = [
-        'start_date' => 'datetime',
-        'end_date' => 'datetime',
-        'notify' => 'boolean',
+        'start_date'  => 'datetime',
+        'end_date'    => 'datetime',
+        'notify'      => 'boolean',
+        'attachments' => 'array',
     ];
 
     protected static function booted()

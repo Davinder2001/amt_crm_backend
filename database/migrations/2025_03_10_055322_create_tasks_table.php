@@ -13,12 +13,12 @@ class CreateTasksTable extends Migration
             $table->string('name');
             $table->text('description')->nullable();
             $table->unsignedBigInteger('assigned_by');
-            $table->unsignedBigInteger('assigned_to'); 
+            $table->unsignedBigInteger('assigned_to');
             $table->unsignedBigInteger('company_id');
             $table->string('assigned_role')->nullable();
             $table->dateTime('start_date')->nullable();
             $table->dateTime('end_date')->nullable();
-            $table->string('attachment_path')->nullable();
+            $table->json('attachments')->nullable();
             $table->boolean('notify')->default(true);
             $table->enum('status', ['pending',  'submitted', 'completed', 'approved', 'rejected', 'working', 'ended'])->default('pending');
             $table->boolean('is_recurring')->default(false);
