@@ -191,7 +191,6 @@ class InvoicesController extends Controller
         }
 
         $data            = $validator->validated();
-        dd($data);
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
         $company         = $selectedCompany->company;
         $issuedById      = Auth::id();

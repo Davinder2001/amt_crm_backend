@@ -208,17 +208,11 @@ class CompanyController extends Controller
      */
     public function companyDetails()
     {
-        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $company         = Company::findOrFail($selectedCompany->company_id);
-
-        // Load subscribed package with limits
+        $selectedCompany   = SelectedCompanyService::getSelectedCompanyOrFail();
+        $company           = Company::findOrFail($selectedCompany->company_id);
         $subscribedPackage = Package::with('limits')->find($company->package_id);
-
-        // Load related packages with limits
-        $businessCategory = BusinessCategory::find($company->business_category);
-        $relatedPackages = $businessCategory
-            ? $businessCategory->packages()->with('limits')->get()
-            : [];
+        $businessCategory  = BusinessCategory::find($company->business_category);
+        $relatedPackages   = $businessCategory ? $businessCategory->packages()->with('limits')->get() : [];
 
         return response()->json([
             'company'            => $company,
