@@ -10,6 +10,7 @@ use App\Services\InvoiceServices\InvoiceHelperService;
 use App\Models\Package;
 use App\Models\CompanyAccount;
 use App\Models\ItemVariant;
+use App\Models\InvoiceItem;
 use App\Models\CustomerCredit;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -177,8 +178,10 @@ class InvoicesController extends Controller
 
             'items'                 => 'required|array|min:1',
             'items.*.item_id'       => 'required|exists:store_items,id',
+            'items.*.sale_by'       => 'required|string',
             'items.*.variant_id'    => 'nullable|exists:item_variants,id',
             'items.*.quantity'      => 'required|integer|min:1',
+            'items.*.batch_id'      => 'required|integer|min:1',
             'items.*.unit_price'    => 'nullable|numeric|min:0',
         ]);
 
@@ -191,6 +194,9 @@ class InvoicesController extends Controller
         }
 
         $data            = $validator->validated();
+
+        // dd($data);
+
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
         $company         = $selectedCompany->company;
         $issuedById      = Auth::id();
@@ -312,16 +318,19 @@ class InvoicesController extends Controller
                 $lineTotal = $unitPrice * $row['quantity'];
                 $totalAmount = $lineTotal + $taxAmount;
 
-                $inv->items()->create([
+                InvoiceItem::create([
+                    'invoice_id'     => $inv->id,
                     'item_id'        => $item->id,
                     'variant_id'     => $row['variant_id'] ?? null,
                     'description'    => $item->name,
                     'quantity'       => $row['quantity'],
+                    'sale_by'        => $row['sale_by'] ?? 'unit',
                     'unit_price'     => $unitPrice,
                     'tax_percentage' => $taxPercentage,
                     'tax_amount'     => $taxAmount,
                     'total'          => $totalAmount,
                 ]);
+
 
                 $historyItems[] = [
                     'description' => $item->name,

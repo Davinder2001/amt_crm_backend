@@ -13,6 +13,7 @@ class CreateInvoiceItemsTable extends Migration
             $table->foreignId('invoice_id')->constrained()->onDelete('cascade');
             $table->string('description');
             $table->integer('quantity');
+            $table->string('sale_by');
             $table->decimal('unit_price', 10, 2);
             $table->decimal('tax_percentage', 5, 2)->default(0);
             $table->decimal('tax_amount', 10, 2)->default(0);  
