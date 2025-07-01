@@ -8,7 +8,6 @@ use Illuminate\Support\Str;
 use App\Services\PhonePePaymentService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\ValidationException;
 use App\Models\Company;
 use App\Services\CompanySetupService;
 use App\Models\CompanyUser;
@@ -17,6 +16,9 @@ use App\Models\Package;
 
 class AddNewCompanyController extends Controller
 {
+    /**
+     * Payment initiate and add commpany function
+     */
     public function paymentInitiate(Request $request, PhonePePaymentService $paymentService)
     {
         $validator = Validator::make($request->all(), [
@@ -112,7 +114,6 @@ class AddNewCompanyController extends Controller
             'subscription_status'   => 'active',
         ]);
 
-        // Attach user to company and run setup
         $user = Auth::user();
 
         CompanyUser::create([
@@ -123,14 +124,16 @@ class AddNewCompanyController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Payment initiated and company created with pending payment status.',
+            'message' => 'Payment initiated.',
             'payment' => $result,
             'company' => $company->company_name,
         ], 200);
     }
 
 
-
+    /**
+     * Confirm Payment and update payment status
+     */
     public function confirmCompanyPayment($orderId)
     {
         $company = Company::where('order_id', $orderId)->first();
@@ -153,7 +156,6 @@ class AddNewCompanyController extends Controller
         $statusService = new PhonePePaymentService();
         $paymentCheck = $statusService->checkAndUpdateStatus($orderId);
 
-
         if (!$paymentCheck['success']) {
             return response()->json([
                 'success' => false,
@@ -164,8 +166,8 @@ class AddNewCompanyController extends Controller
 
         if ($paymentCheck['status'] !== 'COMPLETED') {
             return response()->json([
-                'success' => false,
-                'message' => 'Payment was not successful.',
+                'success'        => false,
+                'message'        => 'Payment was not successful.',
                 'payment_status' => $paymentCheck['status'],
             ], 402);
         }
@@ -187,6 +189,10 @@ class AddNewCompanyController extends Controller
         ], 200);
     }
 
+
+    /**
+     * Get the status of company Payment and Verification 
+     */
     public function getCompanyStatus($companyId)
     {
         $company = Company::where('id', $companyId)->first();

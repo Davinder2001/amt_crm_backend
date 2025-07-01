@@ -33,7 +33,8 @@ class ItemsController extends Controller
     public function store(Request $request): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $companyId = $selectedCompany->company->id;
+        $company = $selectedCompany->company;
+        $companyId = $company->id;
 
         $validator = Validator::make($request->all(), [
             'name'           => 'required|string|max:255',
@@ -48,28 +49,49 @@ class ItemsController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
         }
 
         $data = $validator->validated();
         $data['company_id'] = $companyId;
 
-        $package = Package::find($selectedCompany->company->package_id);
+        $package = Package::with('limits')->find($company->package_id);
         if (!$package) {
-            return response()->json(['success' => false, 'message' => 'No package found for the selected company.'], 404);
+            return response()->json([
+                'success' => false,
+                'message' => 'No package found for the selected company.'
+            ], 404);
         }
 
-        $itemQuery = Item::where('company_id', $companyId);
-        $now = now();
+        $subscriptionType = $company->subscription_type; // 'monthly' | 'annual' | 'three_years'
 
-        if ($package->package_type === 'monthly') {
-            $itemQuery->whereYear('created_at', $now->year)->whereMonth('created_at', $now->month);
-        } else {
+        $limit = collect($package->limits)->firstWhere('variant_type', $subscriptionType);
+        if (!$limit) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Package limits not found for this subscription type.'
+            ], 404);
+        }
+
+        $now = now();
+        $itemQuery = Item::where('company_id', $companyId);
+
+        if ($subscriptionType === 'monthly') {
+            $itemQuery->whereYear('created_at', $now->year)
+                ->whereMonth('created_at', $now->month);
+        } elseif ($subscriptionType === 'annual') {
             $itemQuery->whereYear('created_at', $now->year);
         }
+        // No date filter for 'three_years'
 
-        if ($itemQuery->count() >= ($package->items_number ?? 0)) {
-            return response()->json(['success' => false, 'message' => 'Item limit reached for your package.'], 403);
+        if ($itemQuery->count() >= ($limit->items_number ?? 0)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Item limit reached for your package.'
+            ], 403);
         }
 
         try {
@@ -144,7 +166,10 @@ class ItemsController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
         }
 
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -152,11 +177,17 @@ class ItemsController extends Controller
 
         $item = Item::with(['variants', 'categories', 'batches'])->find($id);
         if (!$item) {
-            return response()->json(['success' => false, 'message' => 'Item not found.'], 404);
+            return response()->json([
+                'success' => false,
+                'message' => 'Item not found.'
+            ], 404);
         }
 
         if (!$selectedCompany->super_admin && $item->company_id !== $companyId) {
-            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized.'
+            ], 403);
         }
 
         $data = array_merge($validator->validated(), ['company_id' => $companyId]);

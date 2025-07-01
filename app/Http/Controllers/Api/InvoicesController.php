@@ -191,28 +191,33 @@ class InvoicesController extends Controller
         }
 
         $data            = $validator->validated();
+        dd($data);
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+        $company         = $selectedCompany->company;
         $issuedById      = Auth::id();
         $issuedByName    = Auth::user()->name;
-        $package         = Package::find($selectedCompany->company->package_id ?? 1);
-        $packageType     = $package?->package_type;
-        $allowedCount    = $package?->invoices_number ?? 0;
-        $invoiceQuery    = Invoice::where('company_id', $selectedCompany->company_id);
-        $now             = now();
 
-        if ($packageType === 'monthly') {
+        $package = Package::with('limits')->find($company->package_id);
+        $subscriptionType = $company->subscription_type;
+
+        $limit = collect($package->limits)->firstWhere('variant_type', $subscriptionType);
+        $allowedCount = $limit->invoices_number ?? 0;
+
+        $invoiceQuery = Invoice::where('company_id', $company->id);
+        $now = now();
+
+        if ($subscriptionType === 'monthly') {
             $invoiceQuery->whereYear('invoice_date', $now->year)->whereMonth('invoice_date', $now->month);
-        } elseif ($packageType === 'annual') {
+        } elseif ($subscriptionType === 'annual') {
             $invoiceQuery->whereYear('invoice_date', $now->year);
-        } elseif ($packageType === 'three_years') {
+        } elseif ($subscriptionType === 'three_years') {
             $startYear = $now->copy()->subYears(2)->startOfYear();
             $invoiceQuery->whereBetween('invoice_date', [$startYear, $now->endOfYear()]);
         }
 
         if ($invoiceQuery->count() >= $allowedCount) {
-            throw new \Exception("You have reached your invoice limit for the {$packageType} package ({$allowedCount} invoices).");
+            throw new \Exception("You have reached your invoice limit for the {$subscriptionType} package ({$allowedCount} invoices).");
         }
-
 
         $unitPriceFor = static function (Item $item, ?int $variantId = null): float {
             if (!empty($variantId)) {
@@ -265,36 +270,38 @@ class InvoicesController extends Controller
             $customer = InvoiceHelperService::createCustomer($data, $selectedCompany->company_id);
 
             $companyCode = $selectedCompany->company->company_id;
-            $datePrefix = now()->format('Ymd');
-            $lastInv = Invoice::where('company_id', $selectedCompany->company_id)->whereDate('invoice_date', now()->toDateString())->orderBy('invoice_number', 'desc')->first();
+            $lastInv = Invoice::where('company_id', $selectedCompany->company_id)
+                ->whereDate('invoice_date', now()->toDateString())
+                ->orderBy('invoice_number', 'desc')
+                ->first();
+
             $nextSeq = $lastInv ? ((int) substr($lastInv->invoice_number, -4)) + 1 : 1;
             $invoiceNo = "{$companyCode}" . now()->format('ymd') . str_pad($nextSeq, 3, '0', STR_PAD_LEFT);
 
-
             $inv = Invoice::create([
-                'invoice_number'        => $invoiceNo,
-                'client_name'           => $data['client_name'] ?? 'Guest',
-                'client_phone'          => $data['number'] ?? null,
-                'client_email'          => $data['email'] ?? null,
-                'invoice_date'          => $data['invoice_date'],
-                'total_amount'          => $subtotal,
-                'sub_total'             => $total,
-                'service_charge_amount' => $serviceChargeAmount,
+                'invoice_number'         => $invoiceNo,
+                'client_name'            => $data['client_name'] ?? 'Guest',
+                'client_phone'           => $data['number'] ?? null,
+                'client_email'           => $data['email'] ?? null,
+                'invoice_date'           => $data['invoice_date'],
+                'total_amount'           => $subtotal,
+                'sub_total'              => $total,
+                'service_charge_amount'  => $serviceChargeAmount,
                 'service_charge_percent' => 18,
-                'service_charge_gst'    => $serviceChargeGstAmount,
-                'service_charge_final'  => $finalServiceCharge,
-                'discount_amount'       => $discountAmount,
-                'discount_percentage'   => $discountPercentage,
-                'delivery_charge'       => $data['delivery_charge'] ?? 0,
-                'delivery_address'      => $data['address'] ?? null,
-                'delivery_pincode'      => $data['pincode'] ?? null,
-                'final_amount'          => $finalAmount,
-                'payment_method'        => $data['payment_method'],
-                'bank_account_id'       => $data['bank_account_id'] ?? null,
-                'credit_note'           => $data['credit_note'] ?? null,
-                'issued_by'             => $issuedById,
-                'issued_by_name'        => $issuedByName,
-                'company_id'            => $selectedCompany->company_id,
+                'service_charge_gst'     => $serviceChargeGstAmount,
+                'service_charge_final'   => $finalServiceCharge,
+                'discount_amount'        => $discountAmount,
+                'discount_percentage'    => $discountPercentage,
+                'delivery_charge'        => $data['delivery_charge'] ?? 0,
+                'delivery_address'       => $data['address'] ?? null,
+                'delivery_pincode'       => $data['pincode'] ?? null,
+                'final_amount'           => $finalAmount,
+                'payment_method'         => $data['payment_method'],
+                'bank_account_id'        => $data['bank_account_id'] ?? null,
+                'credit_note'            => $data['credit_note'] ?? null,
+                'issued_by'              => $issuedById,
+                'issued_by_name'         => $issuedByName,
+                'company_id'             => $selectedCompany->company_id,
             ]);
 
             $historyItems = [];
@@ -353,16 +360,13 @@ class InvoicesController extends Controller
                 $message->to($data['email'])->subject('Invoice')->attachData(
                     $pdf->output(),
                     'invoice.pdf',
-                    [
-                        'mime' => 'application/pdf',
-                    ]
+                    ['mime' => 'application/pdf']
                 );
             });
         }
 
         return [$invoice, $pdf->output()];
     }
-
 
 
     /**
