@@ -85,7 +85,8 @@ class TaskController extends Controller
         if ($request->hasFile('attachments')) {
             foreach ($request->file('attachments') as $file) {
                 $path = $file->store('task_attachments', 'public');
-                $attachmentPaths[] = $path;
+                $publicUrl = asset($path);
+                $attachmentPaths[] = $publicUrl;
             }
         }
 
