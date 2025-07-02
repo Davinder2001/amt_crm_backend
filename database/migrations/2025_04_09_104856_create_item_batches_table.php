@@ -19,6 +19,7 @@ return new class extends Migration {
             $table->string('invoice_number')->nullable();
 
             $table->decimal('quantity', 20, 2)->nullable();
+            $table->decimal('stock', 20, 2)->nullable();
 
             $table->date('purchase_date')->nullable();
             $table->date('date_of_manufacture')->nullable();

@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Log;
 use App\Services\InvoiceServices\InvoiceHelperService;
 use App\Models\Package;
 use App\Models\CompanyAccount;
-use App\Models\ItemVariant;
+use App\Models\ItemBatch;
 use App\Models\InvoiceItem;
 use App\Models\CustomerCredit;
 use Illuminate\Http\Request;
@@ -159,30 +159,27 @@ class InvoicesController extends Controller
             'number'                => 'required|string',
             'email'                 => 'nullable|email',
             'invoice_date'          => 'required|date',
-
-            'discount_price'        => 'nullable|numeric|min:0',
-            'discount_percentage'   => 'nullable|numeric|min:0',
-            'discount_type'         => 'nullable|in:percentage,amount',
             'payment_method'        => 'required|string',
             'creditPaymentType'     => 'nullable|in:partial,full',
             'partialAmount'         => 'nullable|numeric|min:0',
             'credit_note'           => 'nullable|string',
             'bank_account_id'       => 'nullable|integer|exists:company_accounts,id',
             'item_type'             => 'nullable|string',
+            'discount_price'        => 'nullable|numeric|min:0',
+            'discount_percentage'   => 'nullable|numeric|min:0',
+            'discount_type'         => 'nullable|in:percentage,amount',
             'delivery_charge'       => 'nullable|numeric|min:0',
             'serviceChargeType'     => 'nullable|in:amount,percentage',
             'serviceChargeAmount'   => 'nullable|numeric|min:0',
             'serviceChargePercent'  => 'nullable|numeric|min:0',
             'address'               => 'nullable|string',
             'pincode'               => 'nullable|string|max:10',
-
             'items'                 => 'required|array|min:1',
             'items.*.item_id'       => 'required|exists:store_items,id',
-            'items.*.sale_by'       => 'required|string',
+            'items.*.sale_by'       => 'required|in:piece,unit',
             'items.*.variant_id'    => 'nullable|exists:item_variants,id',
-            'items.*.quantity'      => 'required|integer|min:1',
+            'items.*.quantity'      => 'required|numeric|min:0.01',
             'items.*.batch_id'      => 'required|integer|min:1',
-            'items.*.unit_price'    => 'nullable|numeric|min:0',
         ]);
 
         if ($validator->fails()) {
@@ -193,14 +190,11 @@ class InvoicesController extends Controller
             ], 422));
         }
 
-        $data            = $validator->validated();
-
-        // dd($data);
-
+        $data = $validator->validated();
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $company         = $selectedCompany->company;
-        $issuedById      = Auth::id();
-        $issuedByName    = Auth::user()->name;
+        $company = $selectedCompany->company;
+        $issuedById = Auth::id();
+        $issuedByName = Auth::user()->name;
 
         $package = Package::with('limits')->find($company->package_id);
         $subscriptionType = $company->subscription_type;
@@ -224,24 +218,30 @@ class InvoicesController extends Controller
             throw new \Exception("You have reached your invoice limit for the {$subscriptionType} package ({$allowedCount} invoices).");
         }
 
-        $unitPriceFor = static function (Item $item, ?int $variantId = null): float {
-            if (!empty($variantId)) {
-                $variant = ItemVariant::where('id', $variantId)->where('item_id', $item->id)->firstOrFail();
-                return $variant->price ?? $variant->ragular_price ?? 0.0;
+        $unitPriceFor = static function (int $itemId, int $batchId, ?int $variantId = null, string $saleBy = 'piece'): float {
+            $batch = \App\Models\ItemBatch::where('id', $batchId)->where('item_id', $itemId)->firstOrFail();
+            if ($variantId) {
+                $variant = \App\Models\ItemVariant::where('id', $variantId)->where('batch_id', $batch->id)->first();
+                if ($variant) {
+                    return $saleBy === 'unit' ? $variant->variant_price_per_unit : $variant->variant_sale_price;
+                }
             }
-            return $item->sale_price ?? $item->regular_price ?? 0.0;
+            return $saleBy === 'unit'
+                ? ($batch->price_per_unit ?? $batch->regular_price ?? 0.0)
+                : ($batch->sale_price ?? $batch->regular_price ?? 0.0);
         };
 
         $invoice = DB::transaction(function () use ($data, $selectedCompany, $issuedById, $issuedByName, $unitPriceFor) {
             $total = collect($data['items'])->sum(function ($row) use ($unitPriceFor) {
-                $item = Item::findOrFail($row['item_id']);
-                $price = $unitPriceFor($item, $row['variant_id'] ?? null);
-                $taxRate = DB::table('item_tax')->join('taxes', 'item_tax.tax_id', '=', 'taxes.id')->where('item_tax.store_item_id', $item->id)->value('taxes.rate') ?? 0;
+                $price = $unitPriceFor($row['item_id'], $row['batch_id'], $row['variant_id'] ?? null, $row['sale_by']);
+                $taxRate = DB::table('item_tax')
+                    ->join('taxes', 'item_tax.tax_id', '=', 'taxes.id')
+                    ->where('item_tax.store_item_id', $row['item_id'])
+                    ->value('taxes.rate') ?? 0;
                 return ($price + ($price * $taxRate / 100)) * $row['quantity'];
             });
 
             $serviceChargeAmount = $serviceChargePercent = $serviceChargeGstAmount = $finalServiceCharge = 0;
-
             if (!empty($data['serviceChargeType'])) {
                 if ($data['serviceChargeType'] === 'amount' && !empty($data['serviceChargeAmount'])) {
                     $serviceChargeAmount  = $data['serviceChargeAmount'];
@@ -273,13 +273,8 @@ class InvoicesController extends Controller
             }
 
             $customer = InvoiceHelperService::createCustomer($data, $selectedCompany->company_id);
-
             $companyCode = $selectedCompany->company->company_id;
-            $lastInv = Invoice::where('company_id', $selectedCompany->company_id)
-                ->whereDate('invoice_date', now()->toDateString())
-                ->orderBy('invoice_number', 'desc')
-                ->first();
-
+            $lastInv = Invoice::where('company_id', $selectedCompany->company_id)->whereDate('invoice_date', now()->toDateString())->orderBy('invoice_number', 'desc')->first();
             $nextSeq = $lastInv ? ((int) substr($lastInv->invoice_number, -4)) + 1 : 1;
             $invoiceNo = "{$companyCode}" . now()->format('ymd') . str_pad($nextSeq, 3, '0', STR_PAD_LEFT);
 
@@ -310,9 +305,10 @@ class InvoicesController extends Controller
             ]);
 
             $historyItems = [];
+
             foreach ($data['items'] as $row) {
                 $item = Item::findOrFail($row['item_id']);
-                $unitPrice = $unitPriceFor($item, $row['variant_id'] ?? null);
+                $unitPrice = $unitPriceFor($item->id, $row['batch_id'], $row['variant_id'] ?? null, $row['sale_by']);
                 $taxPercentage = DB::table('item_tax')->join('taxes', 'item_tax.tax_id', '=', 'taxes.id')->where('item_tax.store_item_id', $item->id)->value('taxes.rate') ?? 0;
                 $taxAmount = $unitPrice * $taxPercentage / 100;
                 $lineTotal = $unitPrice * $row['quantity'];
@@ -324,13 +320,27 @@ class InvoicesController extends Controller
                     'variant_id'     => $row['variant_id'] ?? null,
                     'description'    => $item->name,
                     'quantity'       => $row['quantity'],
-                    'sale_by'        => $row['sale_by'] ?? 'unit',
+                    'sale_by'        => $row['sale_by'],
                     'unit_price'     => $unitPrice,
                     'tax_percentage' => $taxPercentage,
                     'tax_amount'     => $taxAmount,
                     'total'          => $totalAmount,
                 ]);
 
+                $qty = (float) $row['quantity'];
+                $batch = \App\Models\ItemBatch::find($row['batch_id']);
+                if ($batch) {
+                    $batch->quantity_count = max(0, $batch->quantity_count - $qty);
+                    $batch->save();
+                }
+
+                if (!empty($row['variant_id'])) {
+                    $variant = \App\Models\ItemVariant::find($row['variant_id']);
+                    if ($variant) {
+                        $variant->stock = max(0, $variant->stock - $qty);
+                        $variant->save();
+                    }
+                }
 
                 $historyItems[] = [
                     'description' => $item->name,
@@ -340,7 +350,7 @@ class InvoicesController extends Controller
                 ];
             }
 
-            InvoiceHelperService::createCustomerHistory($customer, $historyItems, $inv->id, $data['invoice_date'], $inv->invoice_number, $subtotal);
+            InvoiceHelperService::createCustomerHistory($customer, $historyItems, $inv->id, $data['invoice_date'], $inv->invoice_number, $total);
 
             if ($data['payment_method'] === 'credit') {
                 InvoiceHelperService::createCreditHistory($customer, $data, $finalAmount, $inv->id, $selectedCompany->company_id);
@@ -363,18 +373,14 @@ class InvoicesController extends Controller
             'show_signature'    => true,
         ]);
 
-        if (!empty($data['email'])) {
-            Mail::send([], [], function ($message) use ($data, $pdf) {
-                $message->to($data['email'])->subject('Invoice')->attachData(
-                    $pdf->output(),
-                    'invoice.pdf',
-                    ['mime' => 'application/pdf']
-                );
-            });
-        }
+        // if (!empty($data['email'])) {
+        //     InvoiceHelperService::sendInvoiceEmail($data['email'], $pdf->output(), $invoice->id);
+        // }
 
         return [$invoice, $pdf->output()];
     }
+
+
 
 
     /**

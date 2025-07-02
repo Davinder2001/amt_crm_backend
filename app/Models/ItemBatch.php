@@ -12,6 +12,7 @@ class ItemBatch extends Model
         'item_id',
         'invoice_number',
         'quantity',
+        'stock',
         'purchase_date',
         'date_of_manufacture',
         'date_of_expiry',

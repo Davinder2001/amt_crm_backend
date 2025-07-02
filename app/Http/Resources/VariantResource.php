@@ -12,7 +12,7 @@ class VariantResource extends JsonResource
             'id'                     => $this->id,
             'variant_regular_price'  => $this->variant_regular_price,
             'variant_sale_price'     => $this->variant_sale_price,
-            'variant_stock'          => $this->stock,
+            'stock'                  => $this->stock,
             'variant_units_in_peace' => $this->variant_units_in_peace,
             'variant_price_per_unit' => $this->variant_price_per_unit,
             'images'                 => $this->images,

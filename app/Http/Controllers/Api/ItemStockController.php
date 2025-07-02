@@ -74,6 +74,7 @@ class ItemStockController extends Controller
             'item_id'             => $request->item_id,
             'invoice_number'      => $request->invoice_number,
             'quantity'            => $request->quantity_count,
+            'stock'               => $request->quantity_count,
             'purchase_date'       => $request->purchase_date,
             'date_of_manufacture' => $request->date_of_manufacture,
             'date_of_expiry'      => $request->date_of_expiry,

@@ -9,15 +9,12 @@ class BatchResource extends JsonResource
     public function toArray($request)
     {
 
-        $totalStock = $this->whenLoaded('variant', function () {
-            return $this->batches->sum('variant_stock');
-        });
 
         return [
             'id'                  => $this->id,
             'cost_price'          => $this->cost_price,
             'quantity'            => $this->quantity,
-            'stock'               => $totalStock ?? $this->quantity ?? 0,
+            'stock'               => $this->stock,
             'product_type'        => $this->product_type,
             'purchase_date'       => $this->purchase_date,
             'date_of_manufacture' => $this->date_of_manufacture,

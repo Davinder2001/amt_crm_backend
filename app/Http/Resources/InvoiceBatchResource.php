@@ -38,6 +38,7 @@ class InvoiceBatchResource extends JsonResource
             'price_per_unit'        => round($ppu, 2),
 
             'quantity'              => $this->quantity,
+            'stock'                 => $this->stock,
             'product_type'          => $this->product_type,
             'purchase_date'         => $this->purchase_date,
             'date_of_manufacture'   => $this->date_of_manufacture,
