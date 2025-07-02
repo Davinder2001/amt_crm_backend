@@ -80,15 +80,16 @@ class TaskController extends Controller
 
         $data = $validator->validated();
 
-        // Upload attachments and store paths
         $attachmentPaths = [];
         if ($request->hasFile('attachments')) {
             foreach ($request->file('attachments') as $file) {
-                $path = $file->store('task_attachments', 'public');
-                $publicUrl = asset($path);
+                $fileName = uniqid() . '_' . $file->getClientOriginalName();
+                $file->move(public_path('task_attachments'), $fileName);
+                $publicUrl = url('task_attachments/' . $fileName); 
                 $attachmentPaths[] = $publicUrl;
             }
         }
+
 
         // Add extra fields
         $data['assigned_by'] = $authUser->id;
