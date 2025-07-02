@@ -27,7 +27,7 @@ class TaskResource extends JsonResource
 
             'attachments'       => $this->attachments ?? [],
             'attachment_urls'   => collect($this->attachments ?? [])
-                                    ->map(fn($file) => $baseUrl . '/storage/' . ltrim($file, '/'))
+                                    ->map(fn($file) => $baseUrl .'/'. ltrim($file, '/'))
                                     ->toArray(),
 
             'created_at'        => $this->created_at,
