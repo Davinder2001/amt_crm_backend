@@ -10,6 +10,7 @@ use App\Services\InvoiceServices\InvoiceHelperService;
 use App\Models\Package;
 use App\Models\CompanyAccount;
 use App\Models\ItemBatch;
+use App\Models\ItemVariant;
 use App\Models\InvoiceItem;
 use App\Models\CustomerCredit;
 use Illuminate\Http\Request;
@@ -168,12 +169,16 @@ class InvoicesController extends Controller
             'discount_price'        => 'nullable|numeric|min:0',
             'discount_percentage'   => 'nullable|numeric|min:0',
             'discount_type'         => 'nullable|in:percentage,amount',
+
             'delivery_charge'       => 'nullable|numeric|min:0',
+            'delivery_boy'          => 'nullable|exists:users,id',
+
             'serviceChargeType'     => 'nullable|in:amount,percentage',
             'serviceChargeAmount'   => 'nullable|numeric|min:0',
             'serviceChargePercent'  => 'nullable|numeric|min:0',
             'address'               => 'nullable|string',
             'pincode'               => 'nullable|string|max:10',
+
             'items'                 => 'required|array|min:1',
             'items.*.item_id'       => 'required|exists:store_items,id',
             'items.*.sale_by'       => 'required|in:piece,unit',
@@ -190,20 +195,19 @@ class InvoicesController extends Controller
             ], 422));
         }
 
-        $data = $validator->validated();
+        $data            = $validator->validated();
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $company = $selectedCompany->company;
-        $issuedById = Auth::id();
-        $issuedByName = Auth::user()->name;
+        $company         = $selectedCompany->company;
+        $issuedById      = Auth::id();
+        $issuedByName    = Auth::user()->name;
 
-        $package = Package::with('limits')->find($company->package_id);
+        $package          = Package::with('limits')->find($company->package_id);
         $subscriptionType = $company->subscription_type;
 
-        $limit = collect($package->limits)->firstWhere('variant_type', $subscriptionType);
+        $limit        = collect($package->limits)->firstWhere('variant_type', $subscriptionType);
         $allowedCount = $limit->invoices_number ?? 0;
-
         $invoiceQuery = Invoice::where('company_id', $company->id);
-        $now = now();
+        $now          = now();
 
         if ($subscriptionType === 'monthly') {
             $invoiceQuery->whereYear('invoice_date', $now->year)->whereMonth('invoice_date', $now->month);
@@ -219,9 +223,9 @@ class InvoicesController extends Controller
         }
 
         $unitPriceFor = static function (int $itemId, int $batchId, ?int $variantId = null, string $saleBy = 'piece'): float {
-            $batch = \App\Models\ItemBatch::where('id', $batchId)->where('item_id', $itemId)->firstOrFail();
+            $batch = ItemBatch::where('id', $batchId)->where('item_id', $itemId)->firstOrFail();
             if ($variantId) {
-                $variant = \App\Models\ItemVariant::where('id', $variantId)->where('batch_id', $batch->id)->first();
+                $variant = ItemVariant::where('id', $variantId)->where('batch_id', $batch->id)->first();
                 if ($variant) {
                     return $saleBy === 'unit' ? $variant->variant_price_per_unit : $variant->variant_sale_price;
                 }
@@ -299,6 +303,7 @@ class InvoicesController extends Controller
                 'payment_method'         => $data['payment_method'],
                 'bank_account_id'        => $data['bank_account_id'] ?? null,
                 'credit_note'            => $data['credit_note'] ?? null,
+                'delivery_boy'            => $data['delivery_boy'] ?? null,
                 'issued_by'              => $issuedById,
                 'issued_by_name'         => $issuedByName,
                 'company_id'             => $selectedCompany->company_id,
@@ -328,14 +333,14 @@ class InvoicesController extends Controller
                 ]);
 
                 $qty = (float) $row['quantity'];
-                $batch = \App\Models\ItemBatch::find($row['batch_id']);
+                $batch = ItemBatch::find($row['batch_id']);
                 if ($batch) {
-                    $batch->quantity_count = max(0, $batch->quantity_count - $qty);
+                    $batch->stock = max(0, $batch->stock - $qty);
                     $batch->save();
                 }
 
                 if (!empty($row['variant_id'])) {
-                    $variant = \App\Models\ItemVariant::find($row['variant_id']);
+                    $variant = ItemVariant::find($row['variant_id']);
                     if ($variant) {
                         $variant->stock = max(0, $variant->stock - $qty);
                         $variant->save();
@@ -355,6 +360,11 @@ class InvoicesController extends Controller
             if ($data['payment_method'] === 'credit') {
                 InvoiceHelperService::createCreditHistory($customer, $data, $finalAmount, $inv->id, $selectedCompany->company_id);
             }
+
+            if (!empty($data['delivery_boy'])) {
+                InvoiceHelperService::createDeliveryTask($inv, $data['delivery_boy']);
+            }
+
 
             return $inv;
         });

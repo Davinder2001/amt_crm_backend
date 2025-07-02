@@ -38,6 +38,7 @@ class CreateInvoicesTable extends Migration
             $table->enum('payment_method', ['cash', 'online', 'card', 'credit', 'self'])->nullable();
             $table->foreignId('bank_account_id')->nullable()->constrained('company_accounts')->onDelete('cascade');
             $table->string('credit_note')->nullable();
+            $table->foreignId('delivery_boy')->nullable()->constrained('users')->onDelete('cascade');
             $table->foreignId('issued_by')->constrained('users')->onDelete('cascade');
             $table->string('issued_by_name')->nullable();
             $table->longText('pdf_base64')->nullable();

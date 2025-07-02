@@ -35,6 +35,7 @@ class Invoice extends Model
         'credit_note',
         'company_id',
         'sent_on_whatsapp',
+        'delivery_boy',
     ];
 
     protected static function booted(): void

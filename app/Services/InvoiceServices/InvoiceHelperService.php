@@ -4,6 +4,10 @@ namespace App\Services\InvoiceServices;
 
 use App\Models\Customer;
 use App\Models\CustomerHistory;
+use App\Models\Task;
+use App\Models\User;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Carbon;
 use App\Models\CustomerCredit;
 
 class InvoiceHelperService
@@ -63,6 +67,29 @@ class InvoiceHelperService
             'outstanding' => $totalDue,
             'company_id'  => $companyId,
             'status'      => 'due',
+        ]);
+    }
+
+
+    public static function createDeliveryTask($invoice, $deliveryBoyId): void
+    {
+        $deliveryUser = User::find($deliveryBoyId);
+        if (!$deliveryUser) {
+            return;
+        }
+
+        Task::create([
+            'name'          => 'Deliver Invoice #' . $invoice->invoice_number,
+            'description'   => 'Deliver invoice to ' . $invoice->client_name . ' at ' . ($invoice->delivery_address ?? 'N/A'),
+            'assigned_by'   => Auth::id(),
+            'assigned_to'   => $deliveryBoyId,
+            'company_id'    => $invoice->company_id,
+            'assigned_role' => $deliveryUser->role ?? 'delivery_boy',
+            'start_date'    => Carbon::now(),
+            'end_date'      => Carbon::now()->addDays(1),
+            'attachments'   => [],
+            'notify'        => true,
+            'status'        => 'pending',
         ]);
     }
 }
