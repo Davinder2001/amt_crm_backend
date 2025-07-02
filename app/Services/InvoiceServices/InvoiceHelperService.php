@@ -6,6 +6,8 @@ use App\Models\Customer;
 use App\Models\CustomerHistory;
 use App\Models\Task;
 use App\Models\User;
+use Illuminate\Support\Facades\Mail;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Carbon;
 use App\Models\CustomerCredit;
@@ -91,5 +93,29 @@ class InvoiceHelperService
             'notify'        => true,
             'status'        => 'pending',
         ]);
+    }
+
+
+    public static function sendInvoiceEmail(string $email, $invoice, $company): void
+    {
+        $pdf = Pdf::loadView('invoices.pdf', [
+            'invoice'           => $invoice,
+            'company_name'      => $company->company_name,
+            'company_address'   => $company->address ?? 'N/A',
+            'company_phone'     => $company->phone ?? 'N/A',
+            'company_gstin'     => $company->gstin ?? 'N/A',
+            'company_logo'      => $company->company_logo ?? 'N/A',
+            'issued_by'         => Auth::user()->name,
+            'footer_note'       => 'Thank you for your business',
+            'show_signature'    => true,
+        ]);
+
+        Mail::send([], [], function ($message) use ($email, $pdf) {
+            $message->to($email)
+                ->subject('Invoice')
+                ->attachData($pdf->output(), 'invoice.pdf', [
+                    'mime' => 'application/pdf',
+                ]);
+        });
     }
 }

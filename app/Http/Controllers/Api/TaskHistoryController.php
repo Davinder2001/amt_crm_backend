@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Task;
 use App\Models\TaskHistory;
+use App\Http\Resources\TaskHistoryResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -31,29 +32,29 @@ class TaskHistoryController extends Controller
             'description'      => 'required|string',
             'attachments.*'    => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
         ]);
-    
+
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
-    
+
         $task = Task::findOrFail($taskId);
-    
+
         if ($task->assigned_to != Auth::id()) {
             return response()->json([
                 'message' => 'You are not authorized to update this task.'
             ], 403);
         }
-    
+
         // Allow submissions until task is 'approved' or 'completed'
         if (in_array($task->status, ['completed', 'approved'], true)) {
             return response()->json([
                 'message' => "Task is already {$task->status}."
             ], 422);
         }
-    
+
         // Update task status to 'submitted' on every submission
         $task->update(['status' => 'submitted']);
-    
+
         $images = [];
         if ($request->hasFile('attachments')) {
             foreach ($request->file('attachments') as $file) {
@@ -62,7 +63,7 @@ class TaskHistoryController extends Controller
                 $images[] = asset('uploads/tasks/' . $filename);
             }
         }
-    
+
         $history = TaskHistory::create([
             'task_id'      => $task->id,
             'submitted_by' => Auth::id(),
@@ -70,13 +71,13 @@ class TaskHistoryController extends Controller
             'attachments'  => $images,
             'status'       => 'submitted',
         ]);
-    
+
         return response()->json([
             'message' => 'Task update has been successfully submitted.',
             'history' => $history
         ], 201);
     }
-    
+
 
     /**
      * Approve a submitted task history (admin only).
@@ -103,7 +104,7 @@ class TaskHistoryController extends Controller
     {
         $history = TaskHistory::findOrFail($id);
         $remark = $request->input('remark', 'Rejected by admin');
-       
+
         $history->update([
             'status'       => 'rejected',
             'admin_remark' => $remark
@@ -118,24 +119,27 @@ class TaskHistoryController extends Controller
     /**
      * List history entries for a single task.
      */
+    
+
     public function historyByTask($id)
     {
         $userId = Auth::id();
-    
+
         $histories = TaskHistory::where('task_id', $id)
             ->where('submitted_by', $userId)
             ->orderBy('created_at', 'desc')
             ->get();
-    
+
         return response()->json([
             'status'    => 'success',
             'task_id'   => $id,
             'user_id'   => $userId,
-            'histories' => $histories,
+            'histories' => TaskHistoryResource::collection($histories),
         ]);
     }
-    
-    
+
+
+
     /**
      * List all history entries (admins see all; others see only theirs).
      */
@@ -147,7 +151,7 @@ class TaskHistoryController extends Controller
         if ($user->role !== 'admin') {
             $query->whereHas('task', function ($q) use ($user) {
                 $q->where('assigned_to', $user->id)
-                  ->orWhere('assigned_by', $user->id);
+                    ->orWhere('assigned_by', $user->id);
             });
         }
 

@@ -8,8 +8,6 @@ class TaskResource extends JsonResource
 {
     public function toArray($request)
     {
-        $baseUrl = url('/'); // or config('app.url') if you want to use the configured app URL
-
         return [
             'id'                => $this->id,
             'name'              => $this->name,
@@ -25,8 +23,18 @@ class TaskResource extends JsonResource
             'status'            => $this->status,
             'notify'            => $this->notify,
 
-            'attachments'       => $this->attachments ?? [],
-         
+            'attachments'       => collect($this->attachments)->map(function ($url) {
+                $relativePath = str_replace(url('/') . '/', '', $url);
+                $fullPath = public_path($relativePath);
+
+                if (file_exists($fullPath)) {
+                    $mime = mime_content_type($fullPath);
+                    $content = file_get_contents($fullPath);
+                    return 'data:' . $mime . ';base64,' . base64_encode($content);
+                }
+                return null;
+            })->filter()->values(),
+
             'created_at'        => $this->created_at,
             'updated_at'        => $this->updated_at,
         ];
