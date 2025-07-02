@@ -83,9 +83,12 @@ class TaskController extends Controller
         $attachmentPaths = [];
         if ($request->hasFile('attachments')) {
             foreach ($request->file('attachments') as $file) {
-                $fileName = uniqid() . '_' . $file->getClientOriginalName();
+                $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+                $extension = $file->getClientOriginalExtension();
+                $safeName = preg_replace('/[^A-Za-z0-9_\-]/', '', str_replace(' ', '_', $originalName));
+                $fileName = uniqid() . '_' . $safeName . '.' . $extension;
                 $file->move(public_path('task_attachments'), $fileName);
-                $publicUrl = url('task_attachments/' . $fileName); 
+                $publicUrl = url('task_attachments/' . $fileName);
                 $attachmentPaths[] = $publicUrl;
             }
         }
