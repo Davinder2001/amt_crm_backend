@@ -1,7 +1,7 @@
 name: Provision Backend Server
 
 on:
-  workflow_dispatch:  # Only runs when manually triggered
+  workflow_dispatch:
 
 jobs:
   ansible-provision:
