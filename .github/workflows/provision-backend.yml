@@ -30,3 +30,4 @@ jobs:
         run: |
           cd infra
           ansible-playbook -i inventory.ini backend.yml
+          
