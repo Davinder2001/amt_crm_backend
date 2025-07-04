@@ -43,13 +43,21 @@ RUN npm run build
 # Remove Node.js and npm (not needed in production)
 RUN apk del nodejs npm
 
+# Create nginx directories
+RUN mkdir -p /run/nginx
+
+# Copy startup script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 # Create non-root user for security
 RUN addgroup -g 1000 www && \
     adduser -u 1000 -G www -s /bin/sh -D www
 
 # Set correct permissions
 RUN chown -R www:www /var/www && \
-    chmod -R 755 /var/www/storage /var/www/bootstrap/cache
+    chmod -R 755 /var/www/storage /var/www/bootstrap/cache && \
+    chown www:www /usr/local/bin/docker-entrypoint.sh
 
 # Switch to non-root user
 USER www
@@ -57,16 +65,9 @@ USER www
 # Expose port
 EXPOSE 80
 
-# Create nginx directories
-RUN mkdir -p /run/nginx
-
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD wget --quiet --tries=1 --spider http://localhost/health || exit 1
-
-# Copy startup script
-COPY docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Start both nginx and PHP-FPM
 ENTRYPOINT ["docker-entrypoint.sh"] 
