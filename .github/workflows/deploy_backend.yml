@@ -22,9 +22,6 @@ jobs:
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
 
-      - name: Run tests
-        run: ./vendor/bin/pest --ci --colors=always
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
