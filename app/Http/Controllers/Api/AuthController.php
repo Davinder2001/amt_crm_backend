@@ -198,11 +198,15 @@ class AuthController extends Controller
         $user = User::with(['companies', 'roles'])->where('number', $data['number'])->whereIn('user_type', ['employee', 'admin', 'super-admin'])->first();
 
         if (!$user || !Hash::check($data['password'], $user->password)) {
-            return response()->json(['error' => 'Invalid credentials.'], 401);
+            return response()->json([
+                'error' => 'Invalid credentials.'
+            ], 401);
         }
 
         if ($user->user_status === 'blocked') {
-            return response()->json(['error' => 'Your account has been blocked. Please contact your administrator.'], 403);
+            return response()->json([
+                'error' => 'Your account has been blocked. Please contact your administrator.'
+            ], 403);
         }
 
         $userCompanies = CompanyUser::where('user_id', $user->id)->get();
