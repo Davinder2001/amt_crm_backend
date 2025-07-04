@@ -87,9 +87,8 @@ class EmployeeController extends Controller
             'panNo'                     => 'required|string|size:10',
             'upiId'                     => 'required|string|min:8|max:50',
             'addressProof'              => 'required|string|min:5|max:50',
-            'id_proof_type'              => 'nullable|string|min:5|max:50',
-            'profilePicture'            => 'required|string|max:255',
-
+            'id_proof_type'             => 'nullable|string|min:5|max:50',
+            'profilePicture'            => 'nullable|file|image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);
 
         if ($validator->fails()) {
@@ -199,7 +198,7 @@ class EmployeeController extends Controller
                 'panNo'                     => 'sometimes|string|size:10',
                 'upiId'                     => 'sometimes|string|min:8|max:50',
                 'addressProof'              => 'sometimes|string|min:5|max:50',
-                'profilePicture'            => 'sometimes|string|max:255',
+                'profilePicture'            => 'sometimes|file|image|mimes:jpeg,png,jpg,webp|max:2048',
             ]);
 
             if ($validator->fails()) {
