@@ -24,7 +24,7 @@ services:
     restart: always
     environment:
       - NGINX_PROXY_CONTAINER=nginx-proxy
-      - DEFAULT_EMAIL=your-email@himmanav.com
+      - DEFAULT_EMAIL=himmanav11@gmail.com
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./infra/certs:/etc/nginx/certs:rw
@@ -42,7 +42,6 @@ services:
     restart: always
     working_dir: /var/www
     volumes:
-      - ./:/var/www
       - ./storage:/var/www/storage
       - ./bootstrap/cache:/var/www/bootstrap/cache
     environment:
