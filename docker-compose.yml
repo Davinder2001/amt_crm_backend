@@ -17,6 +17,11 @@ services:
       - ENABLE_IPV6=true
     networks:
       - backend
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   letsencrypt:
     image: jrcs/letsencrypt-nginx-proxy-companion
@@ -34,6 +39,11 @@ services:
       - nginx-proxy
     networks:
       - backend
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   app:
     build: .
@@ -44,26 +54,28 @@ services:
     volumes:
       - ./storage:/var/www/storage
       - ./bootstrap/cache:/var/www/bootstrap/cache
+    env_file:
+      - .env.docker
     environment:
-      - APP_ENV=production
-      - APP_KEY=${APP_KEY}
-      - APP_DEBUG=false
-      - DB_HOST=db
-      - DB_DATABASE=${DB_DATABASE}
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
       - VIRTUAL_HOST=api.himmanav.com
       - LETSENCRYPT_HOST=api.himmanav.com
-      - LETSENCRYPT_EMAIL=your-email@himmanav.com
+      - LETSENCRYPT_EMAIL=himmanav11@gmail.com
     expose:
       - "80"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - backend
+    healthcheck:
+      test: ["CMD", "php", "artisan", "--version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   db:
-    image: mysql:8
+    image: mysql:8.0
     container_name: amt_crm_backend_db
     restart: always
     environment:
@@ -71,15 +83,26 @@ services:
       MYSQL_USER: ${DB_USERNAME}
       MYSQL_PASSWORD: ${DB_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_CHARACTER_SET_SERVER: utf8mb4
+      MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
     volumes:
       - db_data:/var/lib/mysql
+      - ./database/init:/docker-entrypoint-initdb.d:ro
     ports:
-      - "3306:3306"
+      - "127.0.0.1:3306:3306"
     networks:
       - backend
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    command: --default-authentication-plugin=mysql_native_password
 
 volumes:
   db_data:
+    driver: local
 
 networks:
   backend:
