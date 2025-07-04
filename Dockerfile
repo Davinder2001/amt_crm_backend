@@ -43,8 +43,12 @@ RUN npm run build
 # Remove Node.js and npm (not needed in production)
 RUN apk del nodejs npm
 
-# Create nginx directories
-RUN mkdir -p /run/nginx
+# Create nginx directories and set permissions
+RUN mkdir -p /run/nginx /var/lib/nginx/logs /var/log/nginx && \
+    chown -R www:www /var/lib/nginx /var/log/nginx /run/nginx
+
+# Copy nginx configuration
+COPY nginx.conf /etc/nginx/nginx.conf
 
 # Copy startup script
 COPY docker-entrypoint.sh /usr/local/bin/

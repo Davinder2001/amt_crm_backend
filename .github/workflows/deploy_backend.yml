@@ -58,6 +58,7 @@ jobs:
           cp vite.config.js deployment/
           cp docker-entrypoint.sh deployment/
           cp create-env.sh deployment/
+          cp nginx.conf deployment/
           
           # Create .env.docker file
           chmod +x create-env.sh
