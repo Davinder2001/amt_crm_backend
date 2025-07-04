@@ -19,6 +19,10 @@ return new class extends Migration
             $table->text('abilities')->nullable();
             $table->timestamp('last_used_at')->nullable();
             $table->timestamp('expires_at')->nullable();
+
+            $table->unsignedBigInteger('active_company_id')->nullable();
+            $table->foreign('active_company_id')->references('id')->on('companies')->onDelete('set null');
+
             $table->timestamps();
         });
     }
