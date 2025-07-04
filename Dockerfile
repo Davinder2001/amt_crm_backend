@@ -1,18 +1,19 @@
 FROM php:8.2-fpm
 
-# Install system dependencies and PHP extensions (including GD)
+# Install system dependencies and PHP extensions (including GD and ZIP)
 RUN apt-get update && \
     apt-get install -y \
         libpng-dev \
         libjpeg-dev \
         libfreetype6-dev \
+        libzip-dev \
         zip \
         git \
         unzip \
         libonig-dev \
         libxml2-dev && \
     docker-php-ext-configure gd --with-freetype --with-jpeg && \
-    docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
+    docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
 
 # Install Composer
 COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
@@ -23,7 +24,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - && \
 
 WORKDIR /var/www
 
-# Copy composer files and install PHP dependencies
+# Copy composer files and install PHP dependencies first for better build caching
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --no-scripts --no-interaction --prefer-dist
 
