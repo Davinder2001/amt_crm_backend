@@ -1,15 +1,6 @@
-# ---- Composer Stage ----
-FROM composer:2.7 AS vendor
-
-WORKDIR /app
-
-COPY composer.json composer.lock ./
-RUN composer install --no-dev --no-scripts --no-interaction --prefer-dist
-
-# ---- App Stage ----
 FROM php:8.2-fpm
 
-# Install system dependencies and PHP extensions (including GD with JPEG and FreeType support)
+# Install system dependencies and PHP extensions (including GD)
 RUN apt-get update && \
     apt-get install -y \
         libpng-dev \
@@ -23,17 +14,21 @@ RUN apt-get update && \
     docker-php-ext-configure gd --with-freetype --with-jpeg && \
     docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
 
+# Install Composer
+COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
+
 # Install Node.js (LTS)
 RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - && \
     apt-get install -y nodejs
 
 WORKDIR /var/www
 
-# Copy application code
-COPY . .
+# Copy composer files and install PHP dependencies
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-scripts --no-interaction --prefer-dist
 
-# Copy Composer dependencies from vendor stage
-COPY --from=vendor /app/vendor ./vendor
+# Copy the rest of the application code
+COPY . .
 
 # Build frontend assets
 RUN npm install && npm run build
