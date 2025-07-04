@@ -17,7 +17,13 @@ jobs:
         run: |
           touch .env.docker
           for key in $(compgen -A variable | grep -E '^(APP_|DB_|MAIL_|AWS_|LOG_|SESSION_|QUEUE_|CACHE_|REDIS_|BROADCAST_|FILESYSTEM_|VITE_)'); do
-            echo "$key=${!key}" >> .env.docker
+            value="${!key}"
+            # Trim leading/trailing whitespace
+            value="$(echo "$value" | xargs)"
+            # Only write if value is not empty
+            if [ -n "$value" ]; then
+              echo "$key=$value" >> .env.docker
+            fi
           done
         env:
           APP_NAME: ${{ secrets.APP_NAME }}
