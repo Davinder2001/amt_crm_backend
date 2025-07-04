@@ -18,8 +18,8 @@ RUN apt-get update && \
 # Install Composer
 COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
 
-# Install Node.js (LTS)
-RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - && \
+# Install Node.js 20.x LTS
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs
 
 WORKDIR /var/www
