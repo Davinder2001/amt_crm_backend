@@ -221,11 +221,6 @@ class AuthController extends Controller
             }
         }
 
-        $activeTokens = $user->tokens()->where('expires_at', '>', now());
-        if ($activeTokens->exists()) {
-            $activeTokens->update(['expires_at' => now()]);
-        }
-
         $tokenResult    = $user->createToken('auth_token');
         $token          = $tokenResult->plainTextToken;
         $accessToken    = $tokenResult->accessToken;

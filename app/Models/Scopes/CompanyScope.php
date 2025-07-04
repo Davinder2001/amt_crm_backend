@@ -1,6 +1,5 @@
 <?php
 
-
 namespace App\Models\Scopes;
 
 use Illuminate\Database\Eloquent\Builder;
@@ -23,11 +22,13 @@ class CompanyScope implements Scope
             return;
         }
 
-        if (!app()->has('active_company_id')) {
+        $token = $user->currentAccessToken();
+
+        if (!$token || !$token->active_company_id) {
             throw new HttpException(422, 'Active company not selected.');
         }
 
-        $activeCompanyId = app('active_company_id');
+        $activeCompanyId = $token->active_company_id;
         $userId = $user->id;
 
         if ($model->getTable() === 'users') {
@@ -51,3 +52,4 @@ class CompanyScope implements Scope
         }
     }
 }
+

@@ -79,10 +79,17 @@ class CompanyController extends Controller
     /**
      * Select a company for the authenticated user.
      */
+
+
     public function selectedCompanies($id)
     {
-        $user           = Auth::user();
-        $companyUser    = CompanyUser::where('user_id', $user->id)->where('company_id', $id)->with('company')->first();
+        $user = Auth::user();
+        $token = $user->currentAccessToken();
+
+        $companyUser = CompanyUser::where('user_id', $user->id)
+            ->where('company_id', $id)
+            ->with('company')
+            ->first();
 
         if (!$companyUser) {
             return response()->json(['error' => 'Unauthorized company'], 403);
@@ -92,11 +99,13 @@ class CompanyController extends Controller
             return response()->json(['error' => 'Company is not verified.'], 403);
         }
 
-        CompanyUser::where('user_id', $user->id)->update(['status' => 0]);
-        CompanyUser::where('user_id', $user->id)->where('company_id', $id)->update(['status' => 1]);
+        if ($token) {
+            $token->forceFill(['active_company_id' => $id])->save();
+        }
 
         return response()->json(['message' => 'Company selected successfully']);
     }
+
 
 
     /**
@@ -104,13 +113,11 @@ class CompanyController extends Controller
      */
     public function getSelectedCompanies()
     {
-        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+        $user = Auth::user();
+        $token = $user->currentAccessToken();
 
-        if (!$selectedCompany) {
-            return response()->json(['error' => 'No active company selected'], 404);
-        }
-
-        if (isset($selectedCompany->super_admin) && $selectedCompany->super_admin === true) {
+        // 1. Check if super admin (no active company needed)
+        if ($user->hasRole('super-admin')) {
             return response()->json([
                 'message'           => 'Selected company retrieved successfully.',
                 'selected_company'  => 'Super Admin',
@@ -118,12 +125,30 @@ class CompanyController extends Controller
             ]);
         }
 
+        // 2. Get active company ID from token
+        $activeCompanyId = $token?->active_company_id;
+
+        if (!$activeCompanyId) {
+            return response()->json(['error' => 'No active company selected'], 404);
+        }
+
+        // 3. Check if user belongs to the company
+        $companyUser = CompanyUser::where('user_id', $user->id)
+            ->where('company_id', $activeCompanyId)
+            ->with('company')
+            ->first();
+
+        if (!$companyUser || !$companyUser->company) {
+            return response()->json(['error' => 'Company not found or unauthorized'], 403);
+        }
+
         return response()->json([
             'message'           => 'Selected company retrieved successfully.',
-            'selected_company'  => $selectedCompany->company ?? null,
-            'company_user_role' => $selectedCompany->role,
+            'selected_company'  => $companyUser->company,
+            'company_user_role' => $companyUser->role,
         ]);
     }
+
 
 
     /**
