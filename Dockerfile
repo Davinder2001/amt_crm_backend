@@ -12,6 +12,8 @@ RUN apk add --no-cache \
     unzip \
     oniguruma-dev \
     libxml2-dev \
+    nginx \
+    wget \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) pdo_mysql mbstring exif pcntl bcmath gd zip
 
@@ -30,7 +32,7 @@ RUN composer install --no-dev --no-scripts --no-interaction --prefer-dist --opti
 
 # Copy package files and install Node.js dependencies
 COPY package.json package-lock.json ./
-RUN npm ci --only=production
+RUN npm ci
 
 # Copy application code
 COPY . .
@@ -53,11 +55,18 @@ RUN chown -R www:www /var/www && \
 USER www
 
 # Expose port
-EXPOSE 9000
+EXPOSE 80
+
+# Create nginx directories
+RUN mkdir -p /run/nginx
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD php artisan --version || exit 1
+    CMD wget --quiet --tries=1 --spider http://localhost/health || exit 1
 
-# Start PHP-FPM
-CMD ["php-fpm"] 
+# Copy startup script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Start both nginx and PHP-FPM
+ENTRYPOINT ["docker-entrypoint.sh"] 
