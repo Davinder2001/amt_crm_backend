@@ -1,0 +1,84 @@
+#!/bin/bash
+
+# Create .env.docker file if it doesn't exist
+if [ ! -f ".env.docker" ]; then
+    cat > .env.docker << 'EOF'
+# Application Configuration
+APP_NAME="AMT CRM"
+APP_ENV=production
+APP_KEY=base64:sCEsiEt3AiO1fKmObkwjDOEdt8FmChqfjQT7Z8hpYJs=
+APP_DEBUG=false
+APP_URL=https://api.himmanav.com
+APP_LOCALE=en
+APP_FALLBACK_LOCALE=en
+APP_FAKER_LOCALE=en_US
+APP_MAINTENANCE_DRIVER=file
+
+# PHP Configuration
+PHP_CLI_SERVER_WORKERS=4
+BCRYPT_ROUNDS=12
+
+# Logging Configuration
+LOG_CHANNEL=stack
+LOG_STACK=single
+LOG_DEPRECATIONS_CHANNEL=null
+LOG_LEVEL=error
+
+# Database Configuration
+DB_CONNECTION=mysql
+DB_HOST=db
+DB_PORT=3306
+DB_DATABASE=amt_crm_backend
+DB_USERNAME=amt_crm_user
+DB_PASSWORD=your_secure_database_password_here
+DB_CHARSET=utf8mb4
+DB_COLLATION=utf8mb4_unicode_ci
+
+# Session Configuration
+SESSION_DRIVER=database
+SESSION_LIFETIME=120
+SESSION_ENCRYPT=false
+SESSION_PATH=/
+SESSION_SECURE_COOKIE=true
+SESSION_HTTP_ONLY=true
+SESSION_TABLE=sessions
+
+# Cache Configuration
+CACHE_STORE=database
+DB_CACHE_TABLE=cache
+
+# Queue Configuration
+QUEUE_CONNECTION=database
+DB_QUEUE_TABLE=jobs
+
+# Redis Configuration
+REDIS_CLIENT=phpredis
+REDIS_HOST=127.0.0.1
+REDIS_PORT=6379
+REDIS_DB=0
+
+# Broadcasting Configuration
+BROADCAST_DRIVER=log
+BROADCAST_CONNECTION=log
+
+# Mail Configuration
+MAIL_MAILER=log
+MAIL_SCHEME=null
+MAIL_HOST=127.0.0.1
+MAIL_PORT=2525
+MAIL_USERNAME=null
+MAIL_PASSWORD=null
+MAIL_FROM_ADDRESS="no-reply@himmanav.com"
+MAIL_FROM_NAME="AMT CRM"
+
+# AWS Configuration
+AWS_DEFAULT_REGION=ap-south-1a
+AWS_USE_PATH_STYLE_ENDPOINT=false
+
+# Filesystem Configuration
+FILESYSTEM_DISK=local
+
+# Vite Configuration
+VITE_APP_NAME="AMT CRM"
+EOF
+fi 
