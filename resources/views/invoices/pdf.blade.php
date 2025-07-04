@@ -120,6 +120,9 @@
                 @if (!empty($invoice->delivery_pincode))
                     <p><strong>Delivery Pincode:</strong> {{ $invoice->delivery_pincode }}</p>
                 @endif
+                @if (!empty($delivery_boy_name))
+                    <p><strong>Delivery Boy:</strong> {{ $delivery_boy_name }}</p>
+                @endif
             </div>
 
             <table>

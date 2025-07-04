@@ -122,32 +122,41 @@ class InvoicesController extends Controller
     {
         $invoice         = Invoice::with('items')->findOrFail($id);
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $companyName     = $selectedCompany->company->company_name;
-        $logoFile        = $selectedCompany->company->company_logo;
+        $company         = $selectedCompany->company;
 
-        if (!empty($logoFile) && !is_dir(public_path($logoFile))) {
-            $companyLogo = public_path($logoFile);
-        } else {
-            $companyLogo = null;
-        }
+        $companyName     = $company->company_name;
+        $logoFile        = $company->company_logo;
+
+        $companyLogo = (!empty($logoFile) && !is_dir(public_path($logoFile)))
+            ? public_path($logoFile)
+            : null;
 
         $invoiceID = $invoice->id;
         $customerCredits = CustomerCredit::where('invoice_id', $invoiceID)->get();
 
+        // ✅ Fetch delivery boy by ID from the invoice
+        $deliveryBoyName = null;
+        if ($invoice->delivery_boy) {
+            $deliveryBoy = \App\Models\User::find($invoice->delivery_boy);
+            $deliveryBoyName = $deliveryBoy?->name ?? null;
+        }
+
         $pdf = Pdf::loadView('invoices.pdf', [
-            'invoice'          => $invoice,
-            'company_name'     => $companyName,
-            'customer_credits' => $customerCredits,
-            'company_logo'     => $companyLogo,
-            'company_address'  => $selectedCompany->company->address ?? 'N/A',
-            'company_phone'    => $selectedCompany->company->phone ?? 'N/A',
-            'company_gstin'    => $selectedCompany->company->gstin ?? 'N/A',
-            'footer_note'      => 'Thank you for your business',
-            'show_signature'   => true,
+            'invoice'           => $invoice,
+            'company_name'      => $companyName,
+            'customer_credits'  => $customerCredits,
+            'company_logo'      => $companyLogo,
+            'company_address'   => $company->address ?? 'N/A',
+            'company_phone'     => $company->phone ?? 'N/A',
+            'company_gstin'     => $company->gstin ?? 'N/A',
+            'footer_note'       => 'Thank you for your business',
+            'show_signature'    => true,
+            'delivery_boy_name' => $deliveryBoyName, // <-- Pass delivery boy name to view
         ]);
 
         return $pdf->download('invoice_' . $invoice->invoice_number . '.pdf');
     }
+
 
     /**
      * Create an invoice and generate a PDF.
