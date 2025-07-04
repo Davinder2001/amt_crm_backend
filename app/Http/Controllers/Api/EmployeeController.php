@@ -88,7 +88,7 @@ class EmployeeController extends Controller
             'upiId'                     => 'required|string|min:8|max:50',
             'addressProof'              => 'required|string|min:5|max:50',
             'id_proof_type'             => 'nullable|string|min:5|max:50',
-            'profilePicture'            => 'nullable|file|image|mimes:jpeg,png,jpg,webp|max:2048',
+            'profilePicture'            => 'required|file|image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);
 
         if ($validator->fails()) {
@@ -107,9 +107,15 @@ class EmployeeController extends Controller
         $employeeQuery          = User::whereHas('roles', fn($q) => $q->where('name', '!=', 'admin'))->where('company_id', $selectedCompany->id);
 
         if ($packageType === 'monthly') {
-            $employeeQuery->whereYear('created_at', $now->year)->whereMonth('created_at', $now->month);
+            $employeeQuery->whereYear('created_at', $now->year)
+                ->whereMonth('created_at', $now->month);
         } elseif ($packageType === 'yearly') {
             $employeeQuery->whereYear('created_at', $now->year);
+        } elseif ($packageType === 'three-years') {
+            $employeeQuery->whereBetween('created_at', [
+                $now->copy()->subYears(3)->startOfDay(),
+                $now->copy()->endOfDay()
+            ]);
         }
 
         $currentEmployeeCount = $employeeQuery->count();
@@ -119,7 +125,6 @@ class EmployeeController extends Controller
                 'message' => "You have reached your {$packageType} employee limit of {$allowedEmployeeCount}.",
             ], 403);
         }
-
 
         try {
             $employee = $userCreateService->createEmployee($validator->validated());
