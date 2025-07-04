@@ -43,6 +43,7 @@ return [
         //        'scheme' => env('PUSHER_SCHEME', 'https'),
         //        'encrypted' => true,
         //    ],
+        
 
         'redis' => [
             'driver' => 'redis',
