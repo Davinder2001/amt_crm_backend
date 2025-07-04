@@ -9,6 +9,7 @@ use App\Models\SalaryHistory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Exception;
+use Illuminate\Support\Facades\File;
 use App\Services\SelectedCompanyService;
 
 class EmployeeCreateService
@@ -27,10 +28,10 @@ class EmployeeCreateService
     public function createEmployee(array $data)
     {
         $existingUser = User::where('number', $data['number'])
-                        ->whereIn('user_type', ['employee', 'admin'])
-                        ->where('user_status', 'active')
-                        ->first();
-    
+            ->whereIn('user_type', ['employee', 'admin'])
+            ->where('user_status', 'active')
+            ->first();
+
         if ($existingUser) {
             throw ValidationException::withMessages([
                 'number' => ['This phone number is already in use by an active employee.']
@@ -49,7 +50,7 @@ class EmployeeCreateService
             'number'    => $data['number'],
             'user_type' => 'employee',
         ]);
-        
+
         CompanyUser::create([
             'user_id'    => $employee->id,
             'company_id' => $company->company_id,
@@ -58,6 +59,16 @@ class EmployeeCreateService
         ]);
 
         $employee->assignRole($data['role']);
+
+        // ✅ Handle profile picture upload
+        $profilePicturePath = null;
+        if (isset($data['profilePicture']) && $data['profilePicture']->isValid()) {
+            $filename = time() . '_' . uniqid() . '.' . $data['profilePicture']->getClientOriginalExtension();
+            $destinationPath = public_path('images/employeeprofiles');
+            File::ensureDirectoryExists($destinationPath); 
+            $data['profilePicture']->move($destinationPath, $filename);
+            $profilePicturePath = 'images/employeeprofiles/' . $filename;
+        }
 
         EmployeeDetail::create([
             'user_id'                   => $employee->id,
@@ -86,9 +97,7 @@ class EmployeeCreateService
             'panNo'                     => $data['panNo'] ?? null,
             'upiId'                     => $data['upiId'] ?? null,
             'addressProof'              => $data['addressProof'] ?? null,
-            'profilePicture'            => $data['profilePicture'] ?? null,
-
-            
+            'profilePicture'            => $profilePicturePath,
         ]);
 
         SalaryHistory::create([
@@ -101,7 +110,6 @@ class EmployeeCreateService
 
         return $employee;
     }
-
 
     /**
      * Update existing employee data and handle salary change logging.
