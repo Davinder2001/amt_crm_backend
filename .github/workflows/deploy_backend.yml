@@ -86,7 +86,7 @@ jobs:
           port: ${{ secrets.PROD_PORT || 22 }}
           source: "."
           target: "/srv/laravel-backend"
-          rm: true
+          overwrite: true
 
       - name: Deploy with SSH and Docker Compose
         uses: appleboy/ssh-action@v1.0.3
