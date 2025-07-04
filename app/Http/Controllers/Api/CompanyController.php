@@ -85,18 +85,18 @@ class CompanyController extends Controller
     {
         $user = Auth::user();
         $token = $user->currentAccessToken();
-
-        $companyUser = CompanyUser::where('user_id', $user->id)
-            ->where('company_id', $id)
-            ->with('company')
-            ->first();
+        $companyUser = CompanyUser::where('user_id', $user->id)->where('company_id', $id)->with('company')->first();
 
         if (!$companyUser) {
-            return response()->json(['error' => 'Unauthorized company'], 403);
+            return response()->json([
+                'error' => 'Unauthorized company'
+            ], 403);
         }
 
         if (!$companyUser->company || $companyUser->company->verification_status !== 'verified') {
-            return response()->json(['error' => 'Company is not verified.'], 403);
+            return response()->json([
+                'error' => 'Company is not verified.'
+            ], 403);
         }
 
         if ($token) {

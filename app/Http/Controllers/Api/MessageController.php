@@ -147,7 +147,7 @@ class MessageController extends Controller
                     'read'       => $authParticipant && $authParticipant->last_read
                         ? $message->created_at <= $authParticipant->last_read
                         : false,
-                    'created_at' => $message->created_at->toDateTimeString(),
+                    'created_at' => $message->created_at->timezone('Asia/Kolkata')->format('Y-m-d H:i:s'),
                 ];
             });
 

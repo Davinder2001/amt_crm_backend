@@ -166,7 +166,6 @@ class EmployeeController extends Controller
     /**
      * Update the specified employee.
      */
-
     public function update(Request $request, $id)
     {
         $employee = User::where('user_type', 'employee')->findOrFail($id);
