@@ -5,8 +5,10 @@
 
 # Environment files
 .env
-.env.*
+.env.backup
+.env.production
 !.env.example
+!.env.docker
 
 # Node modules and build artifacts
 node_modules

@@ -4,8 +4,8 @@ FROM php:8.2-fpm-alpine AS base
 # Install system dependencies and PHP extensions
 RUN apk add --no-cache \
     libpng-dev \
-    libjpeg-dev \
-    libfreetype-dev \
+    jpeg-dev \
+    freetype-dev \
     libzip-dev \
     zip \
     git \
