@@ -62,6 +62,20 @@ jobs:
           # Create .env.docker file
           chmod +x create-env.sh
           ./create-env.sh
+          
+          # Debug: Check the .env.docker file
+          echo "=== .env.docker file contents ==="
+          cat .env.docker
+          echo "=== End of .env.docker file ==="
+          
+          # Debug: Check file encoding and line endings
+          echo "=== File info ==="
+          file .env.docker
+          echo "=== Line count ==="
+          wc -l .env.docker
+          echo "=== Last few lines ==="
+          tail -5 .env.docker | cat -A
+          
           cp .env.docker deployment/
           
           # Create tar.gz for deployment
@@ -93,6 +107,19 @@ jobs:
             
             # Copy environment file
             cp .env.docker .env
+            
+            # Debug: Check the .env file on server
+            echo "=== .env file contents on server ==="
+            cat .env
+            echo "=== End of .env file ==="
+            
+            # Debug: Check file encoding and line endings on server
+            echo "=== File info on server ==="
+            file .env
+            echo "=== Line count on server ==="
+            wc -l .env
+            echo "=== Last few lines on server ==="
+            tail -5 .env | cat -A
             
             # Stop existing containers gracefully
             docker compose down --remove-orphans
