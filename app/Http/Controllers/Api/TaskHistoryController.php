@@ -53,7 +53,7 @@ class TaskHistoryController extends Controller
         }
 
         // Update task status to 'submitted' on every submission
-        $task->update(['status' => 'submitted']);
+        $task->update(['status' => 'in_progress']);
 
         $images = [];
         if ($request->hasFile('attachments')) {
