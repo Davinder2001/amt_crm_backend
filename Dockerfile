@@ -52,7 +52,7 @@ RUN mkdir -p /run/nginx /var/lib/nginx/logs /var/log/nginx && \
     chown -R www:www /var/lib/nginx /var/log/nginx /run/nginx
 
 # Copy nginx configuration
-COPY nginx.conf /etc/nginx/nginx.conf
+COPY docker/nginx/nginx.conf /etc/nginx/nginx.conf
 
 # Configure PHP-FPM to run as www user
 RUN sed -i 's/user = www-data/user = www/' /usr/local/etc/php-fpm.d/www.conf && \

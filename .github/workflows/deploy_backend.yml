@@ -46,6 +46,7 @@ jobs:
           cp -r routes deployment/
           cp -r storage deployment/
           cp -r infra deployment/
+          cp -r docker deployment/
           
           # Copy individual files
           cp artisan deployment/
@@ -58,7 +59,6 @@ jobs:
           cp vite.config.js deployment/
           cp docker-entrypoint.sh deployment/
           cp create-env.sh deployment/
-          cp nginx.conf deployment/
           
           # Create .env.docker file
           chmod +x create-env.sh
