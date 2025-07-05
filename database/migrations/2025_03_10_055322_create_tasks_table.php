@@ -20,7 +20,7 @@ class CreateTasksTable extends Migration
             $table->dateTime('end_date')->nullable();
             $table->json('attachments')->nullable();
             $table->boolean('notify')->default(true);
-            $table->enum('status', ['pending',  'submitted', 'completed', 'approved', 'rejected', 'working', 'ended'])->default('pending');
+            $table->enum('status', ['pending',  'submitted', 'completed', 'approved', 'rejected', 'working', 'in_progress'])->default('pending');
             $table->boolean('is_recurring')->default(false);
             $table->string('recurrence_interval')->nullable();
             $table->timestamps();

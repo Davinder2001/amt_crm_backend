@@ -298,7 +298,9 @@ class TaskController extends Controller
         $task = Task::find($id);
 
         if (!$task) {
-            return response()->json(['error' => 'Task not found'], 404);
+            return response()->json([
+                'error' => 'Task not found'
+            ], 404);
         }
 
         if (!in_array($task->status, ['working', 'submitted'])) {
@@ -307,7 +309,7 @@ class TaskController extends Controller
             ], 400);
         }
 
-        $task->status = 'ended';
+        $task->status = 'submitted';
         $task->save();
 
         return response()->json([
