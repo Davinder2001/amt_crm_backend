@@ -14,6 +14,8 @@ RUN apk add --no-cache \
     libxml2-dev \
     nginx \
     wget \
+    certbot \
+    certbot-nginx \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) pdo_mysql mbstring exif pcntl bcmath gd zip
 
@@ -48,8 +50,8 @@ RUN npm run build
 RUN apk del nodejs npm
 
 # Create nginx directories and set permissions (now www user exists)
-RUN mkdir -p /run/nginx /var/lib/nginx/logs /var/log/nginx && \
-    chown -R www:www /var/lib/nginx /var/log/nginx /run/nginx
+RUN mkdir -p /run/nginx /var/lib/nginx/logs /var/log/nginx /etc/letsencrypt && \
+    chown -R www:www /var/lib/nginx /var/log/nginx /run/nginx /etc/letsencrypt
 
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
@@ -72,8 +74,8 @@ RUN chown -R www:www /var/www && \
 # Switch to non-root user
 USER www
 
-# Expose port
-EXPOSE 80
+# Expose ports
+EXPOSE 80 443
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \

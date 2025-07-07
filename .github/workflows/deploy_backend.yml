@@ -59,6 +59,7 @@ jobs:
           cp docker-entrypoint.sh deployment/
           cp create-env.sh deployment/
           cp nginx.conf deployment/
+          cp setup-ssl.sh deployment/
           
           # Create .env.docker file
           chmod +x create-env.sh
@@ -148,6 +149,15 @@ jobs:
             docker compose exec -T app php artisan config:cache
             docker compose exec -T app php artisan route:cache
             docker compose exec -T app php artisan view:cache
+            
+            # Check SSL certificate status
+            echo "Checking SSL certificate status..."
+            if docker compose ps nginx-proxy-le | grep -q "Up"; then
+              echo "Let's Encrypt companion is running. SSL certificates should be automatically managed."
+            else
+              echo "Let's Encrypt companion is not running. Starting it..."
+              docker compose up -d nginx-proxy-le
+            fi
             
             # Clean up deployment package
             rm -f deployment.tar.gz
