@@ -84,8 +84,9 @@ class ItemsController extends Controller
                 ->whereMonth('created_at', $now->month);
         } elseif ($subscriptionType === 'annual') {
             $itemQuery->whereYear('created_at', $now->year);
+        } elseif ($subscriptionType === 'three_years') {
+            $itemQuery->whereYear('created_at', '>=', $now->year - 2);
         }
-        // No date filter for 'three_years'
 
         if ($itemQuery->count() >= ($limit->items_number ?? 0)) {
             return response()->json([

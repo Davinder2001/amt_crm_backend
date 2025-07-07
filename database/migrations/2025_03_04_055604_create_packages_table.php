@@ -14,17 +14,21 @@ return new class extends Migration
         Schema::create('packages', function (Blueprint $table) {
             $table->id();
             $table->string('name');
+            $table->enum('package_type', ['general', 'specific'])->default('general');
+            $table->unsignedBigInteger('user_id')->nullable();
+
             $table->decimal('monthly_price', 10, 2);
             $table->decimal('annual_price', 10, 2);
             $table->decimal('three_years_price', 10, 2);
-            $table->unsignedBigInteger('business_category_id')->nullable();
-            $table->foreign('business_category_id')->references('id')->on('business_categories')->onDelete('set null');
+
             $table->timestamps();
+
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('set null');
         });
     }
 
     /**
-     * Reverse the migrations.f
+     * Reverse the migrations.
      */
     public function down(): void
     {

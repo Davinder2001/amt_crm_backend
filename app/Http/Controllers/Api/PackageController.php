@@ -20,6 +20,8 @@ class PackageController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'name'                      => 'required|string|max:255',
+            'package_type'              => 'required|in:general,specific',
+            'user_id'                   => 'required_if:package_type,specific|nullable|exists:users,id',
             'monthly_price'             => 'required|numeric|min:0',
             'annual_price'              => 'required|numeric|min:0',
             'three_years_price'         => 'required|numeric|min:0',
@@ -58,6 +60,8 @@ class PackageController extends Controller
 
         $package = Package::create([
             'name'              => $data['name'],
+            'package_type'      => $data['package_type'],
+            'user_id'           => $data['user_id'] ?? null,
             'monthly_price'     => $data['monthly_price'],
             'annual_price'      => $data['annual_price'],
             'three_years_price' => $data['three_years_price'],
@@ -94,6 +98,8 @@ class PackageController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'name'                      => 'sometimes|string|max:255',
+            'package_type'              => 'sometimes|in:general,specific',
+            'user_id'                   => 'required_if:package_type,specific|nullable|exists:users,id',
             'monthly_price'             => 'sometimes|numeric|min:0',
             'annual_price'              => 'sometimes|numeric|min:0',
             'three_years_price'         => 'sometimes|numeric|min:0',
@@ -117,6 +123,8 @@ class PackageController extends Controller
 
         $package->update([
             'name'              => $data['name'] ?? $package->name,
+            'package_type'      => $data['package_type'] ?? $package->package_type,
+            'user_id'           => $data['user_id'] ?? $package->user_id,
             'monthly_price'     => $data['monthly_price'] ?? $package->monthly_price,
             'annual_price'      => $data['annual_price'] ?? $package->annual_price,
             'three_years_price' => $data['three_years_price'] ?? $package->three_years_price,
