@@ -34,16 +34,25 @@ class PackageController extends Controller
             'monthly_limits.items_number'         => 'required|integer|min:0',
             'monthly_limits.daily_tasks_number'   => 'required|integer|min:0',
             'monthly_limits.invoices_number'      => 'required|integer|min:0',
+            'monthly_limits.task'                 => 'required|boolean',
+            'monthly_limits.chat'                 => 'required|boolean',
+            'monthly_limits.hr'                   => 'required|boolean',
 
-            'annual_limits.employee_numbers'     => 'required|integer|min:0',
-            'annual_limits.items_number'         => 'required|integer|min:0',
-            'annual_limits.daily_tasks_number'   => 'required|integer|min:0',
-            'annual_limits.invoices_number'      => 'required|integer|min:0',
+            'annual_limits.employee_numbers'      => 'required|integer|min:0',
+            'annual_limits.items_number'          => 'required|integer|min:0',
+            'annual_limits.daily_tasks_number'    => 'required|integer|min:0',
+            'annual_limits.invoices_number'       => 'required|integer|min:0',
+            'annual_limits.task'                  => 'required|boolean',
+            'annual_limits.chat'                  => 'required|boolean',
+            'annual_limits.hr'                    => 'required|boolean',
 
             'three_years_limits.employee_numbers'     => 'required|integer|min:0',
             'three_years_limits.items_number'         => 'required|integer|min:0',
             'three_years_limits.daily_tasks_number'   => 'required|integer|min:0',
             'three_years_limits.invoices_number'      => 'required|integer|min:0',
+            'three_years_limits.task'                 => 'required|boolean',
+            'three_years_limits.chat'                 => 'required|boolean',
+            'three_years_limits.hr'                   => 'required|boolean',
 
             'business_category_ids'     => 'required|array',
             'business_category_ids.*'   => 'integer|exists:business_categories,id',
@@ -78,6 +87,9 @@ class PackageController extends Controller
                 'items_number'       => $limits['items_number'],
                 'daily_tasks_number' => $limits['daily_tasks_number'],
                 'invoices_number'    => $limits['invoices_number'],
+                'task'               => $limits['task'],
+                'chat'               => $limits['chat'],
+                'hr'                 => $limits['hr'],
             ]);
         }
 
@@ -139,22 +151,23 @@ class PackageController extends Controller
                 $limits = $data["{$variant}_limits"];
                 $limitRecord = $package->limits()->where('variant_type', $variant)->first();
 
+                $limitData = [
+                    'employee_numbers'   => $limits['employee_numbers'],
+                    'items_number'       => $limits['items_number'],
+                    'daily_tasks_number' => $limits['daily_tasks_number'],
+                    'invoices_number'    => $limits['invoices_number'],
+                    'task'               => $limits['task'],
+                    'chat'               => $limits['chat'],
+                    'hr'                 => $limits['hr'],
+                ];
+
                 if ($limitRecord) {
-                    $limitRecord->update([
-                        'employee_numbers'   => $limits['employee_numbers'],
-                        'items_number'       => $limits['items_number'],
-                        'daily_tasks_number' => $limits['daily_tasks_number'],
-                        'invoices_number'    => $limits['invoices_number'],
-                    ]);
+                    $limitRecord->update($limitData);
                 } else {
-                    PackageLimit::create([
-                        'package_id'         => $package->id,
-                        'variant_type'       => $variant,
-                        'employee_numbers'   => $limits['employee_numbers'],
-                        'items_number'       => $limits['items_number'],
-                        'daily_tasks_number' => $limits['daily_tasks_number'],
-                        'invoices_number'    => $limits['invoices_number'],
-                    ]);
+                    PackageLimit::create(array_merge($limitData, [
+                        'package_id'   => $package->id,
+                        'variant_type' => $variant,
+                    ]));
                 }
             }
         }

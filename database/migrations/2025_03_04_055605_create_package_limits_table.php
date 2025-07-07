@@ -15,10 +15,16 @@ return new class extends Migration
             $table->id();
             $table->foreignId('package_id')->constrained()->onDelete('cascade');
             $table->enum('variant_type', ['monthly', 'annual', 'three_years']);
-            $table->integer('employee_numbers')->default(0);
-            $table->integer('items_number')->default(0);
-            $table->integer('daily_tasks_number')->default(0);
-            $table->integer('invoices_number')->default(0);
+
+            $table->integer('employee_numbers')->nullable()->default(null);
+            $table->integer('items_number')->nullable()->default(null);
+            $table->integer('daily_tasks_number')->nullable()->default(null);
+            $table->integer('invoices_number')->nullable()->default(null);
+
+            $table->boolean('task')->default(false);
+            $table->boolean('chat')->default(false);
+            $table->boolean('hr')->default(false);
+
             $table->timestamps();
         });
     }

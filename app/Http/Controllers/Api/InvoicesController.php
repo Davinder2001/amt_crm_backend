@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Invoice;
 use App\Models\Item;
+use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use App\Services\InvoiceServices\InvoiceHelperService;
 use App\Models\Package;
@@ -193,30 +194,30 @@ class InvoicesController extends Controller
 
 
             $inv = Invoice::create([
-                'invoice_number'         => $invoiceNo,
-                'client_name'            => $data['client_name'] ?? 'Guest',
-                'client_phone'           => $data['number'],
-                'client_email'           => $data['email'] ?? null,
-                'invoice_date'           => $data['invoice_date'],
-                'total_amount'           => $subtotal,
-                'sub_total'              => $total,
-                'service_charge_amount'  => $serviceChargeAmount,
-                'service_charge_percent' => 18,
-                'service_charge_gst'     => $serviceChargeGstAmount,
-                'service_charge_final'   => $finalServiceCharge,
-                'discount_amount'        => $discountAmount,
-                'discount_percentage'    => $discountPercentage,
-                'delivery_charge'        => $data['delivery_charge'] ?? 0,
-                'delivery_address'       => $data['address'] ?? null,
-                'delivery_pincode'       => $data['pincode'] ?? null,
-                'final_amount'           => $finalAmount,
-                'payment_method'         => $data['payment_method'],
-                'bank_account_id'        => $data['bank_account_id'] ?? null,
-                'credit_note'            => $data['credit_note'] ?? null,
+                'invoice_number'          => $invoiceNo,
+                'client_name'             => $data['client_name'] ?? 'Guest',
+                'client_phone'            => $data['number'],
+                'client_email'            => $data['email'] ?? null,
+                'invoice_date'            => $data['invoice_date'],
+                'total_amount'            => $subtotal,
+                'sub_total'               => $total,
+                'service_charge_amount'   => $serviceChargeAmount,
+                'service_charge_percent'  => 18,
+                'service_charge_gst'      => $serviceChargeGstAmount,
+                'service_charge_final'    => $finalServiceCharge,
+                'discount_amount'         => $discountAmount,
+                'discount_percentage'     => $discountPercentage,
+                'delivery_charge'         => $data['delivery_charge'] ?? 0,
+                'delivery_address'        => $data['address'] ?? null,
+                'delivery_pincode'        => $data['pincode'] ?? null,
+                'final_amount'            => $finalAmount,
+                'payment_method'          => $data['payment_method'],
+                'bank_account_id'         => $data['bank_account_id'] ?? null,
+                'credit_note'             => $data['credit_note'] ?? null,
                 'delivery_boy'            => $data['delivery_boy'] ?? null,
-                'issued_by'              => $issuedById,
-                'issued_by_name'         => $issuedByName,
-                'company_id'             => $selectedCompany->company_id,
+                'issued_by'               => $issuedById,
+                'issued_by_name'          => $issuedByName,
+                'company_id'              => $selectedCompany->company_id,
             ]);
 
             $historyItems = [];
@@ -380,7 +381,7 @@ class InvoicesController extends Controller
         // ✅ Fetch delivery boy by ID from the invoice
         $deliveryBoyName = null;
         if ($invoice->delivery_boy) {
-            $deliveryBoy = \App\Models\User::find($invoice->delivery_boy);
+            $deliveryBoy = User::find($invoice->delivery_boy);
             $deliveryBoyName = $deliveryBoy?->name ?? null;
         }
 

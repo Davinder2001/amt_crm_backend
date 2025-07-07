@@ -1,6 +1,5 @@
 <?php
 
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -14,6 +13,9 @@ class PackageLimit extends Model
         'items_number',
         'daily_tasks_number',
         'invoices_number',
+        'task',
+        'chat',
+        'hr',
     ];
 
     public function package()
