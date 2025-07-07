@@ -46,7 +46,7 @@ class TaskHistoryController extends Controller
         }
 
         // Allow submissions until task is 'approved' or 'completed'
-        if (in_array($task->status, ['completed', 'approved'], true)) {
+        if (in_array($task->status, ['completed', 'submitted'], true)) {
             return response()->json([
                 'message' => "Task is already {$task->status}."
             ], 422);
@@ -90,11 +90,13 @@ class TaskHistoryController extends Controller
             'status'       => 'approved',
             'admin_remark' => 'Approved by admin'
         ]);
-
+        
         $task = $history->task;
-        $task->update(['status' => 'approved']);
+        $task->update(['status' => 'completed']);
 
-        return response()->json(['message' => 'Task approved.']);
+        return response()->json([
+            'message' => 'Task approved.'
+        ]);
     }
 
     /**

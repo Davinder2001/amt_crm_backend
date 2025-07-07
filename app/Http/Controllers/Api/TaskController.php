@@ -211,12 +211,9 @@ class TaskController extends Controller
         $tasks  = Task::where('assigned_to', $user->id)->where('status', 'pending')->get();
 
         if ($tasks->isEmpty()) {
-            return response()->json(
-                [
-                    'message' => 'No pending tasks found'
-                ],
-                200
-            );
+            return response()->json([
+                'message' => 'No pending tasks found'
+            ], 200);
         }
 
         return TaskResource::collection($tasks);
@@ -228,7 +225,7 @@ class TaskController extends Controller
     public function workingTask()
     {
         $user   = Auth::user();
-        $tasks  = Task::where('assigned_to', $user->id)->whereIn('status', ['working', 'submitted'])->get();
+        $tasks  = Task::where('assigned_to', $user->id)->whereIn('status', ['working', 'in_progress', 'submitted', 'rejected'])->get();
 
         if ($tasks->isEmpty()) {
             return response()->json([
@@ -258,13 +255,10 @@ class TaskController extends Controller
         $task->save();
         $this->notifyAdmins('Task Started', "Task '{$task->name}' is now working.", "/tasks/{$task->id}");
 
-        return response()->json(
-            [
-                'message' => 'Task status updated to working',
-                'task' => new TaskResource($task)
-            ],
-            200
-        );
+        return response()->json([
+            'message' => 'Task status updated to working',
+            'task' => new TaskResource($task)
+        ], 200);
     }
 
     /**
@@ -303,7 +297,7 @@ class TaskController extends Controller
             ], 404);
         }
 
-        if (!in_array($task->status, ['working', 'submitted'])) {
+        if (!in_array($task->status, ['working', 'in_progress'])) {
             return response()->json([
                 'error' => 'Only working or submitted tasks can be ended'
             ], 400);
