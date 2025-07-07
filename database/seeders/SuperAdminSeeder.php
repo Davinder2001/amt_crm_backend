@@ -33,22 +33,22 @@ class SuperAdminSeeder extends Seeder
 
         $user->assignRole($role);
 
-        $company = Company::updateOrCreate(
-            ['company_slug' => 'default-company'],
-            [
-                'company_name'        => 'Default Company',
-                'company_id'          => $defaultCompanyId,
-                'payment_status'      => 'completed',
-                'verification_status' => 'verified',
-            ]
-        );
+        // $company = Company::updateOrCreate(
+        //     ['company_slug' => 'default-company'],
+        //     [
+        //         'company_name'        => 'Default Company',
+        //         'company_id'          => $defaultCompanyId,
+        //         'payment_status'      => 'completed',
+        //         'verification_status' => 'verified',
+        //     ]
+        // );
 
-        CompanyUser::updateOrCreate(
-            ['user_id' => $user->id, 'company_id' => $company->id],
-            [
-                'user_type'  => 'admin',
-                'status'     => 1,
-            ]
-        );
+        // CompanyUser::updateOrCreate(
+        //     ['user_id' => $user->id, 'company_id' => $company->id],
+        //     [
+        //         'user_type'  => 'admin',
+        //         'status'     => 1,
+        //     ]
+        // );
     }
 }

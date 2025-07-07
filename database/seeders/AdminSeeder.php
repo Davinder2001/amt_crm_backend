@@ -17,31 +17,31 @@ class AdminSeeder extends Seeder
     {
         $companies = [
             [
-                'company_id'   => 'AMTCOM0000002',
+                'company_id'   => 'AMTCOM0000001',
                 'company_name' => 'Demo Admin Company One',
                 'company_slug' => 'demo-admin-company-one',
                 'package_name' => 'Basic',
             ],
             [
-                'company_id'   => 'AMTCOM0000003',
+                'company_id'   => 'AMTCOM0000002',
                 'company_name' => 'Demo Admin Company Two',
                 'company_slug' => 'demo-admin-company-two',
                 'package_name' => 'Standard',
             ],
             [
-                'company_id'   => 'AMTCOM0000004',
+                'company_id'   => 'AMTCOM0000003',
                 'company_name' => 'Demo Admin Company Three',
                 'company_slug' => 'demo-admin-company-three',
                 'package_name' => 'Premium',
             ],
             [
-                'company_id'   => 'AMTCOM0000005',
+                'company_id'   => 'AMTCOM0000004',
                 'company_name' => 'Demo Admin Company Four',
                 'company_slug' => 'demo-admin-company-four',
                 'package_name' => 'Basic',
             ],
             [
-                'company_id'   => 'AMTCOM0000006',
+                'company_id'   => 'AMTCOM0000005',
                 'company_name' => 'Demo Admin Company Five',
                 'company_slug' => 'demo-admin-company-five',
                 'package_name' => 'Standard',

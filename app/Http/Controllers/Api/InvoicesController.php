@@ -188,9 +188,12 @@ class InvoicesController extends Controller
             $customer = InvoiceHelperService::createCustomer($data, $selectedCompany->company_id);
             $today = now()->toDateString();
             $shortDate = now()->format('ymd');
-            $lastInv = Invoice::where('company_id', $selectedCompany->company_id)->whereDate('invoice_date', $today)->orderBy('invoice_number', 'desc')->first();
+            $companyCode = 'C' . $selectedCompany->company->id;
+            $lastInv = Invoice::where('company_id', $selectedCompany->company->id)->whereDate('invoice_date', $today)->orderBy('invoice_number', 'desc')->first();
             $nextSeq = $lastInv ? ((int) substr($lastInv->invoice_number, -3)) + 1 : 1;
-            $invoiceNo = 'INV' . $shortDate . str_pad($nextSeq, 3, '0', STR_PAD_LEFT);
+            $invoiceNo = $companyCode . $shortDate . str_pad($nextSeq, 3, '0', STR_PAD_LEFT);
+
+
 
 
             $inv = Invoice::create([

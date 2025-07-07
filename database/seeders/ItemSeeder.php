@@ -18,11 +18,11 @@ class ItemSeeder extends Seeder
     {
         DB::transaction(function () {
             $companies = [
-                ['id' => 2, 'company_name' => 'Demo Admin Company One'],
-                ['id' => 3, 'company_name' => 'Demo Admin Company Two'],
-                ['id' => 4, 'company_name' => 'Demo Admin Company Three'],
-                ['id' => 5, 'company_name' => 'Demo Admin Company Four'],
-                ['id' => 6, 'company_name' => 'Demo Admin Company Five'],
+                ['id' => 1, 'company_name' => 'Demo Admin Company One'],
+                ['id' => 2, 'company_name' => 'Demo Admin Company Two'],
+                ['id' => 3, 'company_name' => 'Demo Admin Company Three'],
+                ['id' => 4, 'company_name' => 'Demo Admin Company Four'],
+                ['id' => 5, 'company_name' => 'Demo Admin Company Five'],
             ];
 
             $baseCategories = [
