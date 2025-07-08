@@ -206,7 +206,7 @@ class TaskController extends Controller
     /**
      * Display a listing of all tasks assigned to the authenticated user.
      */
-    public function myTask()
+    public function myTasks()
     {
         $user = Auth::user();
 
