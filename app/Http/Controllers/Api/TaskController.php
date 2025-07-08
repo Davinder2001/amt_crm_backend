@@ -31,22 +31,14 @@ class TaskController extends Controller
      */
     public function store(Request $request)
     {
-        $authUser        = $request->user();
-        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $company         = $selectedCompany->company;
-
-        // Load package with limits
-        $package = Package::with('limits')->find($company->package_id);
-        $subscriptionType = $company->subscription_type;
-
-        // Get task limit
-        $limit = collect($package->limits)->firstWhere('variant_type', $subscriptionType);
-        $dailyTasksLimit = $limit->daily_tasks_number ?? 0;
-
-        // Check if today's task count exceeds limit
-        $taskCount = Task::where('company_id', $company->id)
-            ->whereDate('created_at', now())
-            ->count();
+        $authUser           = $request->user();
+        $selectedCompany    = SelectedCompanyService::getSelectedCompanyOrFail();
+        $company            = $selectedCompany->company;
+        $package            = Package::with('limits')->find($company->package_id);
+        $subscriptionType   = $company->subscription_type;
+        $limit              = collect($package->limits)->firstWhere('variant_type', $subscriptionType);
+        $dailyTasksLimit    = $limit->daily_tasks_number ?? 0;
+        $taskCount          = Task::where('company_id', $company->id)->whereDate('created_at', now())->count();
 
         if ($taskCount >= $dailyTasksLimit) {
             return response()->json([
@@ -54,12 +46,10 @@ class TaskController extends Controller
             ], 403);
         }
 
-        // Normalize notify boolean
         $request->merge([
             'notify' => filter_var($request->input('notify'), FILTER_VALIDATE_BOOLEAN)
         ]);
 
-        // Validate input
         $validator = Validator::make($request->all(), [
             'name'          => 'required|string|max:255',
             'description'   => 'required|string',
@@ -92,17 +82,13 @@ class TaskController extends Controller
             }
         }
 
-
-        // Add extra fields
         $data['assigned_by'] = $authUser->id;
         $data['company_id']  = $company->id;
         $data['status']      = $data['status'] ?? 'pending';
         $data['attachments'] = $attachmentPaths;
 
-        // Create task
         $task = Task::create($data);
 
-        // Notify admins
         if ($data['notify']) {
             $this->notifyAdmins(
                 'New Task Added',
@@ -140,7 +126,9 @@ class TaskController extends Controller
         $task = Task::find($id);
 
         if (!$task) {
-            return response()->json(['error' => 'Task not found'], 404);
+            return response()->json([
+                'error' => 'Task not found'
+            ], 404);
         }
 
         $validator = Validator::make($request->all(), [
@@ -167,7 +155,7 @@ class TaskController extends Controller
                 Storage::disk('public')->delete($task->attachment_path);
             }
 
-            $path                    = $request->file('attachment')->store('task_attachments', 'public');
+            $path = $request->file('attachment')->store('task_attachments', 'public');
             $data['attachment_path'] = $path;
         }
 
@@ -185,7 +173,9 @@ class TaskController extends Controller
         $task = Task::find($id);
 
         if (!$task) {
-            return response()->json(['error' => 'Task not found'], 404);
+            return response()->json([
+                'error' => 'Task not found'
+            ], 404);
         }
 
         if ($task->attachment_path) {
@@ -209,7 +199,6 @@ class TaskController extends Controller
     public function myTasks()
     {
         $user = Auth::user();
-
         $tasks = Task::where('assigned_to', $user->id)->get();
 
         if ($tasks->isEmpty()) {
@@ -383,7 +372,9 @@ class TaskController extends Controller
         $reminder = TaskReminder::where('task_id', $taskId)->where('user_id', Auth::id())->first();
 
         if (!$reminder) {
-            return response()->json(['message' => 'Reminder not found.'], 404);
+            return response()->json([
+                'message' => 'Reminder not found.'
+            ], 404);
         }
 
         $reminder->update([
@@ -392,8 +383,8 @@ class TaskController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Reminder updated successfully.',
-            'reminder' => $reminder,
+            'message'   => 'Reminder updated successfully.',
+            'reminder'  => $reminder,
         ]);
     }
 }

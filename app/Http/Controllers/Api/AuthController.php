@@ -6,17 +6,12 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\ValidationException;
 use App\Services\AdminRegistrationService;
-use App\Http\Requests\AdminRegisterRequest;
 use App\Models\User;
-use App\Models\Package;
-use App\Models\Company;
 use App\Models\CompanyUser;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Resources\UserResource;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Cache;
 
@@ -76,9 +71,6 @@ class AuthController extends Controller
             'user'         => new UserResource($user),
         ], 201);
     }
-
-
-
 
     
     /**

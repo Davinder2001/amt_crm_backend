@@ -9,13 +9,20 @@ use App\Models\BusinessCategory;
 
 class BusinessCategoryController extends Controller
 {
+    /**
+     * Display a listing of the resource.
+     *
+     */
     public function index()
     {
         return response()->json(BusinessCategory::all());
     }
 
 
-
+    /**
+     * Store a newly created resource in storage.
+     *
+     */
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -40,6 +47,10 @@ class BusinessCategoryController extends Controller
     }
 
 
+    /**
+     * Display the specified resource.
+     *
+     */
     public function show($id)
     {
         $category = BusinessCategory::find($id);
@@ -50,6 +61,10 @@ class BusinessCategoryController extends Controller
         return response()->json($category);
     }
 
+    /**
+     * Update the specified resource in storage.
+     *
+     */
     public function update(Request $request, $id)
     {
         $category = BusinessCategory::find($id);
@@ -77,6 +92,10 @@ class BusinessCategoryController extends Controller
     }
 
 
+    /**
+     * Remove the specified resource from storage.
+     *
+     */
     public function destroy($id)
     {
         $category = BusinessCategory::find($id);

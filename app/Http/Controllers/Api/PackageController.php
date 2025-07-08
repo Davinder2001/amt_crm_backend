@@ -10,12 +10,23 @@ use Illuminate\Support\Facades\Validator;
 
 class PackageController extends Controller
 {
+    /**
+     * Display a listing of the packages.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function index()
     {
         $packages = Package::with(['businessCategories', 'limits'])->get();
         return response()->json($packages);
     }
 
+    /**
+     * Store a newly created package in storage.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -100,12 +111,25 @@ class PackageController extends Controller
         ], 201);
     }
 
+    /**
+     * Display the specified package.
+     *
+     * @param string $id
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function show(string $id)
     {
         $package = Package::with(['businessCategories', 'limits'])->findOrFail($id);
         return response()->json($package);
     }
 
+    /**
+     * Update the specified package in storage.
+     *
+     * @param Request $request
+     * @param string $id
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function update(Request $request, string $id)
     {
         $validator = Validator::make($request->all(), [
@@ -179,6 +203,12 @@ class PackageController extends Controller
         ]);
     }
 
+    /**
+     * Remove the specified package from storage.
+     *
+     * @param string $id
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function destroy(string $id)
     {
         $package = Package::findOrFail($id);

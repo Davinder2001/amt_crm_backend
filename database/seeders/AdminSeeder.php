@@ -6,7 +6,6 @@ use App\Models\User;
 use App\Models\Company;
 use App\Models\Role;
 use App\Models\Package;
-use App\Models\BusinessCategory;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -53,35 +52,35 @@ class AdminSeeder extends Seeder
                 'name'     => 'Admin One',
                 'email'    => 'admin1@example.com',
                 'number'   => '9000000001',
-                'uid'      => 'AMT0000000002',
+                'uid'      => 'AMT0000000001',
                 'password' => Hash::make('password1'),
             ],
             [
                 'name'     => 'Admin Two',
                 'email'    => 'admin2@example.com',
                 'number'   => '9000000002',
-                'uid'      => 'AMT0000000003',
+                'uid'      => 'AMT0000000002',
                 'password' => Hash::make('password2'),
             ],
             [
                 'name'     => 'Admin Three',
                 'email'    => 'admin3@example.com',
                 'number'   => '9000000003',
-                'uid'      => 'AMT0000000004',
+                'uid'      => 'AMT0000000003',
                 'password' => Hash::make('password3'),
             ],
             [
                 'name'     => 'Admin Four',
                 'email'    => 'admin4@example.com',
                 'number'   => '9000000004',
-                'uid'      => 'AMT0000000005',
+                'uid'      => 'AMT0000000004',
                 'password' => Hash::make('password4'),
             ],
             [
                 'name'     => 'Admin Five',
                 'email'    => 'admin5@example.com',
                 'number'   => '9000000005',
-                'uid'      => 'AMT0000000006',
+                'uid'      => 'AMT0000000005',
                 'password' => Hash::make('password5'),
             ],
         ];

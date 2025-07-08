@@ -76,11 +76,10 @@ class CompanyController extends Controller
         ]);
     }
 
+    
     /**
      * Select a company for the authenticated user.
      */
-
-
     public function selectedCompanies($id)
     {
         $user = Auth::user();
@@ -116,7 +115,6 @@ class CompanyController extends Controller
         $user = Auth::user();
         $token = $user->currentAccessToken();
 
-        // 1. Check if super admin (no active company needed)
         if ($user->hasRole('super-admin')) {
             return response()->json([
                 'message'           => 'Selected company retrieved successfully.',
@@ -125,7 +123,6 @@ class CompanyController extends Controller
             ]);
         }
 
-        // 2. Get active company ID from token
         $activeCompanyId = $token?->active_company_id;
 
         if (!$activeCompanyId) {
@@ -336,7 +333,7 @@ class CompanyController extends Controller
             ], 422);
         }
 
-        $company = SelectedCompanyService::getSelectedCompanyOrFail(); // must return Company
+        $company = SelectedCompanyService::getSelectedCompanyOrFail();
         $account = CompanyAccount::where('company_id', $company->company->id)->where('id', $id)->firstOrFail();
 
         $validated = $validator->validated();
@@ -368,11 +365,8 @@ class CompanyController extends Controller
      */
     public function deleteCompanyAccount($id)
     {
-        $company = SelectedCompanyService::getSelectedCompanyOrFail(); // already the Company model
-
-        $account = CompanyAccount::where('company_id', $company->id)
-            ->where('id', $id)
-            ->firstOrFail();
+        $company = SelectedCompanyService::getSelectedCompanyOrFail();
+        $account = CompanyAccount::where('company_id', $company->id)->where('id', $id)->firstOrFail();
 
         $account->delete();
 

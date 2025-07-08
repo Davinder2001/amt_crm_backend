@@ -193,9 +193,6 @@ class InvoicesController extends Controller
             $nextSeq = $lastInv ? ((int) substr($lastInv->invoice_number, -3)) + 1 : 1;
             $invoiceNo = $companyCode . $shortDate . str_pad($nextSeq, 3, '0', STR_PAD_LEFT);
 
-
-
-
             $inv = Invoice::create([
                 'invoice_number'          => $invoiceNo,
                 'client_name'             => $data['client_name'] ?? 'Guest',
@@ -291,10 +288,6 @@ class InvoicesController extends Controller
 
         return [$invoice];
     }
-
-
-
-
 
 
     /**
@@ -398,15 +391,11 @@ class InvoicesController extends Controller
             'company_gstin'     => $company->gstin ?? 'N/A',
             'footer_note'       => 'Thank you for your business',
             'show_signature'    => true,
-            'delivery_boy_name' => $deliveryBoyName, // <-- Pass delivery boy name to view
+            'delivery_boy_name' => $deliveryBoyName,
         ]);
 
         return $pdf->download('invoice_' . $invoice->invoice_number . '.pdf');
     }
-
-
-
-
 
 
     /**
@@ -604,7 +593,9 @@ class InvoicesController extends Controller
         ]);
     }
 
-
+    /**
+     * Display the card payment history.
+     */
     public function cardPaymentHistory()
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();

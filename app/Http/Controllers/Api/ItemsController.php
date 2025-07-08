@@ -15,6 +15,11 @@ use Illuminate\Http\JsonResponse;
 
 class ItemsController extends Controller
 {
+    /**
+     * Display a listing of the resource.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function index(): JsonResponse
     {
         $items = Item::with([
@@ -30,6 +35,12 @@ class ItemsController extends Controller
         return response()->json(ItemResource::collection($items));
     }
 
+    /**
+     * Store a newly created resource in storage.
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function store(Request $request): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -66,7 +77,7 @@ class ItemsController extends Controller
             ], 404);
         }
 
-        $subscriptionType = $company->subscription_type; // 'monthly' | 'annual' | 'three_years'
+        $subscriptionType = $company->subscription_type;
 
         $limit = collect($package->limits)->firstWhere('variant_type', $subscriptionType);
         if (!$limit) {
@@ -133,6 +144,12 @@ class ItemsController extends Controller
         }
     }
 
+    /**
+     * Display the specified resource.
+     *
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function show($id): JsonResponse
     {
         $item = Item::with([
@@ -150,6 +167,13 @@ class ItemsController extends Controller
             : response()->json(['message' => 'Item not found.'], 404);
     }
 
+    /**
+     * Update the specified resource in storage.
+     *
+     * @param \Illuminate\Http\Request $request
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function update(Request $request, int $id): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -237,6 +261,12 @@ class ItemsController extends Controller
         }
     }
 
+    /**
+     * Remove the specified resource from storage.
+     *
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function destroy($id): JsonResponse
     {
         $item = Item::find($id);

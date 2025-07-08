@@ -11,11 +11,13 @@ use App\Services\SelectedCompanyService;
 
 class MeasuringUnitController extends Controller
 {
+    /**
+     * Display a listing of the measuring units.
+     *
+     * @return JsonResponse
+     */
     public function index(): JsonResponse
     {
-        // $company = SelectedCompanyService::getSelectedCompanyOrFail()->company_id;
-        // $companyId = $company->company->id;
-        // $units = MeasuringUnit::where('company_id', $companyId)->get();
         $units = MeasuringUnit::get();
 
         return response()->json([
@@ -23,6 +25,12 @@ class MeasuringUnitController extends Controller
         ], 200);
     }
 
+    /**
+     * Store a newly created measuring unit in storage.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function store(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -44,6 +52,12 @@ class MeasuringUnitController extends Controller
         return response()->json(['message' => 'Measuring unit created.', 'unit' => $unit], 201);
     }
 
+    /**
+     * Display the specified measuring unit.
+     *
+     * @param int $id
+     * @return JsonResponse
+     */
     public function show(int $id): JsonResponse
     {
         $unit = MeasuringUnit::find($id);
@@ -54,6 +68,13 @@ class MeasuringUnitController extends Controller
         return response()->json(['unit' => $unit], 200);
     }
 
+    /**
+     * Update the specified measuring unit in storage.
+     *
+     * @param Request $request
+     * @param int $id
+     * @return JsonResponse
+     */
     public function update(Request $request, int $id): JsonResponse
     {
         $unit = MeasuringUnit::find($id);
@@ -80,6 +101,12 @@ class MeasuringUnitController extends Controller
         return response()->json(['message' => 'Measuring unit updated.', 'unit' => $unit], 200);
     }
 
+    /**
+     * Remove the specified measuring unit from storage.
+     *
+     * @param int $id
+     * @return JsonResponse
+     */
     public function destroy(int $id): JsonResponse
     {
         $unit = MeasuringUnit::find($id);

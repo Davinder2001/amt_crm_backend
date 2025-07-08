@@ -12,6 +12,11 @@ use App\Services\SelectedCompanyService;
 
 class ExpenseController extends Controller
 {
+    /**
+     * Display a listing of the resource.
+     *
+     * @return \Illuminate\Http\Resources\Json\AnonymousResourceCollection
+     */
     public function index()
     {
         $query = Expense::query();
@@ -25,6 +30,12 @@ class ExpenseController extends Controller
         );
     }
 
+    /**
+     * Store a newly created resource in storage.
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function store(Request $request)
     {
         $companyId = SelectedCompanyService::getSelectedCompanyOrFail()->company_id;
@@ -62,12 +73,25 @@ class ExpenseController extends Controller
             ->setStatusCode(201);
     }
 
+    /**
+     * Display the specified resource.
+     *
+     * @param int $id
+     * @return \App\Http\Resources\ExpenseResource
+     */
     public function show($id)
     {
         $expense = Expense::findOrFail($id);
         return new ExpenseResource($expense);
     }
 
+    /**
+     * Update the specified resource in storage.
+     *
+     * @param \Illuminate\Http\Request $request
+     * @param int $id
+     * @return \App\Http\Resources\ExpenseResource|\Illuminate\Http\JsonResponse
+     */
     public function update(Request $request, $id)
     {
         $expense = Expense::findOrFail($id);
@@ -107,6 +131,12 @@ class ExpenseController extends Controller
         return new ExpenseResource($expense->refresh());
     }
 
+    /**
+     * Remove the specified resource from storage.
+     *
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function destroy($id)
     {
         $expense = Expense::findOrFail($id);
@@ -120,6 +150,12 @@ class ExpenseController extends Controller
         return response()->json(['message' => 'Expense deleted.']);
     }
 
+    /**
+     * Save the uploaded file and return its path.
+     *
+     * @param \Illuminate\Http\UploadedFile $uploadedFile
+     * @return string
+     */
     protected function saveFile($uploadedFile): string
     {
         $uploadDir = public_path('uploads/expenses');

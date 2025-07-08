@@ -10,6 +10,11 @@ use Carbon\Carbon;
 
 class HRController extends Controller
 {
+    /**
+     * Get the dashboard summary for HR.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function dashboardSummary()
     {
         $today          = Carbon::today()->toDateString();
