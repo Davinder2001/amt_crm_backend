@@ -202,6 +202,26 @@ class TaskController extends Controller
         ], 200);
     }
 
+
+    /**
+     * Display a listing of all tasks assigned to the authenticated user.
+     */
+    public function myTask()
+    {
+        $user = Auth::user();
+
+        $tasks = Task::where('assigned_to', $user->id)->get();
+
+        if ($tasks->isEmpty()) {
+            return response()->json([
+                'message' => 'No tasks assigned to you.'
+            ], 200);
+        }
+
+        return TaskResource::collection($tasks);
+    }
+
+
     /**
      * Display a listing of tasks assigned to the user with pending status.
      */

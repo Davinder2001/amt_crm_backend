@@ -191,6 +191,7 @@ Route::prefix('v1')->group(function () {
         // Tasks API's
         Route::prefix('tasks')->group(function () {
             Route::get('/pending', [TaskController::class, 'assignedPendingTasks']);
+            Route::get('/my', [TaskController::class, 'myTasks']);
             Route::get('/all-history', [TaskHistoryController::class, 'allHistory']);
             Route::post('{id}/approve', [TaskHistoryController::class, 'approve']);
             Route::post('{id}/reject', [TaskHistoryController::class, 'reject']);
