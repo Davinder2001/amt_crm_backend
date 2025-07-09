@@ -10,6 +10,7 @@ use App\Models\CompanyAccount;
 use App\Services\SelectedCompanyService;
 use App\Models\CompanyUser;
 use App\Models\BusinessCategory;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Resources\CompanyResource;
@@ -76,7 +77,7 @@ class CompanyController extends Controller
         ]);
     }
 
-    
+
     /**
      * Select a company for the authenticated user.
      */
@@ -372,6 +373,43 @@ class CompanyController extends Controller
 
         return response()->json([
             'message' => 'Account deleted successfully',
+        ]);
+    }
+
+
+
+    public function getCompanyProfileScore()
+    {
+        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+        $company = Company::findOrFail($selectedCompany->company_id);
+
+        // Get all columns from the companies table
+        $columns = Schema::getColumnListing('companies');
+
+        // Optional: Exclude irrelevant fields like timestamps, IDs, or foreign keys
+        $excluded = ['id', 'created_at', 'updated_at', 'user_id', 'package_id'];
+        $fields = array_diff($columns, $excluded);
+
+        $totalFields = count($fields);
+        $filledCount = 0;
+
+        foreach ($fields as $field) {
+            if (!empty($company->$field)) {
+                $filledCount++;
+            }
+        }
+
+        $score = $totalFields > 0 ? round(($filledCount / $totalFields) * 100) : 0;
+
+        $message = $score < 80
+            ? 'Your company profile score is low. Please complete your company details.'
+            : 'Your company profile is sufficiently completed.';
+
+        return response()->json([
+            'profile_score' => $score,
+            'total_fields'  => $totalFields,
+            'filled_fields' => $filledCount,
+            'message'       => $message,
         ]);
     }
 }

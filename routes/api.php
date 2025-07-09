@@ -227,6 +227,7 @@ Route::prefix('v1')->group(function () {
 
         // Companies API's
         Route::prefix('companies')->group(function () {
+            Route::get('/profile-score', [CompanyController::class, 'getCompanyProfileScore']);
             Route::get('/', [CompanyController::class, 'index'])->middleware('permission:view company');
             Route::post('/', [CompanyController::class, 'store'])->middleware('permission:add company');
             Route::get('{id}', [CompanyController::class, 'show'])->middleware('permission:view company');

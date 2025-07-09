@@ -327,7 +327,6 @@ class TaskController extends Controller
     {
         $request->validate([
             'reminder_at' => 'required|date|before_or_equal:end_date',
-            'end_date'    => 'required|date|after_or_equal:reminder_at',
         ]);
 
         $reminder = TaskReminder::updateOrCreate(
@@ -337,7 +336,6 @@ class TaskController extends Controller
             ],
             [
                 'reminder_at'   => $request->reminder_at,
-                'task_end_date' => $request->end_date,
             ]
         );
 
@@ -353,7 +351,9 @@ class TaskController extends Controller
         $reminder = TaskReminder::where('task_id', $taskId)->where('user_id', Auth::id())->first();
 
         if (!$reminder) {
-            return response()->json(['message' => 'No reminder found.'], 404);
+            return response()->json([
+                'message' => 'No reminder found.'
+            ], 404);
         }
 
         return response()->json([
@@ -366,7 +366,6 @@ class TaskController extends Controller
     {
         $request->validate([
             'reminder_at' => 'required|date|before_or_equal:end_date',
-            'end_date'    => 'required|date|after_or_equal:reminder_at',
         ]);
 
         $reminder = TaskReminder::where('task_id', $taskId)->where('user_id', Auth::id())->first();
@@ -379,7 +378,6 @@ class TaskController extends Controller
 
         $reminder->update([
             'reminder_at'   => $request->reminder_at,
-            'task_end_date' => $request->end_date,
         ]);
 
         return response()->json([
