@@ -41,13 +41,17 @@ class ExpenseController extends Controller
         $companyId = SelectedCompanyService::getSelectedCompanyOrFail()->company_id;
 
         $validator = Validator::make($request->all(), [
-            'heading'     => ['required', 'string', 'max:255'],
-            'price'       => ['required', 'numeric', 'min:0'],
-            'status'      => ['nullable', 'in:pending,approved,rejected'],
-            'file'        => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:2048'],
-            'description' => ['nullable', 'string'],
-            'tags'        => ['nullable', 'array'],
-            'tags.*.name' => ['required', 'string', 'max:50'],
+            'heading'      => ['required', 'string', 'max:255'],
+            'price'        => ['required', 'numeric', 'min:0'],
+            'status'       => ['nullable', 'in:pending,approved,rejected'],
+            'file'         => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:2048'],
+            'description'  => ['nullable', 'string'],
+            'invoice_ids'  => ['nullable', 'array'],
+            'invoice_ids.*' => ['integer', 'exists:invoices,id'],
+            'item_ids'     => ['nullable', 'array'],
+            'item_ids.*'   => ['integer', 'exists:items,id'],
+            // 'user_ids'  => ['nullable', 'array'], // ready if needed
+            // 'user_ids.*'=> ['integer', 'exists:users,id'],
         ]);
 
         if ($validator->fails()) {
@@ -64,14 +68,14 @@ class ExpenseController extends Controller
             $data['file_path'] = $this->saveFile($request->file('file'));
         }
 
-        $data['tags'] = $data['tags'] ?? [];
-
         $expense = Expense::create($data);
 
-        return (new ExpenseResource($expense))
-            ->response()
-            ->setStatusCode(201);
+        $expense->invoices()->sync($data['invoice_ids'] ?? []);
+        $expense->items()->sync($data['item_ids'] ?? []);
+
+        return (new ExpenseResource($expense->refresh()))->response()->setStatusCode(201);
     }
+
 
     /**
      * Display the specified resource.
@@ -97,13 +101,17 @@ class ExpenseController extends Controller
         $expense = Expense::findOrFail($id);
 
         $validator = Validator::make($request->all(), [
-            'heading'     => ['sometimes', 'string', 'max:255'],
-            'price'       => ['sometimes', 'numeric', 'min:0'],
-            'status'      => ['nullable', 'in:pending,approved,rejected'],
-            'file'        => ['sometimes', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:2048'],
-            'description' => ['nullable', 'string'],
-            'tags'        => ['nullable', 'array'],
-            'tags.*.name' => ['required', 'string', 'max:50'],
+            'heading'      => ['sometimes', 'string', 'max:255'],
+            'price'        => ['sometimes', 'numeric', 'min:0'],
+            'status'       => ['nullable', 'in:pending,approved,rejected'],
+            'file'         => ['sometimes', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:2048'],
+            'description'  => ['nullable', 'string'],
+            'invoice_ids'  => ['nullable', 'array'],
+            'invoice_ids.*' => ['integer', 'exists:invoices,id'],
+            'item_ids'     => ['nullable', 'array'],
+            'item_ids.*'   => ['integer', 'exists:items,id'],
+            // 'user_ids'  => ['nullable', 'array'],
+            // 'user_ids.*'=> ['integer', 'exists:users,id'],
         ]);
 
         if ($validator->fails()) {
@@ -122,14 +130,22 @@ class ExpenseController extends Controller
             $data['file_path'] = $this->saveFile($request->file('file'));
         }
 
-        if (array_key_exists('tags', $data)) {
-            $data['tags'] = $data['tags'] ?? [];
-        }
-
         $expense->update($data);
+
+        // Sync relationships
+        if (isset($data['invoice_ids'])) {
+            $expense->invoices()->sync($data['invoice_ids']);
+        }
+        if (isset($data['item_ids'])) {
+            $expense->items()->sync($data['item_ids']);
+        }
+        // if (isset($data['user_ids'])) {
+        //     $expense->users()->sync($data['user_ids']);
+        // }
 
         return new ExpenseResource($expense->refresh());
     }
+
 
     /**
      * Remove the specified resource from storage.

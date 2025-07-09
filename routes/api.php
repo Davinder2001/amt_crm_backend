@@ -219,6 +219,7 @@ Route::prefix('v1')->group(function () {
                 Route::delete('{id}', [EmployeeController::class, 'destroy'])->middleware('permission:delete employee');
                 Route::get('salarySlip/{id}', [SalaryController::class, 'salarySlip'])->middleware('permission:view employee salary');
                 Route::get('downloadSlip/{id}', [SalaryController::class, 'downloadPdfSlip']);
+                Route::get('generate-salary/{id}', [SalaryController::class, 'generateSalary']);
             });
         });
 
