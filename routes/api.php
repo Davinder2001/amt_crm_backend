@@ -46,6 +46,7 @@ use App\Http\Controllers\Api\{
 };
 
 use App\Http\Controllers\Api\Reports\SalesController;
+use App\Http\Controllers\Api\Reports\RevenueController;
 
 
 // Version 1 API's
@@ -524,7 +525,8 @@ Route::prefix('v1')->group(function () {
         });
 
 
-
         Route::get('/reports/sales', [SalesController::class, 'sales']);
+        Route::get('/reports/revenue', [RevenueController::class, 'revenue']);
+
     });
 });
