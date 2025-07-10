@@ -41,7 +41,8 @@ use App\Http\Controllers\Api\{
     BulkActionsController,
     MeasuringUnitController,
     ItemStockController,
-    ExpenseController
+    ExpenseController,
+    DashboardController
 };
 
 
@@ -120,7 +121,6 @@ Route::prefix('v1')->group(function () {
                 Route::patch('/{id}', [PackageController::class, 'update']);
                 Route::delete('/{id}', [PackageController::class, 'destroy']);
             });
-
 
             // Crud for businedd catagery
             Route::apiResource('business-categories', BusinessCategoryController::class);
@@ -513,6 +513,13 @@ Route::prefix('v1')->group(function () {
             Route::get('/{id}', [ExpenseController::class, 'show']);
             Route::post('/{id}/update', [ExpenseController::class, 'update']);
             Route::delete('/{id}/delete', [ExpenseController::class, 'destroy']);
+        });
+
+
+        Route::prefix('dashboard')->group(function () {
+            Route::get('/cards-summary', [DashboardController::class, 'cardsSummery']);
+            Route::get('/sales-stat', [DashboardController::class, 'saleStat']);
+            Route::get('/revenue-stat', [DashboardController::class, 'revenueStat']);
         });
     });
 });
