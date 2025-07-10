@@ -45,6 +45,7 @@ use App\Http\Controllers\Api\{
     DashboardController
 };
 
+use App\Http\Controllers\Api\Reports\SalesController;
 
 
 // Version 1 API's
@@ -521,5 +522,9 @@ Route::prefix('v1')->group(function () {
             Route::get('/sales-stat', [DashboardController::class, 'saleStat']);
             Route::get('/revenue-stat', [DashboardController::class, 'revenueStat']);
         });
+
+
+
+        Route::get('/reports/sales', [SalesController::class, 'sales']);
     });
 });
