@@ -100,33 +100,8 @@ class InvoicesController extends Controller
 
         $data            = $validator->validated();
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        // $company         = $selectedCompany->company;
         $issuedById      = Auth::id();
         $issuedByName    = Auth::user()->name;
-
-        // $package          = Package::with('limits')->find($company->package_id);
-        // $subscriptionType = $company->subscription_type;
-
-        // $limit        = collect($package->limits)->firstWhere('variant_type', $subscriptionType);
-        // $allowedCount = $limit->invoices_number ?? 0;
-        // $invoiceQuery = Invoice::where('company_id', $company->id);
-        // $now          = now();
-
-        // if ($subscriptionType === 'monthly') {
-        //     $invoiceQuery->whereYear('invoice_date', $now->year)->whereMonth('invoice_date', $now->month);
-        // } elseif ($subscriptionType === 'annual') {
-        //     $invoiceQuery->whereYear('invoice_date', $now->year);
-        // } elseif ($subscriptionType === 'three_years') {
-        //     $startYear = $now->copy()->subYears(2)->startOfYear();
-        //     $invoiceQuery->whereBetween('invoice_date', [$startYear, $now->endOfYear()]);
-        // }
-
-        // if ($invoiceQuery->count() >= $allowedCount) {
-        //     throw new HttpResponseException(response()->json([
-        //         'success' => false,
-        //         'message' => "You have reached your invoice limit for the {$subscriptionType} package ({$allowedCount} invoices)."
-        //     ], 403));
-        // }
 
 
         $unitPriceFor = static function (int $itemId, int $batchId, ?int $variantId = null, string $saleBy = 'piece'): float {
