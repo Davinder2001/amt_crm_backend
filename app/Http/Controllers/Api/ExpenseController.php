@@ -19,16 +19,11 @@ class ExpenseController extends Controller
      */
     public function index()
     {
-        $query = Expense::query();
+        $expenses = Expense::with(['items', 'invoices', 'users'])->get();
 
-        if (request()->filled('status')) {
-            $query->where('status', request('status'));
-        }
-
-        return ExpenseResource::collection(
-            $query->latest()->get()
-        );
+        return ExpenseResource::collection($expenses);
     }
+
 
     /**
      * Store a newly created resource in storage.
@@ -49,9 +44,9 @@ class ExpenseController extends Controller
             'invoice_ids'  => ['nullable', 'array'],
             'invoice_ids.*' => ['integer', 'exists:invoices,id'],
             'item_ids'     => ['nullable', 'array'],
-            'item_ids.*'   => ['integer', 'exists:items,id'],
-            // 'user_ids'  => ['nullable', 'array'], // ready if needed
-            // 'user_ids.*'=> ['integer', 'exists:users,id'],
+            'item_ids.*'   => ['integer', 'exists:store_items,id'],
+            'user_ids'  => ['nullable', 'array'], // ready if needed
+            'user_ids.*' => ['integer', 'exists:users,id'],
         ]);
 
         if ($validator->fails()) {
