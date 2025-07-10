@@ -17,9 +17,10 @@ return new class extends Migration
             $table->enum('package_type', ['general', 'specific'])->default('general');
             $table->unsignedBigInteger('user_id')->nullable();
 
-            $table->decimal('monthly_price', 10, 2);
             $table->decimal('annual_price', 10, 2);
             $table->decimal('three_years_price', 10, 2);
+
+            $table->unsignedInteger('employee_limit')->default(0);
 
             $table->timestamps();
 
