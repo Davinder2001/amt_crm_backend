@@ -72,7 +72,7 @@ class AuthController extends Controller
         ], 201);
     }
 
-    
+
     /**
      * Send OTP for email verification.
      */
@@ -310,5 +310,28 @@ class AuthController extends Controller
         $user->update(['password' => Hash::make($data['password'])]);
 
         return response()->json(['message' => 'Password reset successfully.']);
+    }
+
+    /**
+     * Get all active tokens for the logged-in user.
+     */
+    public function getLoginSessions(Request $request): JsonResponse
+    {
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+
+        $tokens = $user->tokens()->get()->map(function ($token) {
+            return [
+                'token_id'    => $token->id,
+                'token_name'  => $token->name,
+                'created_at'  => $token->created_at->toDateTimeString(),
+                'last_used_at' => $token->last_used_at ? $token->last_used_at->toDateTimeString() : null,
+            ];
+        });
+
+        return response()->json([
+            'total_logins' => $tokens->count(),
+            'sessions'     => $tokens,
+        ]);
     }
 }

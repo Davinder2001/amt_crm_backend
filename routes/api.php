@@ -86,6 +86,12 @@ Route::prefix('v1')->group(function () {
             Route::post('/{id}', [AdminAndCompanyRegisterController::class, 'createCompany']);
         });
 
+        // Auth API's
+        Route::post('logout', [AuthController::class, 'logout']);
+        Route::get('/auth/sessions', [AuthController::class, 'getLoginSessions']);
+        Route::post('password/change', [AuthController::class, 'resetPassword']);
+        Route::apiResource('permissions', PermissionController::class);
+
 
 
 
@@ -114,25 +120,15 @@ Route::prefix('v1')->group(function () {
                 Route::patch('/{id}', [PackageController::class, 'update']);
                 Route::delete('/{id}', [PackageController::class, 'destroy']);
             });
-            
+
 
             // Crud for businedd catagery
             Route::apiResource('business-categories', BusinessCategoryController::class);
         });
-        
 
-        
+
+
         Route::get('/pricing-packages', [PackageController::class, 'index']);
-
-
-
-
-        // Auth API's
-        Route::post('logout', [AuthController::class, 'logout']);
-        Route::post('password/change', [AuthController::class, 'resetPassword']);
-
-        // Permissions API's
-        Route::apiResource('permissions', PermissionController::class);
 
         // Roles & Role Permissions API's
         Route::get('roles', [RoleController::class, 'index'])->middleware('permission:view roles');
