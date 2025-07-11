@@ -38,14 +38,14 @@ class ExpenseController extends Controller
         $validator = Validator::make($request->all(), [
             'heading'      => ['required', 'string', 'max:255'],
             'price'        => ['required', 'numeric', 'min:0'],
-            'status'       => ['nullable', 'in:pending,approved,rejected'],
+            'status'       => ['nullable', 'in:pending,paid'],
             'file'         => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:2048'],
             'description'  => ['nullable', 'string'],
             'invoice_ids'  => ['nullable', 'array'],
             'invoice_ids.*' => ['integer', 'exists:invoices,id'],
             'item_ids'     => ['nullable', 'array'],
             'item_ids.*'   => ['integer', 'exists:store_items,id'],
-            'user_ids'  => ['nullable', 'array'], // ready if needed
+            'user_ids'  => ['nullable', 'array'], 
             'user_ids.*' => ['integer', 'exists:users,id'],
         ]);
 

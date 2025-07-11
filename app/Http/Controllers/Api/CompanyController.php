@@ -233,9 +233,9 @@ class CompanyController extends Controller
     {
         $selectedCompany   = SelectedCompanyService::getSelectedCompanyOrFail();
         $company           = Company::findOrFail($selectedCompany->company_id);
-        $subscribedPackage = Package::with('limits')->find($company->package_id);
+        $subscribedPackage = Package::find($company->package_id);
         $businessCategory  = BusinessCategory::find($company->business_category);
-        $relatedPackages   = $businessCategory ? $businessCategory->packages()->with('limits')->get() : [];
+        $relatedPackages   = $businessCategory ? $businessCategory->packages()->get() : [];
 
         return response()->json([
             'company'            => $company,
