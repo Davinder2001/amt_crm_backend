@@ -1,107 +1,154 @@
+version: '3.8'
+
 services:
+  # Nginx Reverse Proxy
   nginx-proxy:
-    image: jwilder/nginx-proxy:alpine
-    container_name: nginx-proxy
-    restart: always
+    image: nginx:alpine
+    container_name: amt_nginx_proxy
+    restart: unless-stopped
     ports:
       - "80:80"
-      - "443:443"
     volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./infra/certs:/etc/nginx/certs:ro
-      - ./infra/vhost.d:/etc/nginx/vhost.d
-      - ./infra/html:/usr/share/nginx/html
-    environment:
-      - ENABLE_IPV6=true
-    networks:
-      - backend
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  letsencrypt:
-    image: jrcs/letsencrypt-nginx-proxy-companion
-    container_name: nginx-proxy-le
-    restart: always
-    environment:
-      - NGINX_PROXY_CONTAINER=nginx-proxy
-      - DEFAULT_EMAIL=himmanav11@gmail.com
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./infra/certs:/etc/nginx/certs:rw
-      - ./infra/vhost.d:/etc/nginx/vhost.d
-      - ./infra/html:/usr/share/nginx/html
+      - ./docker/nginx/proxy.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/logs:/var/log/nginx
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
     depends_on:
-      - nginx-proxy
+      - app
     networks:
-      - backend
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  app:
-    build: .
-    image: amt_crm_backend_app
-    container_name: amt_crm_backend_app
-    restart: always
-    working_dir: /var/www
-    volumes:
-      - ./storage:/var/www/storage
-      - ./bootstrap/cache:/var/www/bootstrap/cache
-    env_file:
-      - .env.docker
-    environment:
-      - VIRTUAL_HOST=api.himmanav.com
-      - LETSENCRYPT_HOST=api.himmanav.com
-      - LETSENCRYPT_EMAIL=himmanav11@gmail.com
-    expose:
-      - "80"
-    depends_on:
-      db:
-        condition: service_healthy
-    networks:
-      - backend
+      - amt_network
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
 
+  # Laravel Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    image: amt_crm_backend:latest
+    container_name: amt_crm_app
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - app_storage:/var/www/storage
+      - app_cache:/var/www/bootstrap/cache
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/custom.ini:ro
+    env_file:
+      - .env
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - DB_HOST=db
+      - REDIS_HOST=redis
+    expose:
+      - "9000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - amt_network
+    healthcheck:
+      test: ["CMD", "php", "artisan", "health:check"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # MySQL Database
   db:
     image: mysql:8.0
-    container_name: amt_crm_backend_db
-    restart: always
+    container_name: amt_crm_db
+    restart: unless-stopped
     environment:
       MYSQL_DATABASE: ${DB_DATABASE}
       MYSQL_USER: ${DB_USERNAME}
       MYSQL_PASSWORD: ${DB_PASSWORD}
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
       MYSQL_CHARACTER_SET_SERVER: utf8mb4
       MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
+      MYSQL_INNODB_BUFFER_POOL_SIZE: 1G
+      MYSQL_INNODB_LOG_FILE_SIZE: 256M
+      MYSQL_INNODB_FLUSH_LOG_AT_TRX_COMMIT: 2
     volumes:
       - db_data:/var/lib/mysql
-      - ./database/init:/docker-entrypoint-initdb.d:ro
+      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/custom.cnf:ro
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
     ports:
       - "127.0.0.1:3306:3306"
     networks:
-      - backend
+      - amt_network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 60s
     command: --default-authentication-plugin=mysql_native_password
 
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: amt_crm_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "127.0.0.1:6379:6379"
+    networks:
+      - amt_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Backup Service
+  backup:
+    image: alpine:latest
+    container_name: amt_crm_backup
+    restart: "no"
+    volumes:
+      - db_data:/var/lib/mysql:ro
+      - app_storage:/var/www/storage:ro
+      - ./backups:/backups
+    environment:
+      - DB_HOST=db
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+    depends_on:
+      - db
+    networks:
+      - amt_network
+    command: |
+      sh -c '
+        apk add --no-cache mysql-client
+        mkdir -p /backups/$(date +%Y-%m-%d)
+        mysqldump -h db -u $DB_USERNAME -p$DB_PASSWORD $DB_DATABASE > /backups/$(date +%Y-%m-%d)/database_$(date +%H-%M-%S).sql
+        tar -czf /backups/$(date +%Y-%m-%d)/storage_$(date +%H-%M-%S).tar.gz -C /var/www/storage .
+        find /backups -type d -mtime +7 -exec rm -rf {} +
+        echo "Backup completed at $(date)"
+      '
+
 volumes:
   db_data:
     driver: local
+  app_storage:
+    driver: local
+  app_cache:
+    driver: local
+  redis_data:
+    driver: local
 
 networks:
-  backend:
-    driver: bridge 
+  amt_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16 
