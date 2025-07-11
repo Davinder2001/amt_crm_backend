@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\{
     AuthController,
@@ -44,6 +45,16 @@ use App\Http\Controllers\Api\{
     ExpenseController
 };
 
+
+// Health check route
+Route::get('/health', function () {
+    return response()->json([
+        'status' => 'healthy',
+        'timestamp' => now()->toISOString(),
+        'version' => '1.0.0',
+        'environment' => config('app.env')
+    ]);
+});
 
 
 // Version 1 API's
