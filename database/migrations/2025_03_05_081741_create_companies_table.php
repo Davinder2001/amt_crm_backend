@@ -39,6 +39,7 @@ return new class extends Migration
             $table->string('business_id')->nullable();
             $table->string('business_proof_front')->nullable();
             $table->string('business_proof_back')->nullable();
+            $table->string('company_signature')->nullable();
             $table->string('order_id')->nullable();
             $table->string('transation_id')->nullable();
             $table->string('payment_recoad_status')->nullable();

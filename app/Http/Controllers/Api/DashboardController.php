@@ -31,7 +31,7 @@ class DashboardController extends Controller
         $vendors = StoreVendor::count();
         $customers = Customer::count();
         $receiveable = CustomerCredit::sum('total_due');
-        $payable = 2935;
+        $payable = 0;
 
         return response()->json([
             ['name' => 'Monthly Sales', 'count' => round($monthlySales, 2)],
