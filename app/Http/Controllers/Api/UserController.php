@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Http\Resources\UserResource;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 
@@ -25,7 +26,7 @@ class UserController extends Controller
         ], 200);
     }
 
-    
+
     /**
      * Store a newly created user.
      */
@@ -128,6 +129,51 @@ class UserController extends Controller
         ]);
     }
 
+    public function selfUpdate(Request $request)
+    {
+       $user = Auth::user();
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'User not authenticated.'
+            ], 401);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'name'     => 'sometimes|string|max:255',
+            'email'    => 'sometimes|string|email|max:255|unique:users,email,' . $user->id,
+            'number'   => 'sometimes|string|max:20',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation error.',
+                'errors'  => $validator->errors()
+            ], 422);
+        }
+
+        $updateData = [];
+
+        if ($request->filled('name')) {
+            $updateData['name'] = $request->name;
+        }
+        if ($request->filled('email')) {
+            $updateData['email'] = $request->email;
+        }
+
+        if ($request->filled('number')) {
+            $updateData['number'] = $request->number;
+        }
+
+        $user->update($updateData);
+
+        return response()->json([
+            'message' => 'Profile updated successfully.',
+            'user'    => new UserResource($user->refresh()->load('roles')),
+        ]);
+    }
+
+
 
     /**
      * Remove the specified user.
@@ -146,7 +192,7 @@ class UserController extends Controller
     public function authUser(Request $request)
     {
         $user = new UserResource($request->user()->load('roles', 'companies'));
-        
+
         return response()->json([
             'message' => 'Authenticated user retrieved successfully.',
             'user'    => $user,

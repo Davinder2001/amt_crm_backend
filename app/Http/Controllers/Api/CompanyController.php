@@ -9,6 +9,7 @@ use App\Models\Company;
 use App\Models\CompanyAccount;
 use App\Services\SelectedCompanyService;
 use App\Models\CompanyUser;
+use Illuminate\Support\Str;
 use App\Models\BusinessCategory;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
@@ -39,14 +40,44 @@ class CompanyController extends Controller
      */
     public function store(Request $request)
     {
-        $data = $request->validate([
-            'name'    => 'required|string|max:255',
-            'phone'   => 'required|string|max:20',
-            'address' => 'nullable|string|max:255',
+        $validated = $request->validate([
+            'company_name'          => 'required|string|max:255',
+            'company_logo'          => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'company_signature'     => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'package_id'            => 'required|exists:packages,id',
+            'subscription_type'     => 'required|in:annual,three_years',
+            'business_category'     => 'required|exists:business_categories,id',
+            'company_slug'          => 'nullable|string|max:255|unique:companies,company_slug',
+            'payment_status'        => 'nullable|in:pending,completed,failed',
+            'order_id'              => 'nullable|string|max:255',
+            'payment_record_status' => 'nullable|string|max:255',
+            'verification_status'   => 'nullable|in:pending,verified,rejected,block',
+            'business_address'      => 'nullable|string|max:500',
+            'pin_code'              => 'nullable|string|max:10',
+            'business_proof_type'   => 'nullable|string|max:255',
+            'business_id'           => 'nullable|string|max:255',
+            'business_proof_front'  => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'business_proof_back'   => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'subscription_status'   => 'nullable|in:active,inactive',
+            'subscription_date'     => 'nullable|date',
         ]);
 
-        return new CompanyResource(Company::create($data));
+        // Handle file uploads
+        $validated['company_logo'] = $request->file('company_logo')?->store('uploads/company', 'public');
+        $validated['company_signature'] = $request->file('company_signature')?->store('uploads/signature', 'public');
+        $validated['business_proof_front'] = $request->file('business_proof_front')?->store('uploads/business_proofs', 'public');
+        $validated['business_proof_back'] = $request->file('business_proof_back')?->store('uploads/business_proofs', 'public');
+
+        // Auto-generate slug if not provided
+        if (empty($validated['company_slug'])) {
+            $validated['company_slug'] = Str::slug($validated['company_name']);
+        }
+
+        $company = Company::create($validated);
+
+        return new CompanyResource($company);
     }
+
 
     /**
      * Update the specified resource in storage.
@@ -54,11 +85,92 @@ class CompanyController extends Controller
     public function update(Request $request, $id)
     {
         $company = Company::findOrFail($id);
-        $company->update($request->validate([
-            'name'    => 'sometimes|string|max:255',
-            'phone'   => 'sometimes|string|max:20',
-            'address' => 'nullable|string|max:255',
-        ]));
+
+        $validated = $request->validate([
+            'company_name'          => 'sometimes|string|max:255',
+            'company_logo'          => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'company_signature'     => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'package_id'            => 'sometimes|exists:packages,id',
+            'subscription_type'     => 'sometimes|in:annual,three_years',
+            'business_category'     => 'sometimes|exists:business_categories,id',
+            'company_slug'          => 'sometimes|string|max:255|unique:companies,company_slug,' . $company->id,
+            'payment_status'        => 'sometimes|in:pending,completed,failed',
+            'order_id'              => 'sometimes|string|max:255',
+            'payment_record_status' => 'sometimes|string|max:255',
+            'verification_status'   => 'sometimes|in:pending,verified,rejected,block',
+            'business_address'      => 'nullable|string|max:500',
+            'pin_code'              => 'nullable|string|max:10',
+            'business_proof_type'   => 'nullable|string|max:255',
+            'business_id'           => 'nullable|string|max:255',
+            'business_proof_front'  => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'business_proof_back'   => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'subscription_status'   => 'nullable|in:active,inactive',
+            'subscription_date'     => 'nullable|date',
+        ]);
+
+        // Handle file uploads
+        if ($request->hasFile('company_logo')) {
+            $validated['company_logo'] = $request->file('company_logo')->store('uploads/company', 'public');
+        }
+        if ($request->hasFile('company_signature')) {
+            $validated['company_signature'] = $request->file('company_signature')->store('uploads/signature', 'public');
+        }
+        if ($request->hasFile('business_proof_front')) {
+            $validated['business_proof_front'] = $request->file('business_proof_front')->store('uploads/business_proofs', 'public');
+        }
+        if ($request->hasFile('business_proof_back')) {
+            $validated['business_proof_back'] = $request->file('business_proof_back')->store('uploads/business_proofs', 'public');
+        }
+
+        $company->update($validated);
+
+        return new CompanyResource($company);
+    }
+
+    /**
+     * Update the user-specific company details.
+     */
+    public function userUpdate(Request $request, $id)
+    {
+        $company = Company::findOrFail($id);
+
+        $validated = $request->validate([
+            'company_name'          => 'sometimes|string|max:255',
+            'company_logo'          => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'company_signature'     => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'package_id'            => 'sometimes|exists:packages,id',
+            'subscription_type'     => 'sometimes|in:annual,three_years',
+            'business_category'     => 'sometimes|exists:business_categories,id',
+            'company_slug'          => 'sometimes|string|max:255|unique:companies,company_slug,' . $company->id,
+            'payment_status'        => 'sometimes|in:pending,completed,failed',
+            'order_id'              => 'sometimes|string|max:255',
+            'payment_record_status' => 'sometimes|string|max:255',
+            'verification_status'   => 'sometimes|in:pending,verified,rejected,block',
+            'business_address'      => 'nullable|string|max:500',
+            'pin_code'              => 'nullable|string|max:10',
+            'business_proof_type'   => 'nullable|string|max:255',
+            'business_id'           => 'nullable|string|max:255',
+            'business_proof_front'  => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'business_proof_back'   => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'subscription_status'   => 'nullable|in:active,inactive',
+            'subscription_date'     => 'nullable|date',
+        ]);
+
+        // Handle file uploads
+        if ($request->hasFile('company_logo')) {
+            $validated['company_logo'] = $request->file('company_logo')->store('uploads/company', 'public');
+        }
+        if ($request->hasFile('company_signature')) {
+            $validated['company_signature'] = $request->file('company_signature')->store('uploads/signature', 'public');
+        }
+        if ($request->hasFile('business_proof_front')) {
+            $validated['business_proof_front'] = $request->file('business_proof_front')->store('uploads/business_proofs', 'public');
+        }
+        if ($request->hasFile('business_proof_back')) {
+            $validated['business_proof_back'] = $request->file('business_proof_back')->store('uploads/business_proofs', 'public');
+        }
+
+        $company->update($validated);
 
         return new CompanyResource($company);
     }

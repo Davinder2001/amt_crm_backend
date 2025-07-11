@@ -158,6 +158,7 @@ Route::prefix('v1')->group(function () {
         Route::post('users', [UserController::class, 'store'])->middleware('permission:add users');
         Route::get('users/{user}', [UserController::class, 'show'])->middleware('permission:view users');
         Route::put('users/{user}', [UserController::class, 'update'])->middleware('permission:edit users');
+        Route::put('self-update', [UserController::class, 'selfUpdate']);
         Route::delete('users/{user}', [UserController::class, 'destroy'])->middleware('permission:delete users');
 
 
@@ -231,6 +232,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/', [CompanyController::class, 'store'])->middleware('permission:add company');
             Route::get('{id}', [CompanyController::class, 'show'])->middleware('permission:view company');
             Route::put('{id}', [CompanyController::class, 'update'])->middleware('permission:update company');
+            Route::put('/update/{id}', [CompanyController::class, 'userUpdate'])->middleware('permission:update company');
             Route::delete('{id}', [CompanyController::class, 'destroy'])->middleware('permission:delete company');
         });
 
