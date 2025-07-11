@@ -15,6 +15,15 @@ class Package extends Model
         'annual_price',
         'three_years_price',
         'employee_limit',
+        'chat',
+        'task',
+        'hr',
+    ];
+
+    protected $casts = [
+        'chat' => 'boolean',
+        'task' => 'boolean',
+        'hr'   => 'boolean',
     ];
 
     /**

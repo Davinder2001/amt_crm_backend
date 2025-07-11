@@ -22,6 +22,10 @@ return new class extends Migration
 
             $table->unsignedInteger('employee_limit')->default(0);
 
+            $table->boolean('chat')->default(false);
+            $table->boolean('task')->default(false);
+            $table->boolean('hr')->default(false);
+
             $table->timestamps();
 
             $table->foreign('user_id')->references('id')->on('users')->onDelete('set null');

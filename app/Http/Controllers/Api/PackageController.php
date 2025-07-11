@@ -25,14 +25,17 @@ class PackageController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name'                  => 'required|string|max:255',
-            'package_type'          => 'required|in:general,specific',
-            'user_id'               => 'required_if:package_type,specific|nullable|exists:users,id',
-            'annual_price'          => 'required|numeric|min:0',
-            'three_years_price'     => 'required|numeric|min:0',
-            'employee_limit'        => 'required|integer|min:0',
-            'business_category_ids' => 'required|array',
-            'business_category_ids.*' => 'integer|exists:business_categories,id',
+            'name'                      => 'required|string|max:255',
+            'package_type'              => 'required|in:general,specific',
+            'user_id'                   => 'required_if:package_type,specific|nullable|exists:users,id',
+            'annual_price'              => 'required|numeric|min:0',
+            'three_years_price'         => 'required|numeric|min:0',
+            'employee_limit'            => 'required|integer|min:0',
+            'chat'                      => 'required|boolean',
+            'task'                      => 'required|boolean',
+            'hr'                        => 'required|boolean',
+            'business_category_ids'     => 'required|array',
+            'business_category_ids.*'   => 'integer|exists:business_categories,id',
         ]);
 
         if ($validator->fails()) {
@@ -51,6 +54,9 @@ class PackageController extends Controller
             'annual_price'      => $data['annual_price'],
             'three_years_price' => $data['three_years_price'],
             'employee_limit'    => $data['employee_limit'],
+            'chat'              => $data['chat'],
+            'task'              => $data['task'],
+            'hr'                => $data['hr'],
         ]);
 
         $package->businessCategories()->sync($data['business_category_ids']);
@@ -61,6 +67,7 @@ class PackageController extends Controller
             'message' => 'Package created successfully.',
         ], 201);
     }
+
 
     /**
      * Display the specified package.
@@ -78,13 +85,16 @@ class PackageController extends Controller
     public function update(Request $request, string $id)
     {
         $validator = Validator::make($request->all(), [
-            'name'                  => 'sometimes|string|max:255',
-            'package_type'          => 'sometimes|in:general,specific',
-            'user_id'               => 'required_if:package_type,specific|nullable|exists:users,id',
-            'annual_price'          => 'sometimes|numeric|min:0',
-            'three_years_price'     => 'sometimes|numeric|min:0',
-            'employee_limit'        => 'sometimes|integer|min:0',
-            'business_category_ids' => 'sometimes|array',
+            'name'                    => 'sometimes|string|max:255',
+            'package_type'            => 'sometimes|in:general,specific',
+            'user_id'                 => 'required_if:package_type,specific|nullable|exists:users,id',
+            'annual_price'            => 'sometimes|numeric|min:0',
+            'three_years_price'       => 'sometimes|numeric|min:0',
+            'employee_limit'          => 'sometimes|integer|min:0',
+            'chat'                    => 'sometimes|boolean',
+            'task'                    => 'sometimes|boolean',
+            'hr'                      => 'sometimes|boolean',
+            'business_category_ids'   => 'sometimes|array',
             'business_category_ids.*' => 'integer|exists:business_categories,id',
         ]);
 
@@ -105,6 +115,9 @@ class PackageController extends Controller
             'annual_price'      => $data['annual_price'] ?? $package->annual_price,
             'three_years_price' => $data['three_years_price'] ?? $package->three_years_price,
             'employee_limit'    => $data['employee_limit'] ?? $package->employee_limit,
+            'chat'              => array_key_exists('chat', $data) ? $data['chat'] : $package->chat,
+            'task'              => array_key_exists('task', $data) ? $data['task'] : $package->task,
+            'hr'                => array_key_exists('hr', $data) ? $data['hr'] : $package->hr,
         ]);
 
         if (isset($data['business_category_ids'])) {
@@ -117,6 +130,7 @@ class PackageController extends Controller
             'message' => 'Package updated successfully.',
         ]);
     }
+
 
     /**
      * Remove the specified package from storage.

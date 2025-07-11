@@ -69,42 +69,6 @@ class ItemsController extends Controller
         $data = $validator->validated();
         $data['company_id'] = $companyId;
 
-        $package = Package::with('limits')->find($company->package_id);
-        if (!$package) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No package found for the selected company.'
-            ], 404);
-        }
-
-        $subscriptionType = $company->subscription_type;
-
-        $limit = collect($package->limits)->firstWhere('variant_type', $subscriptionType);
-        if (!$limit) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Package limits not found for this subscription type.'
-            ], 404);
-        }
-
-        $now = now();
-        $itemQuery = Item::where('company_id', $companyId);
-
-        if ($subscriptionType === 'monthly') {
-            $itemQuery->whereYear('created_at', $now->year)
-                ->whereMonth('created_at', $now->month);
-        } elseif ($subscriptionType === 'annual') {
-            $itemQuery->whereYear('created_at', $now->year);
-        } elseif ($subscriptionType === 'three_years') {
-            $itemQuery->whereYear('created_at', '>=', $now->year - 2);
-        }
-
-        if ($itemQuery->count() >= ($limit->items_number ?? 0)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Item limit reached for your package.'
-            ], 403);
-        }
 
         try {
             DB::beginTransaction();

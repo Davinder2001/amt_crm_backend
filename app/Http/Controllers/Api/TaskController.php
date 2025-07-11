@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Task;
 use App\Models\User;
-use App\Models\Package;
 use App\Models\TaskReminder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -34,17 +33,8 @@ class TaskController extends Controller
         $authUser           = $request->user();
         $selectedCompany    = SelectedCompanyService::getSelectedCompanyOrFail();
         $company            = $selectedCompany->company;
-        $package            = Package::with('limits')->find($company->package_id);
-        $subscriptionType   = $company->subscription_type;
-        $limit              = collect($package->limits)->firstWhere('variant_type', $subscriptionType);
-        $dailyTasksLimit    = $limit->daily_tasks_number ?? 0;
-        $taskCount          = Task::where('company_id', $company->id)->whereDate('created_at', now())->count();
-
-        if ($taskCount >= $dailyTasksLimit) {
-            return response()->json([
-                'message' => "Daily task limit of {$dailyTasksLimit} reached for this company."
-            ], 403);
-        }
+      
+       
 
         $request->merge([
             'notify' => filter_var($request->input('notify'), FILTER_VALIDATE_BOOLEAN)
