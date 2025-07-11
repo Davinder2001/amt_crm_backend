@@ -4,7 +4,6 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Redis;
 
 class HealthCheckCommand extends Command
 {
@@ -15,7 +14,6 @@ class HealthCheckCommand extends Command
     {
         $checks = [
             'database' => $this->checkDatabase(),
-            'redis' => $this->checkRedis(),
             'storage' => $this->checkStorage(),
         ];
 
@@ -42,15 +40,7 @@ class HealthCheckCommand extends Command
         }
     }
 
-    private function checkRedis(): bool
-    {
-        try {
-            Redis::ping();
-            return true;
-        } catch (\Exception $e) {
-            return false;
-        }
-    }
+
 
     private function checkStorage(): bool
     {

@@ -16,9 +16,6 @@ RUN apk add --no-cache \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) pdo_mysql mbstring exif pcntl bcmath gd zip
 
-# Install Redis extension
-RUN pecl install redis && docker-php-ext-enable redis
-
 # Create non-root user for security
 RUN addgroup -g 1000 www && \
     adduser -u 1000 -G www -s /bin/sh -D www

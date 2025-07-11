@@ -20,9 +20,7 @@ jobs:
           DB_DATABASE: ${{ secrets.DB_DATABASE }}
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          REDIS_HOST: ${{ secrets.REDIS_HOST }}
-          REDIS_PORT: ${{ secrets.REDIS_PORT }}
-          REDIS_DB: ${{ secrets.REDIS_DB }}
+
           MAIL_MAILER: ${{ secrets.MAIL_MAILER }}
           MAIL_SCHEME: ${{ secrets.MAIL_SCHEME }}
           MAIL_HOST: ${{ secrets.MAIL_HOST }}
@@ -143,11 +141,11 @@ jobs:
             echo "Running database migrations..."
             docker compose exec -T app php artisan migrate --force
             
-            # Clear and cache config for production
-            echo "Caching configuration..."
-            docker compose exec -T app php artisan config:cache
-            docker compose exec -T app php artisan route:cache
-            docker compose exec -T app php artisan view:cache
+            # Clear config for production
+            echo "Clearing configuration cache..."
+            docker compose exec -T app php artisan config:clear
+            docker compose exec -T app php artisan route:clear
+            docker compose exec -T app php artisan view:clear
             
             # Clean up deployment package
             rm -f deployment.tar.gz
