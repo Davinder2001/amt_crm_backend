@@ -21,11 +21,12 @@ return new class extends Migration {
             $table->foreign('company_id')->references('id')->on('companies')->onDelete('cascade');
         });
 
-        // Pivot: expense_item
+        // ✅ Pivot: expense_item (with batch_id)
         Schema::create('expense_item', function (Blueprint $table) {
             $table->id();
             $table->foreignId('expense_id')->constrained('expenses')->onDelete('cascade');
             $table->foreignId('item_id')->constrained('store_items')->onDelete('cascade');
+            $table->foreignId('batch_id')->constrained('item_batches')->onDelete('cascade'); // ✅ added
             $table->timestamps();
         });
 
@@ -37,7 +38,7 @@ return new class extends Migration {
             $table->timestamps();
         });
 
-        // Pivot: expense_user (optional)
+        // Pivot: expense_user
         Schema::create('expense_user', function (Blueprint $table) {
             $table->id();
             $table->foreignId('expense_id')->constrained('expenses')->onDelete('cascade');

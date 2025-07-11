@@ -17,21 +17,10 @@ class Expense extends Model
         'price',
         'status',
         'file_path',
-        // removed 'tags'
     ];
 
     protected $appends = ['file_url'];
 
-    /**
-     * Automatically cast attributes.
-     */
-    protected $casts = [
-        // 'tags' => 'array', // removed
-    ];
-
-    /**
-     * Global company scope.
-     */
     protected static function booted(): void
     {
         static::addGlobalScope(new CompanyScope);
@@ -56,11 +45,13 @@ class Expense extends Model
     }
 
     /**
-     * ✅ Expense ↔ Items (Many-to-Many)
+     * ✅ Expense ↔ Items (Many-to-Many) with batch_id in pivot
      */
     public function items()
     {
-        return $this->belongsToMany(Item::class, 'expense_item');
+        return $this->belongsToMany(Item::class, 'expense_item')
+                    ->withPivot('batch_id') // ✅ include batch_id
+                    ->withTimestamps();
     }
 
     /**
@@ -68,14 +59,14 @@ class Expense extends Model
      */
     public function invoices()
     {
-        return $this->belongsToMany(Invoice::class, 'expense_invoice');
+        return $this->belongsToMany(Invoice::class, 'expense_invoice')->withTimestamps();
     }
 
     /**
-     * ✅ Optional: Expense ↔ Users (Many-to-Many)
+     * ✅ Expense ↔ Users (Many-to-Many)
      */
     public function users()
     {
-        return $this->belongsToMany(User::class, 'expense_user');
+        return $this->belongsToMany(User::class, 'expense_user')->withTimestamps();
     }
 }

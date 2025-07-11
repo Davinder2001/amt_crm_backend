@@ -22,21 +22,26 @@ class ExpenseResource extends JsonResource
             'price'       => $this->price,
             'status'      => $this->status,
             'file_url'    => $this->file_url,
-            'items' => $this->whenLoaded('items', fn() => $this->items->map(fn($item) => [
-                'id' => $item->id,
-                'name' => $item->name,
-            ])),
+
+            'items_batches' => $this->whenLoaded('items', function () {
+                return $this->items->map(function ($item) {
+                    return [
+                        'item_id'  => $item->id,
+                        'item_name' => $item->name,
+                        'batch_id' => $item->pivot->batch_id ?? null,
+                    ];
+                });
+            }),
 
             'invoices' => $this->whenLoaded('invoices', fn() => $this->invoices->map(fn($invoice) => [
-                'id' => $invoice->id,
+                'id'   => $invoice->id,
                 'name' => $invoice->invoice_number ?? 'Invoice #' . $invoice->id,
             ])),
 
             'users' => $this->whenLoaded('users', fn() => $this->users->map(fn($user) => [
-                'id' => $user->id,
+                'id'   => $user->id,
                 'name' => $user->name,
             ])),
-
         ];
     }
 }
