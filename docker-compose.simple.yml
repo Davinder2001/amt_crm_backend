@@ -1,0 +1,70 @@
+services:
+  # Laravel Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    image: amt_crm_backend:latest
+    container_name: amt_crm_app
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - app_storage:/var/www/storage
+      - app_cache:/var/www/bootstrap/cache
+    env_file:
+      - .env
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - DB_HOST=db
+    expose:
+      - "9000"
+    depends_on:
+      - db
+    networks:
+      - amt_network
+    healthcheck:
+      test: ["CMD", "php", "artisan", "health:check"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # MySQL Database
+  db:
+    image: mysql:8.0
+    container_name: amt_crm_db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: amt_crm_backend
+      MYSQL_USER: amt_crm_user
+      MYSQL_PASSWORD: your_secure_database_password_here
+      MYSQL_ROOT_PASSWORD: your_secure_database_password_here
+      MYSQL_CHARACTER_SET_SERVER: utf8mb4
+      MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
+    volumes:
+      - db_data:/var/lib/mysql
+    ports:
+      - "127.0.0.1:3306:3306"
+    networks:
+      - amt_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pyour_secure_database_password_here"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    command: --default-authentication-plugin=mysql_native_password
+
+volumes:
+  db_data:
+    driver: local
+  app_storage:
+    driver: local
+  app_cache:
+    driver: local
+
+networks:
+  amt_network:
+    driver: bridge 
