@@ -47,18 +47,31 @@ class SalesController extends Controller
         ]);
     }
 
-
-    /**
-     * Determine sales trend.
-     */
-    private function getSalesTrend($current, $last): string
+    public function monthlySalesSummary(Request $request)
     {
-        if ($current > $last) {
-            return 'up';
-        } elseif ($current < $last) {
-            return 'down';
-        } else {
-            return 'same';
-        }
+        $year = now()->year;
+
+        $monthlySales = InvoiceItem::selectRaw("
+        MONTH(created_at) as month,
+        SUM(quantity * unit_price) as total_sales
+    ")
+            ->whereYear('created_at', $year)
+            ->groupBy(DB::raw('MONTH(created_at)'))
+            ->orderBy(DB::raw('MONTH(created_at)'))
+            ->get()
+            ->keyBy('month');
+
+        // Ensure all 12 months are included even if sales are 0
+        $salesData = collect(range(1, 12))->map(function ($month) use ($monthlySales) {
+            return [
+                'month' => date("F", mktime(0, 0, 0, $month, 1)),
+                'total_sales' => round($monthlySales[$month]->total_sales ?? 0, 2),
+            ];
+        });
+
+        return response()->json([
+            'year' => $year,
+            'data' => $salesData
+        ]);
     }
 }

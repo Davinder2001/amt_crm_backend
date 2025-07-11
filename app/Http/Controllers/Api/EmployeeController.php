@@ -106,10 +106,7 @@ class EmployeeController extends Controller
         $now                    = now();
         $employeeQuery          = User::whereHas('roles', fn($q) => $q->where('name', '!=', 'admin'))->where('company_id', $selectedCompany->id);
 
-        if ($packageType === 'monthly') {
-            $employeeQuery->whereYear('created_at', $now->year)
-                ->whereMonth('created_at', $now->month);
-        } elseif ($packageType === 'yearly') {
+        if ($packageType === 'yearly') {
             $employeeQuery->whereYear('created_at', $now->year);
         } elseif ($packageType === 'three-years') {
             $employeeQuery->whereBetween('created_at', [
