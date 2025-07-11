@@ -529,8 +529,9 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/reports/sales', [SalesController::class, 'sales']);
         Route::get('/reports/sales-summary', [SalesController::class, 'monthlySalesSummary']);
+        Route::get('/reports/top-selling-items', [SalesController::class, 'topSellingItems']);
 
         Route::get('/reports/revenue', [RevenueController::class, 'revenue']);
-
+        Route::get('/reports/revenue-summary', [RevenueController::class, 'monthlyRevenueSummary']);
     });
 });

@@ -43,4 +43,34 @@ class RevenueController extends Controller
             'data' => $revenues,
         ]);
     }
+
+    /**
+     * Show monthly revenue summary for the current year.
+     */
+    public function monthlyRevenueSummary(Request $request)
+    {
+        $year = now()->year;
+
+        $monthlyRevenue = InvoiceItem::selectRaw("
+        MONTH(created_at) as month,
+        SUM(quantity * unit_price) as total_revenue
+    ")
+            ->whereYear('created_at', $year)
+            ->groupBy(DB::raw('MONTH(created_at)'))
+            ->orderBy(DB::raw('MONTH(created_at)'))
+            ->get()
+            ->keyBy('month');
+
+        $revenueData = collect(range(1, 12))->map(function ($month) use ($monthlyRevenue) {
+            return [
+                'month' => date("F", mktime(0, 0, 0, $month, 1)),
+                'total_revenue' => round($monthlyRevenue[$month]->total_revenue ?? 0, 2),
+            ];
+        });
+
+        return response()->json([
+            'year' => $year,
+            'data' => $revenueData,
+        ]);
+    }
 }

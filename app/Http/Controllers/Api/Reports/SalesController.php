@@ -74,4 +74,32 @@ class SalesController extends Controller
             'data' => $salesData
         ]);
     }
+
+    public function topSellingItems(Request $request)
+    {
+        $year = now()->year;
+
+        $topItems = InvoiceItem::selectRaw("
+            description,
+            SUM(quantity) as total_quantity,
+            SUM(quantity * unit_price) as total_sales
+        ")
+            ->whereYear('created_at', $year)
+            ->groupBy('description')
+            ->orderByDesc('total_quantity') // Or use 'total_sales' to sort by revenue
+            ->limit(10)
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'item_name' => $item->description ?? 'N/A',
+                    'total_quantity' => (int) $item->total_quantity,
+                    'total_sales' => round($item->total_sales, 2),
+                ];
+            });
+
+        return response()->json([
+            'year' => $year,
+            'top_items' => $topItems
+        ]);
+    }
 }
