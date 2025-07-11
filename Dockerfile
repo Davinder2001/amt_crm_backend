@@ -30,12 +30,8 @@ WORKDIR /var/www
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --no-scripts --no-interaction --prefer-dist --optimize-autoloader
 
-# Copy package files and install Node.js dependencies
+# Copy package files (skip Node.js build for now)
 COPY package.json package-lock.json ./
-RUN apk add --no-cache nodejs npm && \
-    npm ci --only=production && \
-    npm run build && \
-    apk del nodejs npm
 
 # Copy application code
 COPY . .
