@@ -87,7 +87,7 @@ class SalesController extends Controller
             ->whereYear('created_at', $year)
             ->groupBy('description')
             ->orderByDesc('total_quantity') // Or use 'total_sales' to sort by revenue
-            ->limit(10)
+            ->limit(5)
             ->get()
             ->map(function ($item) {
                 return [
