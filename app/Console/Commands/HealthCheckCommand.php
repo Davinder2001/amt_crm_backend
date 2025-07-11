@@ -45,7 +45,7 @@ class HealthCheckCommand extends Command
     private function checkStorage(): bool
     {
         $storagePath = storage_path();
-        $bootstrapCachePath = bootstrap_path('cache');
+        $bootstrapCachePath = base_path('bootstrap/cache');
 
         return is_writable($storagePath) && is_writable($bootstrapCachePath);
     }
