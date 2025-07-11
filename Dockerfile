@@ -1,4 +1,4 @@
-# Multi-stage build for better security and smaller image
+# Multi-stage build for production
 FROM php:8.2-fpm-alpine AS base
 
 # Install system dependencies and PHP extensions
@@ -12,20 +12,19 @@ RUN apk add --no-cache \
     unzip \
     oniguruma-dev \
     libxml2-dev \
-    nginx \
     wget \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) pdo_mysql mbstring exif pcntl bcmath gd zip
 
-# Create non-root user for security (do this early)
+# Install Redis extension
+RUN pecl install redis && docker-php-ext-enable redis
+
+# Create non-root user for security
 RUN addgroup -g 1000 www && \
     adduser -u 1000 -G www -s /bin/sh -D www
 
 # Install Composer
 COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
-
-# Install Node.js 20.x LTS
-RUN apk add --no-cache nodejs npm
 
 # Set working directory
 WORKDIR /var/www
@@ -36,48 +35,49 @@ RUN composer install --no-dev --no-scripts --no-interaction --prefer-dist --opti
 
 # Copy package files and install Node.js dependencies
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN apk add --no-cache nodejs npm && \
+    npm ci --only=production && \
+    npm run build && \
+    apk del nodejs npm
 
 # Copy application code
 COPY . .
 
-# Build frontend assets
-RUN npm run build
+# Set correct permissions
+RUN chown -R www:www /var/www && \
+    chmod -R 755 /var/www/storage /var/www/bootstrap/cache
 
-# Remove Node.js and npm (not needed in production)
-RUN apk del nodejs npm
+# Production stage
+FROM base AS production
 
-# Create nginx directories and set permissions (now www user exists)
-RUN mkdir -p /run/nginx /var/lib/nginx/logs /var/log/nginx && \
-    chown -R www:www /var/lib/nginx /var/log/nginx /run/nginx
+# Install only production dependencies
+RUN composer install --no-dev --no-scripts --no-interaction --prefer-dist --optimize-autoloader
 
-# Copy nginx configuration
-COPY docker/nginx/nginx.conf /etc/nginx/nginx.conf
+# Configure PHP for production
+RUN echo "memory_limit = 512M" > /usr/local/etc/php/conf.d/memory-limit.ini && \
+    echo "max_execution_time = 300" >> /usr/local/etc/php/conf.d/memory-limit.ini && \
+    echo "upload_max_filesize = 50M" >> /usr/local/etc/php/conf.d/memory-limit.ini && \
+    echo "post_max_size = 50M" >> /usr/local/etc/php/conf.d/memory-limit.ini
 
-# Configure PHP-FPM to run as www user
+# Configure PHP-FPM for production
 RUN sed -i 's/user = www-data/user = www/' /usr/local/etc/php-fpm.d/www.conf && \
     sed -i 's/group = www-data/group = www/' /usr/local/etc/php-fpm.d/www.conf && \
     sed -i 's/listen.owner = www-data/listen.owner = www/' /usr/local/etc/php-fpm.d/www.conf && \
-    sed -i 's/listen.group = www-data/listen.group = www/' /usr/local/etc/php-fpm.d/www.conf
-
-# Copy startup script
-COPY docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-
-# Set correct permissions
-RUN chown -R www:www /var/www && \
-    chmod -R 755 /var/www/storage /var/www/bootstrap/cache && \
-    chown www:www /usr/local/bin/docker-entrypoint.sh
+    sed -i 's/listen.group = www-data/listen.group = www/' /usr/local/etc/php-fpm.d/www.conf && \
+    sed -i 's/pm.max_children = 5/pm.max_children = 10/' /usr/local/etc/php-fpm.d/www.conf && \
+    sed -i 's/pm.start_servers = 2/pm.start_servers = 3/' /usr/local/etc/php-fpm.d/www.conf && \
+    sed -i 's/pm.min_spare_servers = 1/pm.min_spare_servers = 2/' /usr/local/etc/php-fpm.d/www.conf && \
+    sed -i 's/pm.max_spare_servers = 3/pm.max_spare_servers = 4/' /usr/local/etc/php-fpm.d/www.conf
 
 # Switch to non-root user
 USER www
 
 # Expose port
-EXPOSE 80
+EXPOSE 9000
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD wget --quiet --tries=1 --spider http://localhost/health || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD php artisan health:check || exit 1
 
-# Start both nginx and PHP-FPM
-ENTRYPOINT ["docker-entrypoint.sh"] 
+# Start PHP-FPM
+CMD ["php-fpm"] 

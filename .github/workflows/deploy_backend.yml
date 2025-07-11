@@ -86,7 +86,7 @@ jobs:
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.PROD_HOST }}
-          username: ${{ secrets.PROD_USER }}
+          username: root
           key: ${{ secrets.PROD_SSH_KEY }}
           port: ${{ secrets.PROD_PORT || 22 }}
           source: "deployment.tar.gz"
@@ -97,7 +97,7 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.PROD_HOST }}
-          username: ${{ secrets.PROD_USER }}
+          username: root
           key: ${{ secrets.PROD_SSH_KEY }}
           port: ${{ secrets.PROD_PORT || 22 }}
           script: |
