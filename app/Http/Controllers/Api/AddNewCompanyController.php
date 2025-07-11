@@ -26,7 +26,7 @@ class AddNewCompanyController extends Controller
             'package_id'            => 'required|exists:packages,id',
             'business_category_id'  => 'required|exists:business_categories,id',
             'company_logo'          => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-            'subscription_type'     => 'required|in:monthly,annual,three_years',
+            'subscription_type'     => 'required|in:annual,three_years', // 🔄 removed 'monthly'
             'business_address'      => 'nullable|string',
             'pin_code'              => 'nullable|string|max:10',
             'business_proof_type'   => 'nullable|string|max:255',
@@ -55,16 +55,21 @@ class AddNewCompanyController extends Controller
         }
 
         $merchantOrderId = 'ORDER_' . uniqid();
+        $package = Package::findOrFail($data['package_id']);
 
-        $package = Package::find($data['package_id']);
+        // ✅ Dynamically determine amount
         $subType = $data['subscription_type'];
 
-        $amount = match ($subType) {
-            'monthly'     => 100 * $package->monthly_price,
-            'annual'      => 100 * $package->annual_price,
-            'three_years' => 100 * $package->three_years_price,
-            default       => 100 * $package->monthly_price,
-        };
+        if ($subType === 'annual') {
+            $amount = 100 * $package->annual_price;
+        } elseif ($subType === 'three_years') {
+            $amount = 100 * $package->three_years_price;
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid subscription type.',
+            ], 400);
+        }
 
         $result = $paymentService->initiateCompanyPayment($merchantOrderId, $amount);
 
@@ -72,6 +77,7 @@ class AddNewCompanyController extends Controller
             return response()->json($result, 500);
         }
 
+        // ✅ File uploads
         $frontPath = $request->file('business_proof_front')?->storeAs(
             'uploads/business_proofs',
             uniqid('proof_front_') . '.' . $request->file('business_proof_front')->getClientOriginalExtension(),
@@ -97,7 +103,7 @@ class AddNewCompanyController extends Controller
             'company_name'          => $data['company_name'],
             'company_logo'          => $logoPath,
             'package_id'            => $data['package_id'],
-            'subscription_type'     => $data['subscription_type'],
+            'subscription_type'     => $subType,
             'business_category'     => $data['business_category_id'],
             'company_slug'          => $slug,
             'payment_status'        => 'PENDING',
@@ -114,10 +120,8 @@ class AddNewCompanyController extends Controller
             'subscription_status'   => 'active',
         ]);
 
-        $user = Auth::user();
-
         CompanyUser::create([
-            'user_id'    => $user->id,
+            'user_id'    => Auth::id(),
             'company_id' => $company->id,
             'user_type'  => 'admin',
         ]);
@@ -145,7 +149,7 @@ class AddNewCompanyController extends Controller
             ], 404);
         }
 
-        if ($company->payment_recoad_status === 'recorded') {
+        if ($company->payment_record_status === 'recorded') {
             return response()->json([
                 'success' => true,
                 'message' => 'Payment already recorded.',
@@ -174,12 +178,11 @@ class AddNewCompanyController extends Controller
 
         $company->update([
             'payment_status'        => $paymentCheck['status'],
-            'transation_id'         => $paymentCheck['transaction_id'],
-            'payment_recoad_status' => 'recorded',
+            'transaction_id'        => $paymentCheck['transaction_id'] ?? null,
+            'payment_record_status' => 'recorded',
         ]);
 
         $user = Auth::user();
-
         CompanySetupService::setupDefaults($company, $user);
 
         return response()->json([
@@ -188,6 +191,7 @@ class AddNewCompanyController extends Controller
             'company' => $company->company_name,
         ], 200);
     }
+
 
 
     /**
