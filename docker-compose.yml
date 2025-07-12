@@ -64,9 +64,28 @@ services:
       retries: 3
       start_period: 60s
 
+  certbot:
+    image: certbot/certbot
+    container_name: amt_crm_certbot
+    volumes:
+      - ./docker/nginx/ssl:/etc/letsencrypt/live/api.himmanav.com
+      - ./docker/nginx/ssl:/etc/letsencrypt/archive/api.himmanav.com
+      - ./docker/nginx/ssl:/etc/nginx/ssl
+      - ./docker/nginx/certbot/www:/var/www/certbot
+    entrypoint: ""
+    command: >
+      sh -c "certbot certonly --webroot -w /var/www/certbot --email himmanav11@gmail.com --agree-tos --no-eff-email -d api.himmanav.com && cp /etc/letsencrypt/live/api.himmanav.com/fullchain.pem /etc/nginx/ssl/fullchain.pem && cp /etc/letsencrypt/live/api.himmanav.com/privkey.pem /etc/nginx/ssl/privkey.pem"
+    depends_on:
+      - nginx-proxy
+    networks:
+      - amt_crm_network
+    restart: unless-stopped
+    # For renewal, run:
+    # docker compose run --rm certbot renew --webroot -w /var/www/certbot && docker compose exec nginx-proxy nginx -s reload
+
 networks:
   amt_crm_network:
-    driver: bridge
+    driver: bridge 
 
 volumes:
   mysql_data: 
