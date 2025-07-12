@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Package;
+use App\Models\PackageDetail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -14,10 +15,16 @@ class PackageController extends Controller
      */
     public function index()
     {
-        $packages = Package::with(['businessCategories'])->get();
+        $packages   = Package::with(['businessCategories'])->get();
+        $details    = PackageDetail::all();
+
+        $packages->each(function ($package) use ($details) {
+            $package->details = $details;
+        });
 
         return response()->json($packages);
     }
+
 
     /**
      * Store a newly created package in storage.

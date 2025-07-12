@@ -42,7 +42,8 @@ use App\Http\Controllers\Api\{
     MeasuringUnitController,
     ItemStockController,
     ExpenseController,
-    DashboardController
+    DashboardController,
+    PackageDetailController
 };
 
 use App\Http\Controllers\Api\Reports\SalesController;
@@ -533,5 +534,15 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/reports/revenue', [RevenueController::class, 'revenue']);
         Route::get('/reports/revenue-summary', [RevenueController::class, 'monthlyRevenueSummary']);
+
+
+
+        Route::prefix('package-details')->group(function () {
+            Route::get('/', [PackageDetailController::class, 'index']);
+            Route::post('/', [PackageDetailController::class, 'store']);
+            Route::get('{id}', [PackageDetailController::class, 'show']);
+            Route::put('{id}', [PackageDetailController::class, 'update']);
+            Route::delete('{id}', [PackageDetailController::class, 'destroy']);
+        });
     });
 });

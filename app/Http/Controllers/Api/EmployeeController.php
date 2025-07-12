@@ -88,7 +88,7 @@ class EmployeeController extends Controller
             'upiId'                     => 'required|string|min:8|max:50',
             'addressProof'              => 'required|string|min:5|max:50',
             'id_proof_type'             => 'nullable|string|min:5|max:50',
-            'profilePicture'            => 'required|file|image|mimes:jpeg,png,jpg,webp|max:2048',
+            'profilePicture'            => 'nullable|file|image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);
 
         if ($validator->fails()) {
