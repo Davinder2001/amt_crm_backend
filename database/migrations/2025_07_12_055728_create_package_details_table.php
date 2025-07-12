@@ -14,7 +14,6 @@ return new class extends Migration
         Schema::create('package_details', function (Blueprint $table) {
             $table->id();
             $table->string('name')->unique(); // the key
-            $table->text('value')->nullable(); // the value
             $table->timestamps();
         });
     }

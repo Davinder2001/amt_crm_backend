@@ -15,15 +15,16 @@ class PackageController extends Controller
      */
     public function index()
     {
-        $packages   = Package::with(['businessCategories'])->get();
-        $details    = PackageDetail::all();
+        $packages = Package::with('businessCategories')->get();
+        $detailNames = PackageDetail::pluck('name');
 
-        $packages->each(function ($package) use ($details) {
-            $package->details = $details;
+        $packages->each(function ($package) use ($detailNames) {
+            $package->details = $detailNames;
         });
 
         return response()->json($packages);
     }
+
 
 
     /**
