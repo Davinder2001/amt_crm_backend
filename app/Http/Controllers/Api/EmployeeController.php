@@ -98,20 +98,23 @@ class EmployeeController extends Controller
             ], 422);
         }
 
-        $selectedCompany        = SelectedCompanyService::getSelectedCompanyOrFail();
-        $packageId              = $selectedCompany->company->package_id ?? 1;
-        $package                = Package::find($packageId);
-        $packageType            = $package['package_type'];
-        $allowedEmployeeCount   = $package['employee_numbers'];
-        $now                    = now();
-        $employeeQuery          = User::whereHas('roles', fn($q) => $q->where('name', '!=', 'admin'))->where('company_id', $selectedCompany->id);
+        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+        $packageId       = $selectedCompany->company->package_id ?? 1;
+        $package         = Package::findOrFail($packageId);
+
+        $packageType           = $package->package_type;
+        $allowedEmployeeCount  = $package->employee_limit;
+        $now                   = now();
+
+        $employeeQuery = User::whereHas('roles', fn($q) => $q->where('name', '!=', 'admin'))
+            ->where('company_id', $selectedCompany->id);
 
         if ($packageType === 'yearly') {
             $employeeQuery->whereYear('created_at', $now->year);
         } elseif ($packageType === 'three-years') {
             $employeeQuery->whereBetween('created_at', [
                 $now->copy()->subYears(3)->startOfDay(),
-                $now->copy()->endOfDay()
+                $now->copy()->endOfDay(),
             ]);
         }
 
@@ -122,6 +125,7 @@ class EmployeeController extends Controller
                 'message' => "You have reached your {$packageType} employee limit of {$allowedEmployeeCount}.",
             ], 403);
         }
+
 
         try {
             $employee = $userCreateService->createEmployee($validator->validated());
