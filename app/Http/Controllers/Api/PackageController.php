@@ -25,6 +25,20 @@ class PackageController extends Controller
         return response()->json($packages);
     }
 
+    /**
+     * Display a listing of general packages.
+     */
+    public function genPackages()
+    {
+        $packages    = Package::with('businessCategories')->where('package_type', 'general')->get();
+        $detailNames = PackageDetail::pluck('name');
+
+        $packages->each(function ($package) use ($detailNames) {
+            $package->details = $detailNames;
+        });
+
+        return response()->json($packages);
+    }
 
 
     /**
@@ -83,7 +97,6 @@ class PackageController extends Controller
     public function show(string $id)
     {
         $package = Package::with(['businessCategories'])->findOrFail($id);
-
         return response()->json($package);
     }
 
