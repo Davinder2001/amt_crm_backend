@@ -76,9 +76,14 @@ services:
     command: >
       sh -c "
         if [ ! -f /etc/letsencrypt/live/api.himmanav.com/fullchain.pem ]; then
+          echo 'Obtaining Let''s Encrypt certificates...';
           certbot certonly --webroot -w /var/www/certbot --email himmanav11@gmail.com --agree-tos --no-eff-email -d api.himmanav.com --force-renewal;
+          echo 'Certificates obtained successfully!';
+        else
+          echo 'Certificates already exist. Checking for renewal...';
+          certbot renew --webroot -w /var/www/certbot;
+          echo 'Certificate renewal check completed.';
         fi;
-        echo 'Certificates are ready';
       "
     depends_on:
       - nginx-proxy
