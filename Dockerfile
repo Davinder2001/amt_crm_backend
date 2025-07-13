@@ -28,13 +28,17 @@ WORKDIR /var/www
 
 # Copy composer files and install PHP dependencies
 COPY composer.json composer.lock ./
-RUN composer install --no-dev --no-scripts --no-interaction --prefer-dist --optimize-autoloader
+RUN composer install --no-dev --no-scripts --no-interaction --prefer-dist --optimize-autoloader --no-autoloader
 
 # Copy package files (skip Node.js build for now)
 COPY package.json package-lock.json ./
 
 # Copy application code
 COPY . .
+
+# Copy entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Set correct permissions
 RUN chown -R www:www /var/www && \
@@ -44,7 +48,7 @@ RUN chown -R www:www /var/www && \
 FROM base AS production
 
 # Install only production dependencies
-RUN composer install --no-dev --no-scripts --no-interaction --prefer-dist --optimize-autoloader
+RUN composer install --no-dev --no-scripts --no-interaction --prefer-dist --optimize-autoloader --no-autoloader
 
 # Configure PHP for production
 RUN echo "memory_limit = 512M" > /usr/local/etc/php/conf.d/memory-limit.ini && \
@@ -72,5 +76,6 @@ EXPOSE 9000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD php artisan health:check || exit 1
 
-# Start PHP-FPM
+# Start PHP-FPM with entrypoint
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["php-fpm"] 

@@ -131,35 +131,16 @@ jobs:
             echo "Waiting for database to be ready..."
             sleep 30
             
+            # Wait for app container to be ready (entrypoint script will handle setup)
+            echo "Waiting for application to be ready..."
+            sleep 60
+            
             # Check if app container is running
             if ! docker compose ps app | grep -q "Up"; then
               echo "❌ App container is not running. Checking logs..."
               docker compose logs app
               exit 1
             fi
-            
-            # Clear all Laravel caches and fix permissions
-            echo "Clearing Laravel caches and fixing permissions..."
-            docker compose exec -T app rm -rf bootstrap/cache/* 2>/dev/null || true
-            docker compose exec -T app chmod -R 775 storage bootstrap/cache
-            docker compose exec -T app chown -R www:www storage bootstrap/cache
-            
-            # Force remove problematic cached files
-            docker compose exec -T app rm -f bootstrap/cache/services.php bootstrap/cache/packages.php 2>/dev/null || true
-            docker compose exec -T app rm -f bootstrap/cache/config.php bootstrap/cache/routes.php bootstrap/cache/views.php 2>/dev/null || true
-            
-            # Run migrations
-            echo "Running database migrations..."
-            docker compose exec -T app php artisan migrate --force
-            
-            # Clear and rebuild caches for production
-            echo "Rebuilding configuration cache..."
-            docker compose exec -T app php artisan config:clear
-            docker compose exec -T app php artisan route:clear
-            docker compose exec -T app php artisan view:clear
-            docker compose exec -T app php artisan config:cache
-            docker compose exec -T app php artisan route:cache
-            docker compose exec -T app php artisan view:cache
             
             # Test the application
             echo "Testing application health..."

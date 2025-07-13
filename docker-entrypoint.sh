@@ -1,23 +1,39 @@
 #!/bin/sh
 
-# Function to handle shutdown gracefully
-shutdown() {
-    echo "Shutting down..."
-    kill $NGINX_PID $PHP_FPM_PID
-    wait $NGINX_PID $PHP_FPM_PID
-    exit 0
-}
+# Wait for database to be ready
+echo "Waiting for database connection..."
+until php artisan tinker --execute="DB::connection()->getPdo();" 2>/dev/null; do
+    echo "Database not ready, waiting..."
+    sleep 2
+done
 
-# Trap signals for graceful shutdown
-trap shutdown SIGTERM SIGINT
+# Generate autoloader and clear caches
+echo "Setting up Laravel application..."
+composer dump-autoload --optimize --no-dev
 
-# Start nginx in the background
-nginx -g "daemon off;" &
-NGINX_PID=$!
+# Clear any existing cached files
+rm -rf bootstrap/cache/* 2>/dev/null || true
 
-# Start PHP-FPM in the background
-php-fpm &
-PHP_FPM_PID=$!
+# Set proper permissions
+chmod -R 775 storage bootstrap/cache
+chown -R www:www storage bootstrap/cache
 
-# Wait for both processes
-wait $NGINX_PID $PHP_FPM_PID 
+# Run migrations
+echo "Running database migrations..."
+php artisan migrate --force
+
+# Clear and rebuild caches
+echo "Rebuilding application caches..."
+php artisan config:clear
+php artisan route:clear
+php artisan view:clear
+
+# Rebuild caches for production
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+
+echo "Laravel application setup complete!"
+
+# Execute the main command
+exec "$@" 
