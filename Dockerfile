@@ -28,7 +28,7 @@ WORKDIR /var/www
 
 # Copy composer files and install PHP dependencies
 COPY composer.json composer.lock ./
-RUN composer install --no-dev --no-scripts --no-interaction --prefer-dist --optimize-autoloader --no-autoloader
+RUN composer install --no-dev --no-scripts --no-interaction --prefer-dist --optimize-autoloader
 
 # Copy package files (skip Node.js build for now)
 COPY package.json package-lock.json ./
@@ -48,7 +48,7 @@ RUN chown -R www:www /var/www && \
 FROM base AS production
 
 # Install only production dependencies
-RUN composer install --no-dev --no-scripts --no-interaction --prefer-dist --optimize-autoloader --no-autoloader
+RUN composer install --no-dev --no-scripts --no-interaction --prefer-dist --optimize-autoloader
 
 # Configure PHP for production
 RUN echo "memory_limit = 512M" > /usr/local/etc/php/conf.d/memory-limit.ini && \
