@@ -47,10 +47,12 @@ services:
     image: mysql:8.0
     container_name: amt_crm_db
     environment:
-      MYSQL_ROOT_PASSWORD: "amt_crm_root_password_2024"
-      MYSQL_DATABASE: amt_crm_backend
-      MYSQL_USER: amt_crm_user
-      MYSQL_PASSWORD: "amt_crm_user_password_2024"
+      MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD}"
+      MYSQL_DATABASE: "${DB_DATABASE}"
+      MYSQL_USER: "${DB_USERNAME}"
+      MYSQL_PASSWORD: "${DB_PASSWORD}"
+    env_file:
+      - .env
     volumes:
       - mysql_data:/var/lib/mysql
       - ./docker/mysql/init:/docker-entrypoint-initdb.d
@@ -58,7 +60,7 @@ services:
     networks:
       - amt_crm_network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pamt_crm_root_password_2024"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
       interval: 30s
       timeout: 10s
       retries: 3

@@ -176,6 +176,12 @@ jobs:
             # Copy environment file
             cp .env.docker .env
             
+            # Create backup of database before deployment (if database container exists)
+            if docker ps -a | grep -q amt_crm_db; then
+              echo "Creating database backup before deployment..."
+              docker compose exec -T db mysqldump -u root -p"${DB_ROOT_PASSWORD}" "${DB_DATABASE}" > backup_$(date +%Y%m%d_%H%M%S).sql || echo "Backup failed, continuing..."
+            fi
+            
             # Debug: Check the .env file on server
             echo "=== .env file contents on server ==="
             cat .env
@@ -189,9 +195,10 @@ jobs:
             echo "=== Last few lines on server ==="
             tail -5 .env | cat -A
             
-            # Stop existing containers gracefully and remove them
-            docker compose down --remove-orphans --volumes
-            docker rm -f amt_crm_db amt_crm_app amt_crm_nginx 2>/dev/null || true
+            # Stop existing containers gracefully (preserve volumes to keep database data)
+            docker compose down --remove-orphans
+            docker rm -f amt_crm_app amt_crm_nginx 2>/dev/null || true
+            # Don't remove the database container to preserve data
             
             # Build and start containers
             docker compose up --build -d
