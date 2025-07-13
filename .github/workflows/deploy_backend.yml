@@ -120,8 +120,9 @@ jobs:
             echo "=== Last few lines on server ==="
             tail -5 .env | cat -A
             
-            # Stop existing containers gracefully
-            docker compose down --remove-orphans
+            # Stop existing containers gracefully and remove them
+            docker compose down --remove-orphans --volumes
+            docker rm -f amt_crm_db amt_crm_app amt_crm_nginx 2>/dev/null || true
             
             # Build and start containers
             docker compose up --build -d
