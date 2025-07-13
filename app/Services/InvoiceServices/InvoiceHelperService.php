@@ -104,6 +104,7 @@ class InvoiceHelperService
         $pdf = Pdf::loadView('invoices.pdf', [
             'invoice'           => $invoice,
             'company_name'      => $company->company_name,
+            'signature'         => $company->company_signature,
             'company_address'   => $company->address ?? 'N/A',
             'company_phone'     => $company->phone ?? 'N/A',
             'company_gstin'     => $company->gstin ?? 'N/A',

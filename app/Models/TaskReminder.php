@@ -6,7 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class TaskReminder extends Model
 {
-    protected $fillable = ['user_id', 'task_id', 'reminder_at', 'task_end_date'];
+    protected $fillable = [
+        'user_id', 
+        'task_id', 
+        'reminder_at'
+    ];
 
     public function task() {
         return $this->belongsTo(Task::class);

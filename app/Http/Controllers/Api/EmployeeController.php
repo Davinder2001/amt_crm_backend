@@ -88,7 +88,7 @@ class EmployeeController extends Controller
             'upiId'                     => 'required|string|min:8|max:50',
             'addressProof'              => 'required|string|min:5|max:50',
             'id_proof_type'             => 'nullable|string|min:5|max:50',
-            'profilePicture'            => 'required|file|image|mimes:jpeg,png,jpg,webp|max:2048',
+            'profilePicture'            => 'nullable|file|image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);
 
         if ($validator->fails()) {
@@ -98,23 +98,23 @@ class EmployeeController extends Controller
             ], 422);
         }
 
-        $selectedCompany        = SelectedCompanyService::getSelectedCompanyOrFail();
-        $packageId              = $selectedCompany->company->package_id ?? 1;
-        $package                = Package::find($packageId);
-        $packageType            = $package['package_type'];
-        $allowedEmployeeCount   = $package['employee_numbers'];
-        $now                    = now();
-        $employeeQuery          = User::whereHas('roles', fn($q) => $q->where('name', '!=', 'admin'))->where('company_id', $selectedCompany->id);
+        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+        $packageId       = $selectedCompany->company->package_id ?? 1;
+        $package         = Package::findOrFail($packageId);
 
-        if ($packageType === 'monthly') {
-            $employeeQuery->whereYear('created_at', $now->year)
-                ->whereMonth('created_at', $now->month);
-        } elseif ($packageType === 'yearly') {
+        $packageType           = $package->package_type;
+        $allowedEmployeeCount  = $package->employee_limit;
+        $now                   = now();
+
+        $employeeQuery = User::whereHas('roles', fn($q) => $q->where('name', '!=', 'admin'))
+            ->where('company_id', $selectedCompany->id);
+
+        if ($packageType === 'yearly') {
             $employeeQuery->whereYear('created_at', $now->year);
         } elseif ($packageType === 'three-years') {
             $employeeQuery->whereBetween('created_at', [
                 $now->copy()->subYears(3)->startOfDay(),
-                $now->copy()->endOfDay()
+                $now->copy()->endOfDay(),
             ]);
         }
 

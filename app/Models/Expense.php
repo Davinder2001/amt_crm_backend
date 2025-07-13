@@ -16,15 +16,15 @@ class Expense extends Model
         'description',
         'price',
         'status',
-        'tags',
         'file_path',
     ];
 
     protected $appends = ['file_url'];
 
-    protected $casts = [
-        'tags' => 'array',
-    ];
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new CompanyScope);
+    }
 
     /**
      * Get the company that owns the expense.
@@ -40,15 +40,33 @@ class Expense extends Model
     public function getFileUrlAttribute(): ?string
     {
         return $this->file_path
-            ? asset("{$this->file_path}")
+            ? asset($this->file_path)
             : null;
     }
 
     /**
-     * Relationship: EmployeeDetail belongs to a Company.
+     * ✅ Expense ↔ Items (Many-to-Many) with batch_id in pivot
      */
-    protected static function booted(): void
+    public function items()
     {
-        static::addGlobalScope(new CompanyScope);
+        return $this->belongsToMany(Item::class, 'expense_item')
+                    ->withPivot('batch_id') // ✅ include batch_id
+                    ->withTimestamps();
+    }
+
+    /**
+     * ✅ Expense ↔ Invoices (Many-to-Many)
+     */
+    public function invoices()
+    {
+        return $this->belongsToMany(Invoice::class, 'expense_invoice')->withTimestamps();
+    }
+
+    /**
+     * ✅ Expense ↔ Users (Many-to-Many)
+     */
+    public function users()
+    {
+        return $this->belongsToMany(User::class, 'expense_user')->withTimestamps();
     }
 }

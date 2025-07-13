@@ -79,6 +79,30 @@ jobs:
           
           # Create tar.gz for deployment
           tar -czf deployment.tar.gz -C deployment .
+        uses: actions/checkout@v3
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, bcmath, xml, curl, mysql, zip
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Run tests
+        run: ./vendor/bin/pest --ci --colors=always
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install NPM dependencies
+        run: npm install
+
+      - name: Build assets
+        run: npm run build
 
       - name: Copy files to server via SCP
         uses: appleboy/scp-action@v0.1.7
@@ -100,54 +124,11 @@ jobs:
           port: ${{ secrets.PROD_PORT || 22 }}
           script: |
             cd /srv/laravel-backend
-            
-            # Extract deployment package
-            tar -xzf deployment.tar.gz
-            
-            # Copy environment file
-            cp .env.docker .env
-            
-            # Debug: Check the .env file on server
-            echo "=== .env file contents on server ==="
-            cat .env
-            echo "=== End of .env file ==="
-            
-            # Debug: Check file encoding and line endings on server
-            echo "=== File info on server ==="
-            file .env
-            echo "=== Line count on server ==="
-            wc -l .env
-            echo "=== Last few lines on server ==="
-            tail -5 .env | cat -A
-            
-            # Stop existing containers gracefully
-            docker compose down --remove-orphans
-            
-            # Build and start containers
-            docker compose up --build -d
-            
-            # Wait for database to be ready
-            echo "Waiting for database to be ready..."
-            sleep 30
-            
-            # Check if app container is running
-            if ! docker compose ps app | grep -q "Up"; then
-              echo "❌ App container is not running. Checking logs..."
-              docker compose logs app
-              exit 1
-            fi
-            
-            # Run migrations
-            echo "Running database migrations..."
-            docker compose exec -T app php artisan migrate --force
-            
-            # Clear config for production
-            echo "Clearing configuration cache..."
-            docker compose exec -T app php artisan config:clear
-            docker compose exec -T app php artisan route:clear
-            docker compose exec -T app php artisan view:clear
-            
-            # Clean up deployment package
-            rm -f deployment.tar.gz
-            
-            echo "Deployment completed successfully!"
+            composer install --no-interaction --prefer-dist --optimize-autoloader
+            php artisan migrate --force
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+            npm install
+            npm run build
+            sudo systemctl reload nginx

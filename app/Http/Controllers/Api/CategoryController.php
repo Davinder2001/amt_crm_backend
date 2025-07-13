@@ -13,6 +13,10 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class CategoryController extends Controller
 {
+    /**
+     * Display a listing of the resource.
+     *
+     */
     public function index(): AnonymousResourceCollection
     {
         $selectedCompany    = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -20,8 +24,10 @@ class CategoryController extends Controller
         return CategoryResource::collection($categories);
     }
 
-
-
+    /**
+     * Store a newly created resource in storage.
+     *
+     */
     public function store(Request $request): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -47,8 +53,10 @@ class CategoryController extends Controller
         ], 201);
     }
 
-
-
+    /**
+     * Update the specified resource in storage.
+     *
+     */
     public function update(Request $request, $id): JsonResponse
     {
         $selectedCompany    = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -74,8 +82,10 @@ class CategoryController extends Controller
         ]);
     }
 
-
-
+    /**
+     * Remove the specified resource from storage.
+     *
+     */
     public function destroy($id): JsonResponse
     {
         $selectedCompany    = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -85,8 +95,10 @@ class CategoryController extends Controller
         return response()->json(['message' => 'Category deleted.'], 200);
     }
     
-
-
+    /**
+     * Display the specified resource.
+     *
+     */
     public function show($id): JsonResponse
     {
         $selectedCompany    = SelectedCompanyService::getSelectedCompanyOrFail();

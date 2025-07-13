@@ -15,6 +15,11 @@ use Illuminate\Http\JsonResponse;
 
 class ItemsController extends Controller
 {
+    /**
+     * Display a listing of the resource.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function index(): JsonResponse
     {
         $items = Item::with([
@@ -30,6 +35,12 @@ class ItemsController extends Controller
         return response()->json(ItemResource::collection($items));
     }
 
+    /**
+     * Store a newly created resource in storage.
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function store(Request $request): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -58,41 +69,6 @@ class ItemsController extends Controller
         $data = $validator->validated();
         $data['company_id'] = $companyId;
 
-        $package = Package::with('limits')->find($company->package_id);
-        if (!$package) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No package found for the selected company.'
-            ], 404);
-        }
-
-        $subscriptionType = $company->subscription_type; // 'monthly' | 'annual' | 'three_years'
-
-        $limit = collect($package->limits)->firstWhere('variant_type', $subscriptionType);
-        if (!$limit) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Package limits not found for this subscription type.'
-            ], 404);
-        }
-
-        $now = now();
-        $itemQuery = Item::where('company_id', $companyId);
-
-        if ($subscriptionType === 'monthly') {
-            $itemQuery->whereYear('created_at', $now->year)
-                ->whereMonth('created_at', $now->month);
-        } elseif ($subscriptionType === 'annual') {
-            $itemQuery->whereYear('created_at', $now->year);
-        }
-        // No date filter for 'three_years'
-
-        if ($itemQuery->count() >= ($limit->items_number ?? 0)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Item limit reached for your package.'
-            ], 403);
-        }
 
         try {
             DB::beginTransaction();
@@ -132,6 +108,12 @@ class ItemsController extends Controller
         }
     }
 
+    /**
+     * Display the specified resource.
+     *
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function show($id): JsonResponse
     {
         $item = Item::with([
@@ -149,6 +131,13 @@ class ItemsController extends Controller
             : response()->json(['message' => 'Item not found.'], 404);
     }
 
+    /**
+     * Update the specified resource in storage.
+     *
+     * @param \Illuminate\Http\Request $request
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function update(Request $request, int $id): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -236,6 +225,12 @@ class ItemsController extends Controller
         }
     }
 
+    /**
+     * Remove the specified resource from storage.
+     *
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function destroy($id): JsonResponse
     {
         $item = Item::find($id);

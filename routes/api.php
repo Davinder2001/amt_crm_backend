@@ -42,9 +42,13 @@ use App\Http\Controllers\Api\{
     BulkActionsController,
     MeasuringUnitController,
     ItemStockController,
-    ExpenseController
+    ExpenseController,
+    DashboardController,
+    PackageDetailController
 };
 
+use App\Http\Controllers\Api\Reports\SalesController;
+use App\Http\Controllers\Api\Reports\RevenueController;
 
 // Health check route
 Route::get('/health', function () {
@@ -97,6 +101,12 @@ Route::prefix('v1')->group(function () {
             Route::post('/{id}', [AdminAndCompanyRegisterController::class, 'createCompany']);
         });
 
+        // Auth API's
+        Route::post('logout', [AuthController::class, 'logout']);
+        Route::get('/auth/sessions', [AuthController::class, 'getLoginSessions']);
+        Route::post('password/change', [AuthController::class, 'resetPassword']);
+        Route::apiResource('permissions', PermissionController::class);
+
 
 
 
@@ -125,25 +135,14 @@ Route::prefix('v1')->group(function () {
                 Route::patch('/{id}', [PackageController::class, 'update']);
                 Route::delete('/{id}', [PackageController::class, 'destroy']);
             });
-            
 
             // Crud for businedd catagery
             Route::apiResource('business-categories', BusinessCategoryController::class);
         });
-        
 
-        
+
+
         Route::get('/pricing-packages', [PackageController::class, 'index']);
-
-
-
-
-        // Auth API's
-        Route::post('logout', [AuthController::class, 'logout']);
-        Route::post('password/change', [AuthController::class, 'resetPassword']);
-
-        // Permissions API's
-        Route::apiResource('permissions', PermissionController::class);
 
         // Roles & Role Permissions API's
         Route::get('roles', [RoleController::class, 'index'])->middleware('permission:view roles');
@@ -171,6 +170,7 @@ Route::prefix('v1')->group(function () {
         Route::post('users', [UserController::class, 'store'])->middleware('permission:add users');
         Route::get('users/{user}', [UserController::class, 'show'])->middleware('permission:view users');
         Route::put('users/{user}', [UserController::class, 'update'])->middleware('permission:edit users');
+        Route::put('self-update', [UserController::class, 'selfUpdate']);
         Route::delete('users/{user}', [UserController::class, 'destroy'])->middleware('permission:delete users');
 
 
@@ -202,6 +202,7 @@ Route::prefix('v1')->group(function () {
         // Tasks API's
         Route::prefix('tasks')->group(function () {
             Route::get('/pending', [TaskController::class, 'assignedPendingTasks']);
+            Route::get('/my-tasks', [TaskController::class, 'myTasks']);
             Route::get('/all-history', [TaskHistoryController::class, 'allHistory']);
             Route::post('{id}/approve', [TaskHistoryController::class, 'approve']);
             Route::post('{id}/reject', [TaskHistoryController::class, 'reject']);
@@ -229,6 +230,7 @@ Route::prefix('v1')->group(function () {
                 Route::delete('{id}', [EmployeeController::class, 'destroy'])->middleware('permission:delete employee');
                 Route::get('salarySlip/{id}', [SalaryController::class, 'salarySlip'])->middleware('permission:view employee salary');
                 Route::get('downloadSlip/{id}', [SalaryController::class, 'downloadPdfSlip']);
+                Route::get('generate-salary/{id}', [SalaryController::class, 'generateSalary']);
             });
         });
 
@@ -237,10 +239,12 @@ Route::prefix('v1')->group(function () {
 
         // Companies API's
         Route::prefix('companies')->group(function () {
+            Route::get('/profile-score', [CompanyController::class, 'getCompanyProfileScore']);
             Route::get('/', [CompanyController::class, 'index'])->middleware('permission:view company');
             Route::post('/', [CompanyController::class, 'store'])->middleware('permission:add company');
             Route::get('{id}', [CompanyController::class, 'show'])->middleware('permission:view company');
             Route::put('{id}', [CompanyController::class, 'update'])->middleware('permission:update company');
+            Route::put('/update/{id}', [CompanyController::class, 'userUpdate'])->middleware('permission:update company');
             Route::delete('{id}', [CompanyController::class, 'destroy'])->middleware('permission:delete company');
         });
 
@@ -525,6 +529,31 @@ Route::prefix('v1')->group(function () {
             Route::get('/{id}', [ExpenseController::class, 'show']);
             Route::post('/{id}/update', [ExpenseController::class, 'update']);
             Route::delete('/{id}/delete', [ExpenseController::class, 'destroy']);
+        });
+
+
+        Route::prefix('dashboard')->group(function () {
+            Route::get('/cards-summary', [DashboardController::class, 'cardsSummery']);
+            Route::get('/sales-stat', [DashboardController::class, 'saleStat']);
+            Route::get('/revenue-stat', [DashboardController::class, 'revenueStat']);
+        });
+
+
+        Route::get('/reports/sales', [SalesController::class, 'sales']);
+        Route::get('/reports/sales-summary', [SalesController::class, 'monthlySalesSummary']);
+        Route::get('/reports/top-selling-items', [SalesController::class, 'topSellingItems']);
+
+        Route::get('/reports/revenue', [RevenueController::class, 'revenue']);
+        Route::get('/reports/revenue-summary', [RevenueController::class, 'monthlyRevenueSummary']);
+
+
+
+        Route::prefix('package-details')->group(function () {
+            Route::get('/', [PackageDetailController::class, 'index']);
+            Route::post('/', [PackageDetailController::class, 'store']);
+            Route::get('{id}', [PackageDetailController::class, 'show']);
+            Route::put('{id}', [PackageDetailController::class, 'update']);
+            Route::delete('{id}', [PackageDetailController::class, 'destroy']);
         });
     });
 });

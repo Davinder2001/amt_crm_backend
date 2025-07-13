@@ -6,17 +6,12 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\ValidationException;
 use App\Services\AdminRegistrationService;
-use App\Http\Requests\AdminRegisterRequest;
 use App\Models\User;
-use App\Models\Package;
-use App\Models\Company;
 use App\Models\CompanyUser;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Resources\UserResource;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Cache;
 
@@ -78,9 +73,6 @@ class AuthController extends Controller
     }
 
 
-
-
-    
     /**
      * Send OTP for email verification.
      */
@@ -112,7 +104,9 @@ class AuthController extends Controller
             $message->to($email)->subject('Your Verification Code');
         });
 
-        return response()->json(['message' => 'Verification email sent successfully.']);
+        return response()->json([
+            'message' => 'Verification email sent successfully.'
+        ], 200);
     }
 
 
@@ -144,7 +138,9 @@ class AuthController extends Controller
 
         Cache::forget("email_verification_{$email}");
 
-        return response()->json(['message' => 'OTP verified successfully.']);
+        return response()->json([
+            'message' => 'OTP verified successfully.'
+        ]);
     }
 
 
@@ -245,7 +241,9 @@ class AuthController extends Controller
         CompanyUser::query()->where('user_id', $user->id)->update(['status' => 0]);
         $user->currentAccessToken()->delete();
 
-        return response()->json(['message' => 'Logged out successfully.']);
+        return response()->json([
+            'message' => 'Logged out successfully.'
+        ]);
     }
 
 
@@ -259,7 +257,9 @@ class AuthController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return response()->json([
+                'errors' => $validator->errors()
+            ], 422);
         }
 
         $otp = rand(100000, 999999);
@@ -268,7 +268,9 @@ class AuthController extends Controller
             $message->to($request->email)->subject('Password Reset OTP');
         });
 
-        return response()->json(['message' => 'OTP sent successfully.']);
+        return response()->json([
+            'message' => 'OTP sent successfully.'
+        ]);
     }
 
     /**
@@ -282,7 +284,9 @@ class AuthController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return response()->json([
+                'errors' => $validator->errors()
+            ], 422);
         }
 
         $storedOtp = Cache::get('otp_' . $request->email);
@@ -295,7 +299,9 @@ class AuthController extends Controller
         $user->update(['password' => Hash::make($request->password)]);
         Cache::forget('otp_' . $request->email);
 
-        return response()->json(['message' => 'OTP verified and password reset successfully.']);
+        return response()->json([
+            'message' => 'OTP verified and password reset successfully.'
+        ]);
     }
 
     /**
@@ -317,6 +323,31 @@ class AuthController extends Controller
         $user = Auth::user();
         $user->update(['password' => Hash::make($data['password'])]);
 
-        return response()->json(['message' => 'Password reset successfully.']);
+        return response()->json([
+            'message' => 'Password reset successfully.'
+        ]);
+    }
+
+    /**
+     * Get all active tokens for the logged-in user.
+     */
+    public function getLoginSessions(Request $request): JsonResponse
+    {
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+
+        $tokens = $user->tokens()->get()->map(function ($token) {
+            return [
+                'token_id'    => $token->id,
+                'token_name'  => $token->name,
+                'created_at'  => $token->created_at->toDateTimeString(),
+                'last_used_at' => $token->last_used_at ? $token->last_used_at->toDateTimeString() : null,
+            ];
+        });
+
+        return response()->json([
+            'total_logins' => $tokens->count(),
+            'sessions'     => $tokens,
+        ]);
     }
 }

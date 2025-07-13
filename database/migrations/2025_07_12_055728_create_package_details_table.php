@@ -9,23 +9,21 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
+    public function up()
     {
-        Schema::create('task_reminders', function (Blueprint $table) {
+        Schema::create('package_details', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->foreignId('task_id')->constrained()->onDelete('cascade');
-            $table->dateTime('reminder_at');
+            $table->string('name')->unique(); // the key
             $table->timestamps();
         });
-        
     }
+
 
     /**
      * Reverse the migrations.
      */
     public function down(): void
     {
-        Schema::dropIfExists('task_reminders');
+        Schema::dropIfExists('package_details');
     }
 };

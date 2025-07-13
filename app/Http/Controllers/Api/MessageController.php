@@ -12,6 +12,13 @@ use Illuminate\Support\Facades\Validator;
 
 class MessageController extends Controller
 {
+    /**
+     * Send a message to a user.
+     *
+     * @param Request $request
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function sendMessageToUser(Request $request, $id)
     {
         $validator = Validator::make($request->all(), [
@@ -71,8 +78,12 @@ class MessageController extends Controller
         ], 201);
     }
 
-
-
+    /**
+     * Get all chats for the authenticated user.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function chats(Request $request)
     {
         $user               = $request->user();
@@ -104,6 +115,13 @@ class MessageController extends Controller
     }
 
 
+    /**
+     * Get chat with a specific user.
+     *
+     * @param Request $request
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function getChatWithUser(Request $request, $id)
     {
         $authUser   = $request->user();
@@ -158,6 +176,12 @@ class MessageController extends Controller
         ]);
     }
 
+    /**
+     * Get all users for chat.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function chatUsers(Request $request)
     {
         $authUserId = $request->user()->id;
@@ -177,6 +201,13 @@ class MessageController extends Controller
     }
 
 
+    /**
+     * Delete a specific message.
+     *
+     * @param Request $request
+     * @param int $messageId
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function deleteMessage(Request $request, $messageId)
     {
         $authUser = $request->user();
@@ -205,6 +236,13 @@ class MessageController extends Controller
         ]);
     }
 
+    /**
+     * Delete all chats with a specific user.
+     *
+     * @param Request $request
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function deleteAllChatsWithUser(Request $request, $id)
     {
         $authUser = $request->user();
