@@ -43,7 +43,6 @@ jobs:
           cp -r resources deployment/
           cp -r routes deployment/
           cp -r storage deployment/
-          cp -r infra deployment/
           cp -r docker deployment/
           
           # Copy individual files
