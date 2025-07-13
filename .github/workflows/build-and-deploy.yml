@@ -141,6 +141,26 @@ jobs:
             docker-entrypoint.sh \
             .env.example
 
+      - name: Test SSH connectivity
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER || 'root' }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          port: ${{ secrets.PROD_PORT || 22 }}
+          timeout: 60s
+          debug: true
+          script: |
+            echo "✅ SSH connection successful!"
+            echo "🖥️  Server info:"
+            whoami
+            pwd
+            uname -a
+            echo "📁 Target directory:"
+            ls -la /srv/ || sudo mkdir -p /srv/laravel-backend
+            echo "🐳 Docker status:"
+            docker --version || echo "Docker not found"
+
       - name: Copy deployment package to server
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -152,6 +172,9 @@ jobs:
           target: "/srv/laravel-backend"
           overwrite: true
           timeout: 300s
+          debug: true
+          use_insecure_cipher: false
+          rm: false
 
       - name: Deploy on server (atomic, idempotent)
         uses: appleboy/ssh-action@v1.0.3
@@ -161,6 +184,8 @@ jobs:
           key: ${{ secrets.PROD_SSH_KEY }}
           port: ${{ secrets.PROD_PORT || 22 }}
           timeout: 600s
+          debug: true
+          use_insecure_cipher: false
           script: |
             set -e
             cd /srv/laravel-backend
