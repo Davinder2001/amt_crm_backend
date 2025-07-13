@@ -138,15 +138,35 @@ jobs:
               exit 1
             fi
             
+            # Clear all Laravel caches and fix permissions
+            echo "Clearing Laravel caches and fixing permissions..."
+            docker compose exec -T app rm -rf bootstrap/cache/* 2>/dev/null || true
+            docker compose exec -T app chmod -R 775 storage bootstrap/cache
+            docker compose exec -T app chown -R www:www storage bootstrap/cache
+            
             # Run migrations
             echo "Running database migrations..."
             docker compose exec -T app php artisan migrate --force
             
-            # Clear config for production
-            echo "Clearing configuration cache..."
+            # Clear and rebuild caches for production
+            echo "Rebuilding configuration cache..."
             docker compose exec -T app php artisan config:clear
             docker compose exec -T app php artisan route:clear
             docker compose exec -T app php artisan view:clear
+            docker compose exec -T app php artisan config:cache
+            docker compose exec -T app php artisan route:cache
+            docker compose exec -T app php artisan view:cache
+            
+            # Test the application
+            echo "Testing application health..."
+            sleep 10
+            if curl -f http://localhost/api/health > /dev/null 2>&1; then
+              echo "✅ Application is healthy!"
+            else
+              echo "❌ Application health check failed. Checking logs..."
+              docker compose logs app
+              exit 1
+            fi
             
             # Clean up deployment package
             rm -f deployment.tar.gz
