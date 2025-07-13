@@ -20,6 +20,7 @@ jobs:
           DB_DATABASE: ${{ secrets.DB_DATABASE }}
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
 
           MAIL_MAILER: ${{ secrets.MAIL_MAILER }}
           MAIL_SCHEME: ${{ secrets.MAIL_SCHEME }}

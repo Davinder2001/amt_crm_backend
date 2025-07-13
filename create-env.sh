@@ -40,6 +40,7 @@ DB_PORT=3306
 DB_DATABASE=amt_crm_backend
 DB_USERNAME=amt_crm_user
 DB_PASSWORD=your_secure_database_password_here
+DB_ROOT_PASSWORD=your_secure_root_password_here
 DB_CHARSET=utf8mb4
 DB_COLLATION=utf8mb4_unicode_ci
 
@@ -115,6 +116,11 @@ fi
 if [ -n "$DB_PASSWORD" ]; then
     escaped_pass=$(escape_env_value "$DB_PASSWORD")
     sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=$escaped_pass|" .env.docker
+fi
+
+if [ -n "$DB_ROOT_PASSWORD" ]; then
+    escaped_root_pass=$(escape_env_value "$DB_ROOT_PASSWORD")
+    sed -i "s|^DB_ROOT_PASSWORD=.*|DB_ROOT_PASSWORD=$escaped_root_pass|" .env.docker
 fi
 
 # Redis configuration disabled
