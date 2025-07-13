@@ -1,0 +1,140 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [ production ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_mysql, dom, filter, gd, iconv, json, mbstring, pdo, xml
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction
+
+      - name: Install NPM dependencies
+        run: npm ci
+
+      - name: Copy environment file
+        run: cp .env.example .env
+
+      - name: Generate application key
+        run: php artisan key:generate
+
+      - name: Run database migrations (local test)
+        run: php artisan migrate --force
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ':memory:'
+
+      - name: Run tests
+        run: php artisan test --coverage
+
+      - name: Run PHPStan
+        run: vendor/bin/phpstan analyse app --level=5
+
+      - name: Run PHP CS Fixer
+        run: vendor/bin/php-cs-fixer fix --dry-run --diff
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          tags: amt-crm-backend:latest
+
+      - name: Create deployment package
+        run: |
+          tar -czf deployment.tar.gz \
+            app/ \
+            bootstrap/ \
+            config/ \
+            database/ \
+            public/ \
+            resources/ \
+            routes/ \
+            storage/ \
+            docker/ \
+            artisan \
+            composer.json \
+            composer.lock \
+            Dockerfile \
+            docker-compose.yml \
+            package.json \
+            package-lock.json \
+            vite.config.js \
+            docker-entrypoint.sh \
+            .env.example
+
+      - name: Copy deployment package to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: root
+          key: ${{ secrets.PROD_SSH_KEY }}
+          port: ${{ secrets.PROD_PORT || 22 }}
+          source: "deployment.tar.gz"
+          target: "/srv/laravel-backend"
+          overwrite: true
+
+      - name: Deploy on server (atomic, idempotent)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: root
+          key: ${{ secrets.PROD_SSH_KEY }}
+          port: ${{ secrets.PROD_PORT || 22 }}
+          script: |
+            set -e
+            cd /srv/laravel-backend
+            tar -xzf deployment.tar.gz
+            cp .env.example .env || true
+
+            # Check if db and nginx containers exist and are running
+            DB_EXISTS=$(docker ps -a --format '{{.Names}}' | grep -c '^amt_crm_db$' || true)
+            NGINX_EXISTS=$(docker ps -a --format '{{.Names}}' | grep -c '^amt_crm_nginx$' || true)
+
+            # If first deploy (db/nginx not running), bring up all
+            if [ "$DB_EXISTS" -eq 0 ] || [ "$NGINX_EXISTS" -eq 0 ]; then
+              echo "First deploy: starting all containers (db, nginx, app)"
+              docker compose up --build -d
+            else
+              echo "Subsequent deploy: only updating app container"
+              docker compose stop app || true
+              docker rm -f amt_crm_app 2>/dev/null || true
+              docker compose up --build -d app
+            fi
+
+            # Fix permissions for Laravel
+            echo "Fixing Laravel permissions..."
+            docker compose exec app chown -R www:www /var/www/storage /var/www/bootstrap/cache || true
+            docker compose exec app chmod -R 775 /var/www/storage /var/www/bootstrap/cache || true
+
+            # Wait for app to be ready
+            echo "Waiting for app to be ready..."
+            sleep 30
+
+            # Health check
+            if ! docker compose exec app curl -f http://localhost/api/health; then
+              echo "❌ App health check failed. Checking logs..."
+              docker compose logs app
+              exit 1
+            fi
+
+            echo "✅ Deployment completed successfully!"
+            rm -f deployment.tar.gz 
