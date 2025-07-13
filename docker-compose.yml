@@ -1,16 +1,14 @@
 services:
-  # Nginx Reverse Proxy with SSL
+  # Nginx Reverse Proxy (HTTP only for now)
   nginx-proxy:
     image: nginx:alpine
     container_name: amt_crm_nginx
     ports:
       - "80:80"
-      - "443:443"
     volumes:
       - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./docker/nginx/ssl:/etc/letsencrypt:ro
       - ./docker/nginx/logs:/var/log/nginx
-      - ./docker/nginx/certbot/www:/var/www/certbot:ro
+      - ./public:/var/www/public:ro
     depends_on:
       - app
     restart: unless-stopped
@@ -26,6 +24,7 @@ services:
     volumes:
       - ./storage:/var/www/storage
       - ./bootstrap/cache:/var/www/bootstrap/cache
+      - ./public:/var/www/public
     environment:
       - APP_ENV=production
       - APP_DEBUG=false
@@ -64,32 +63,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
-
-  # Certbot for Let's Encrypt SSL certificates
-  certbot:
-    image: certbot/certbot
-    container_name: amt_crm_certbot
-    volumes:
-      - ./docker/nginx/ssl:/etc/letsencrypt
-      - ./docker/nginx/certbot/www:/var/www/certbot
-    entrypoint: ""
-    command: >
-      sh -c "
-        if [ ! -f /etc/letsencrypt/live/api.himmanav.com/fullchain.pem ]; then
-          echo 'Obtaining Let''s Encrypt certificates...';
-          certbot certonly --webroot -w /var/www/certbot --email himmanav11@gmail.com --agree-tos --no-eff-email -d api.himmanav.com --force-renewal;
-          echo 'Certificates obtained successfully!';
-        else
-          echo 'Certificates already exist. Checking for renewal...';
-          certbot renew --webroot -w /var/www/certbot;
-          echo 'Certificate renewal check completed.';
-        fi;
-      "
-    depends_on:
-      - nginx-proxy
-    networks:
-      - amt_crm_network
-    restart: "no"
 
 networks:
   amt_crm_network:
