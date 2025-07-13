@@ -4,7 +4,7 @@
 echo "Waiting for database connection..."
 until php artisan tinker --execute="DB::connection()->getPdo();" 2>/dev/null; do
     echo "Database not ready, waiting..."
-    sleep 2
+    sleep 5
 done
 
 # Generate autoloader and clear caches

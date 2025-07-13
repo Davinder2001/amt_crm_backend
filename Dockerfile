@@ -47,9 +47,6 @@ RUN chown -R www:www /var/www && \
 # Production stage
 FROM base AS production
 
-# Install only production dependencies
-RUN composer install --no-dev --no-scripts --no-interaction --prefer-dist --optimize-autoloader
-
 # Configure PHP for production
 RUN echo "memory_limit = 512M" > /usr/local/etc/php/conf.d/memory-limit.ini && \
     echo "max_execution_time = 300" >> /usr/local/etc/php/conf.d/memory-limit.ini && \
