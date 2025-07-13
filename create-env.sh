@@ -60,11 +60,11 @@ DB_CACHE_TABLE=cache
 QUEUE_CONNECTION=database
 DB_QUEUE_TABLE=jobs
 
-# Redis Configuration
-REDIS_CLIENT=phpredis
-REDIS_HOST=127.0.0.1
-REDIS_PORT=6379
-REDIS_DB=0
+# Redis Configuration (Disabled)
+# REDIS_CLIENT=phpredis
+# REDIS_HOST=127.0.0.1
+# REDIS_PORT=6379
+# REDIS_DB=0
 
 # Broadcasting Configuration
 BROADCAST_DRIVER=log
@@ -117,20 +117,21 @@ if [ -n "$DB_PASSWORD" ]; then
     sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=$escaped_pass|" .env.docker
 fi
 
-if [ -n "$REDIS_HOST" ]; then
-    escaped_redis_host=$(escape_env_value "$REDIS_HOST")
-    sed -i "s|^REDIS_HOST=.*|REDIS_HOST=$escaped_redis_host|" .env.docker
-fi
+# Redis configuration disabled
+# if [ -n "$REDIS_HOST" ]; then
+#     escaped_redis_host=$(escape_env_value "$REDIS_HOST")
+#     sed -i "s|^REDIS_HOST=.*|REDIS_HOST=$escaped_redis_host|" .env.docker
+# fi
 
-if [ -n "$REDIS_PORT" ]; then
-    escaped_redis_port=$(escape_env_value "$REDIS_PORT")
-    sed -i "s|^REDIS_PORT=.*|REDIS_PORT=$escaped_redis_port|" .env.docker
-fi
+# if [ -n "$REDIS_PORT" ]; then
+#     escaped_redis_port=$(escape_env_value "$REDIS_PORT")
+#     sed -i "s|^REDIS_PORT=.*|REDIS_PORT=$escaped_redis_port|" .env.docker
+# fi
 
-if [ -n "$REDIS_DB" ]; then
-    escaped_redis_db=$(escape_env_value "$REDIS_DB")
-    sed -i "s|^REDIS_DB=.*|REDIS_DB=$escaped_redis_db|" .env.docker
-fi
+# if [ -n "$REDIS_DB" ]; then
+#     escaped_redis_db=$(escape_env_value "$REDIS_DB")
+#     sed -i "s|^REDIS_DB=.*|REDIS_DB=$escaped_redis_db|" .env.docker
+# fi
 
 if [ -n "$MAIL_MAILER" ]; then
     escaped_mailer=$(escape_env_value "$MAIL_MAILER")
