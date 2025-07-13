@@ -122,8 +122,8 @@ jobs:
 
             # Fix permissions for Laravel
             echo "Fixing Laravel permissions..."
-            docker compose exec app chown -R www:www /var/www/storage /var/www/bootstrap/cache || true
-            docker compose exec app chmod -R 775 /var/www/storage /var/www/bootstrap/cache || true
+            docker compose exec --user root app chown -R www:www /var/www/storage /var/www/bootstrap/cache || true
+            docker compose exec --user root app chmod -R 775 /var/www/storage /var/www/bootstrap/cache || true
 
             # Wait for app to be ready
             echo "Waiting for app to be ready..."
