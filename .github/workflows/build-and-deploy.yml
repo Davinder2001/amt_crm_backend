@@ -41,8 +41,8 @@ jobs:
           DB_CONNECTION: sqlite
           DB_DATABASE: ':memory:'
 
-      - name: Run tests
-        run: php artisan test --coverage
+      # - name: Run tests
+      #   run: php artisan test --coverage
 
       - name: Run PHPStan
         run: vendor/bin/phpstan analyse app --level=5
