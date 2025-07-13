@@ -1,0 +1,137 @@
+name: Monitor Application
+
+on:
+  schedule:
+    # Run every 5 minutes
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Check application health
+        run: |
+          echo "Checking application health..."
+          
+          # Test basic connectivity
+          if curl -f -s http://${{ secrets.PROD_HOST }}/api/health > /dev/null; then
+            echo "✅ Health endpoint is responding"
+            HEALTH_STATUS="healthy"
+          else
+            echo "❌ Health endpoint is not responding"
+            HEALTH_STATUS="unhealthy"
+          fi
+          
+          # Test API routes
+          if curl -f -s http://${{ secrets.PROD_HOST }}/api/routes > /dev/null; then
+            echo "✅ Routes endpoint is responding"
+            ROUTES_STATUS="healthy"
+          else
+            echo "❌ Routes endpoint is not responding"
+            ROUTES_STATUS="unhealthy"
+          fi
+          
+          # Test database connectivity (if possible)
+          if curl -f -s http://${{ secrets.PROD_HOST }}/api/health | grep -q "database"; then
+            echo "✅ Database connectivity is working"
+            DB_STATUS="healthy"
+          else
+            echo "⚠️ Database connectivity status unknown"
+            DB_STATUS="unknown"
+          fi
+          
+          # Overall status
+          if [ "$HEALTH_STATUS" = "healthy" ] && [ "$ROUTES_STATUS" = "healthy" ]; then
+            echo "✅ Application is healthy overall"
+            exit 0
+          else
+            echo "❌ Application has issues"
+            exit 1
+          fi
+
+  performance-check:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: Check response times
+        run: |
+          echo "Checking application performance..."
+          
+          # Test response time
+          START_TIME=$(date +%s.%N)
+          curl -f -s http://${{ secrets.PROD_HOST }}/api/health > /dev/null
+          END_TIME=$(date +%s.%N)
+          
+          RESPONSE_TIME=$(echo "$END_TIME - $START_TIME" | bc)
+          echo "Response time: ${RESPONSE_TIME}s"
+          
+          # Alert if response time is too high
+          if (( $(echo "$RESPONSE_TIME > 2.0" | bc -l) )); then
+            echo "⚠️ Response time is high: ${RESPONSE_TIME}s"
+            exit 1
+          else
+            echo "✅ Response time is acceptable: ${RESPONSE_TIME}s"
+          fi
+
+  resource-check:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: Check server resources
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: root
+          key: ${{ secrets.PROD_SSH_KEY }}
+          port: ${{ secrets.PROD_PORT || 22 }}
+          script: |
+            echo "Checking server resources..."
+            
+            # Check disk usage
+            DISK_USAGE=$(df -h / | awk 'NR==2 {print $5}' | sed 's/%//')
+            echo "Disk usage: ${DISK_USAGE}%"
+            
+            if [ "$DISK_USAGE" -gt 80 ]; then
+              echo "⚠️ Disk usage is high: ${DISK_USAGE}%"
+            else
+              echo "✅ Disk usage is acceptable: ${DISK_USAGE}%"
+            fi
+            
+            # Check memory usage
+            MEMORY_USAGE=$(free | awk 'NR==2{printf "%.2f", $3*100/$2}')
+            echo "Memory usage: ${MEMORY_USAGE}%"
+            
+            if (( $(echo "$MEMORY_USAGE > 80" | bc -l) )); then
+              echo "⚠️ Memory usage is high: ${MEMORY_USAGE}%"
+            else
+              echo "✅ Memory usage is acceptable: ${MEMORY_USAGE}%"
+            fi
+            
+            # Check Docker containers
+            echo "Checking Docker containers..."
+            docker compose ps
+            
+            # Check container logs for errors
+            echo "Recent container logs:"
+            docker compose logs --tail=20 app
+
+  alert:
+    runs-on: ubuntu-latest
+    needs: [health-check, performance-check, resource-check]
+    if: always() && (needs.health-check.result == 'failure' || needs.performance-check.result == 'failure' || needs.resource-check.result == 'failure')
+    
+    steps:
+      - name: Send alert
+        run: |
+          echo "🚨 Application monitoring alert!"
+          echo "Health check: ${{ needs.health-check.result }}"
+          echo "Performance check: ${{ needs.performance-check.result }}"
+          echo "Resource check: ${{ needs.resource-check.result }}"
+          
+          # Here you could integrate with Slack, Discord, or email notifications
+          # For now, we'll just log the alert
+          echo "Alert sent at $(date)" 

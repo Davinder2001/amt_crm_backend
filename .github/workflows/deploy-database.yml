@@ -1,0 +1,152 @@
+name: Deploy Database
+
+on:
+  workflow_run:
+    workflows: ["Build and Test"]
+    types:
+      - completed
+    branches: [production]
+
+jobs:
+  deploy-database:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+          path: deployment/
+
+      - name: Create environment file
+        run: |
+          echo "# Application Configuration" > deployment/.env.docker
+          echo "APP_NAME=\"${{ secrets.APP_NAME }}\"" >> deployment/.env.docker
+          echo "APP_ENV=\"${{ secrets.APP_ENV }}\"" >> deployment/.env.docker
+          echo "APP_KEY=\"${{ secrets.APP_KEY }}\"" >> deployment/.env.docker
+          echo "APP_DEBUG=\"${{ secrets.APP_DEBUG }}\"" >> deployment/.env.docker
+          echo "APP_URL=\"${{ secrets.APP_URL }}\"" >> deployment/.env.docker
+          echo "APP_LOCALE=\"${{ secrets.APP_LOCALE }}\"" >> deployment/.env.docker
+          echo "APP_FALLBACK_LOCALE=\"${{ secrets.APP_FALLBACK_LOCALE }}\"" >> deployment/.env.docker
+          echo "APP_FAKER_LOCALE=\"${{ secrets.APP_FAKER_LOCALE }}\"" >> deployment/.env.docker
+          echo "APP_MAINTENANCE_DRIVER=\"${{ secrets.APP_MAINTENANCE_DRIVER }}\"" >> deployment/.env.docker
+          echo "" >> deployment/.env.docker
+          echo "# PHP Configuration" >> deployment/.env.docker
+          echo "PHP_CLI_SERVER_WORKERS=\"${{ secrets.PHP_CLI_SERVER_WORKERS }}\"" >> deployment/.env.docker
+          echo "BCRYPT_ROUNDS=\"${{ secrets.BCRYPT_ROUNDS }}\"" >> deployment/.env.docker
+          echo "" >> deployment/.env.docker
+          echo "# Logging Configuration" >> deployment/.env.docker
+          echo "LOG_CHANNEL=\"${{ secrets.LOG_CHANNEL }}\"" >> deployment/.env.docker
+          echo "LOG_STACK=\"${{ secrets.LOG_STACK }}\"" >> deployment/.env.docker
+          echo "LOG_DEPRECATIONS_CHANNEL=\"${{ secrets.LOG_DEPRECATIONS_CHANNEL }}\"" >> deployment/.env.docker
+          echo "LOG_LEVEL=\"${{ secrets.LOG_LEVEL }}\"" >> deployment/.env.docker
+          echo "" >> deployment/.env.docker
+          echo "# Database Configuration" >> deployment/.env.docker
+          echo "DB_CONNECTION=\"${{ secrets.DB_CONNECTION }}\"" >> deployment/.env.docker
+          echo "DB_HOST=\"${{ secrets.DB_HOST }}\"" >> deployment/.env.docker
+          echo "DB_PORT=\"${{ secrets.DB_PORT }}\"" >> deployment/.env.docker
+          echo "DB_DATABASE=\"${{ secrets.DB_DATABASE }}\"" >> deployment/.env.docker
+          echo "DB_USERNAME=\"${{ secrets.DB_USERNAME }}\"" >> deployment/.env.docker
+          echo "DB_PASSWORD=\"${{ secrets.DB_PASSWORD }}\"" >> deployment/.env.docker
+          echo "DB_ROOT_PASSWORD=\"${{ secrets.DB_ROOT_PASSWORD }}\"" >> deployment/.env.docker
+          echo "DB_CHARSET=\"${{ secrets.DB_CHARSET }}\"" >> deployment/.env.docker
+          echo "DB_COLLATION=\"${{ secrets.DB_COLLATION }}\"" >> deployment/.env.docker
+          echo "" >> deployment/.env.docker
+          echo "# Session Configuration" >> deployment/.env.docker
+          echo "SESSION_DRIVER=\"${{ secrets.SESSION_DRIVER }}\"" >> deployment/.env.docker
+          echo "SESSION_LIFETIME=\"${{ secrets.SESSION_LIFETIME }}\"" >> deployment/.env.docker
+          echo "SESSION_ENCRYPT=\"${{ secrets.SESSION_ENCRYPT }}\"" >> deployment/.env.docker
+          echo "SESSION_PATH=\"${{ secrets.SESSION_PATH }}\"" >> deployment/.env.docker
+          echo "SESSION_SECURE_COOKIE=\"${{ secrets.SESSION_SECURE_COOKIE }}\"" >> deployment/.env.docker
+          echo "SESSION_HTTP_ONLY=\"${{ secrets.SESSION_HTTP_ONLY }}\"" >> deployment/.env.docker
+          echo "SESSION_TABLE=\"${{ secrets.SESSION_TABLE }}\"" >> deployment/.env.docker
+          echo "" >> deployment/.env.docker
+          echo "# Cache Configuration" >> deployment/.env.docker
+          echo "CACHE_STORE=\"${{ secrets.CACHE_STORE }}\"" >> deployment/.env.docker
+          echo "DB_CACHE_TABLE=\"${{ secrets.DB_CACHE_TABLE }}\"" >> deployment/.env.docker
+          echo "" >> deployment/.env.docker
+          echo "# Queue Configuration" >> deployment/.env.docker
+          echo "QUEUE_CONNECTION=\"${{ secrets.QUEUE_CONNECTION }}\"" >> deployment/.env.docker
+          echo "DB_QUEUE_TABLE=\"${{ secrets.DB_QUEUE_TABLE }}\"" >> deployment/.env.docker
+          echo "" >> deployment/.env.docker
+          echo "# Broadcasting Configuration" >> deployment/.env.docker
+          echo "BROADCAST_DRIVER=\"${{ secrets.BROADCAST_DRIVER }}\"" >> deployment/.env.docker
+          echo "BROADCAST_CONNECTION=\"${{ secrets.BROADCAST_CONNECTION }}\"" >> deployment/.env.docker
+          echo "" >> deployment/.env.docker
+          echo "# Mail Configuration" >> deployment/.env.docker
+          echo "MAIL_MAILER=\"${{ secrets.MAIL_MAILER }}\"" >> deployment/.env.docker
+          echo "MAIL_SCHEME=\"${{ secrets.MAIL_SCHEME }}\"" >> deployment/.env.docker
+          echo "MAIL_HOST=\"${{ secrets.MAIL_HOST }}\"" >> deployment/.env.docker
+          echo "MAIL_PORT=\"${{ secrets.MAIL_PORT }}\"" >> deployment/.env.docker
+          echo "MAIL_USERNAME=\"${{ secrets.MAIL_USERNAME }}\"" >> deployment/.env.docker
+          echo "MAIL_PASSWORD=\"${{ secrets.MAIL_PASSWORD }}\"" >> deployment/.env.docker
+          echo "MAIL_FROM_ADDRESS=\"${{ secrets.MAIL_FROM_ADDRESS }}\"" >> deployment/.env.docker
+          echo "MAIL_FROM_NAME=\"${{ secrets.MAIL_FROM_NAME }}\"" >> deployment/.env.docker
+          echo "" >> deployment/.env.docker
+          echo "# AWS Configuration" >> deployment/.env.docker
+          echo "AWS_DEFAULT_REGION=\"${{ secrets.AWS_DEFAULT_REGION }}\"" >> deployment/.env.docker
+          echo "AWS_USE_PATH_STYLE_ENDPOINT=\"${{ secrets.AWS_USE_PATH_STYLE_ENDPOINT }}\"" >> deployment/.env.docker
+          echo "" >> deployment/.env.docker
+          echo "# Filesystem Configuration" >> deployment/.env.docker
+          echo "FILESYSTEM_DISK=\"${{ secrets.FILESYSTEM_DISK }}\"" >> deployment/.env.docker
+          echo "" >> deployment/.env.docker
+          echo "# Vite Configuration" >> deployment/.env.docker
+          echo "VITE_APP_NAME=\"${{ secrets.VITE_APP_NAME }}\"" >> deployment/.env.docker
+
+      - name: Create deployment package
+        run: |
+          cd deployment
+          tar -czf ../database-deployment.tar.gz .
+
+      - name: Copy database deployment package to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: root
+          key: ${{ secrets.PROD_SSH_KEY }}
+          port: ${{ secrets.PROD_PORT || 22 }}
+          source: "database-deployment.tar.gz"
+          target: "/srv/laravel-backend"
+          overwrite: true
+
+      - name: Deploy database
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: root
+          key: ${{ secrets.PROD_SSH_KEY }}
+          port: ${{ secrets.PROD_PORT || 22 }}
+          script: |
+            cd /srv/laravel-backend
+            
+            # Extract database deployment package
+            tar -xzf database-deployment.tar.gz
+            
+            # Copy environment file
+            cp .env.docker .env
+            
+            # Start database container if not running
+            docker compose up -d db
+            
+            # Wait for database to be ready
+            echo "Waiting for database to be ready..."
+            sleep 30
+            
+            # Run database migrations
+            echo "Running database migrations..."
+            docker compose exec -T db mysql -u root -p${{ secrets.DB_ROOT_PASSWORD }} -e "CREATE DATABASE IF NOT EXISTS ${{ secrets.DB_DATABASE }};"
+            
+            # Run Laravel migrations
+            docker compose run --rm app php artisan migrate --force
+            
+            # Run seeders if needed (only for fresh deployments)
+            # docker compose run --rm app php artisan db:seed --force
+            
+            echo "Database deployment completed successfully!"
+            
+            # Clean up
+            rm -f database-deployment.tar.gz 

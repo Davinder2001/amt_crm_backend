@@ -31,7 +31,9 @@
         "mockery/mockery": "^1.6",
         "nunomaduro/collision": "^8.6",
         "pestphp/pest": "^3.7",
-        "pestphp/pest-plugin-laravel": "^3.1"
+        "pestphp/pest-plugin-laravel": "^3.1",
+        "phpstan/phpstan": "^1.10",
+        "friendsofphp/php-cs-fixer": "^3.35"
     },
     "autoload": {
         "psr-4": {
@@ -68,6 +70,21 @@
         "dev": [
             "Composer\\Config::disableProcessTimeout",
             "npx concurrently -c \"#93c5fd,#c4b5fd,#fdba74\" \"php artisan serve\" \"php artisan queue:listen --tries=1\" \"npm run dev\" --names='server,queue,vite'"
+        ],
+        "test": [
+            "@php artisan test"
+        ],
+        "test-coverage": [
+            "@php artisan test --coverage"
+        ],
+        "analyse": [
+            "vendor/bin/phpstan analyse app --level=5"
+        ],
+        "fix": [
+            "vendor/bin/php-cs-fixer fix"
+        ],
+        "check-style": [
+            "vendor/bin/php-cs-fixer fix --dry-run --diff"
         ]
     },
     "extra": {
@@ -86,9 +103,7 @@
             "php-http/discovery": true
         }
     },
-    
-
- "repositories": [
+    "repositories": [
       {
         "type": "package",
         "url": "./vendor/phonepe/pg-sdk-php/",
@@ -105,7 +120,6 @@
         }
       }
     ],
-
     "minimum-stability": "stable",
     "prefer-stable": true
 }

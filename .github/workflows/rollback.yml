@@ -1,0 +1,150 @@
+name: Rollback Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      rollback_to:
+        description: 'Rollback to specific commit (optional)'
+        required: false
+        default: ''
+      reason:
+        description: 'Reason for rollback'
+        required: true
+        default: 'Emergency rollback'
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.rollback_to || 'HEAD~1' }}
+
+      - name: Create rollback package
+        run: |
+          # Create a clean deployment directory
+          mkdir -p rollback
+          
+          # Copy only necessary files for production
+          cp -r app rollback/
+          cp -r bootstrap rollback/
+          cp -r config rollback/
+          cp -r database rollback/
+          cp -r public rollback/
+          cp -r resources rollback/
+          cp -r routes rollback/
+          cp -r storage rollback/
+          cp -r docker rollback/
+          
+          # Copy individual files
+          cp artisan rollback/
+          cp composer.json rollback/
+          cp composer.lock rollback/
+          cp Dockerfile rollback/
+          cp docker-compose.yml rollback/
+          cp package.json rollback/
+          cp package-lock.json rollback/
+          cp vite.config.js rollback/
+          cp docker-entrypoint.sh rollback/
+          
+          # Create tar.gz for rollback
+          tar -czf rollback.tar.gz -C rollback .
+
+      - name: Copy rollback package to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: root
+          key: ${{ secrets.PROD_SSH_KEY }}
+          port: ${{ secrets.PROD_PORT || 22 }}
+          source: "rollback.tar.gz"
+          target: "/srv/laravel-backend"
+          overwrite: true
+
+      - name: Execute rollback
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: root
+          key: ${{ secrets.PROD_SSH_KEY }}
+          port: ${{ secrets.PROD_PORT || 22 }}
+          script: |
+            cd /srv/laravel-backend
+            
+            # Create backup of current deployment
+            echo "Creating backup of current deployment..."
+            tar -czf backup-$(date +%Y%m%d-%H%M%S).tar.gz --exclude='*.tar.gz' .
+            
+            # Extract rollback package
+            tar -xzf rollback.tar.gz
+            
+            # Copy environment file (preserve current config)
+            cp .env .env.backup
+            cp .env.docker .env 2>/dev/null || echo "Using existing .env"
+            
+            # Stop all containers
+            docker compose down
+            
+            # Start database first
+            docker compose up -d db
+            
+            # Wait for database
+            echo "Waiting for database to be ready..."
+            sleep 30
+            
+            # Start application
+            docker compose up --build -d app
+            
+            # Wait for application
+            echo "Waiting for application to be ready..."
+            sleep 60
+            
+            # Clear caches
+            docker compose exec app php artisan config:clear
+            docker compose exec app php artisan route:clear
+            docker compose exec app php artisan view:clear
+            docker compose exec app php artisan cache:clear
+            
+            # Optimize
+            docker compose exec app php artisan config:cache
+            docker compose exec app php artisan route:cache
+            docker compose exec app php artisan view:cache
+            
+            # Test health
+            echo "Testing application health..."
+            sleep 10
+            if curl -f http://localhost/api/health > /dev/null 2>&1; then
+              echo "✅ Rollback successful! Application is healthy!"
+            else
+              echo "❌ Rollback failed! Application health check failed."
+              echo "Restoring from backup..."
+              tar -xzf backup-*.tar.gz
+              docker compose up -d
+              exit 1
+            fi
+            
+            # Clean up
+            rm -f rollback.tar.gz
+            
+            echo "Rollback completed successfully!"
+            echo "Reason: ${{ github.event.inputs.reason }}"
+            echo "Rolled back to: ${{ github.event.inputs.rollback_to || 'HEAD~1' }}"
+
+  notify-rollback:
+    runs-on: ubuntu-latest
+    needs: rollback
+    if: always()
+    
+    steps:
+      - name: Notify rollback status
+        run: |
+          if [ "${{ needs.rollback.result }}" == "success" ]; then
+            echo "✅ Rollback successful!"
+            echo "Reason: ${{ github.event.inputs.reason }}"
+            echo "Rolled back to: ${{ github.event.inputs.rollback_to || 'HEAD~1' }}"
+          else
+            echo "❌ Rollback failed!"
+            echo "Reason: ${{ github.event.inputs.reason }}"
+          fi 
