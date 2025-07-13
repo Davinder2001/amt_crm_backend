@@ -125,7 +125,7 @@ jobs:
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.PROD_HOST }}
-          username: root
+          username: ${{ secrets.PROD_USER || 'root' }}
           key: ${{ secrets.PROD_SSH_KEY }}
           port: ${{ secrets.PROD_PORT || 22 }}
           source: "deployment.tar.gz"
@@ -137,7 +137,7 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.PROD_HOST }}
-          username: root
+          username: ${{ secrets.PROD_USER || 'root' }}
           key: ${{ secrets.PROD_SSH_KEY }}
           port: ${{ secrets.PROD_PORT || 22 }}
           timeout: 600s
@@ -148,16 +148,110 @@ jobs:
             # Extract deployment package
             tar -xzf deployment.tar.gz
             
+            # Create production .env file from secrets
+            echo "🔧 Creating production environment file..."
+            cat > .env << 'EOF'
+            APP_NAME="${{ secrets.APP_NAME || 'AMT CRM' }}"
+            APP_ENV=production
+            APP_KEY=${{ secrets.APP_KEY }}
+            APP_DEBUG=false
+            APP_URL=${{ secrets.APP_URL || 'http://localhost' }}
+
+            LOG_CHANNEL=stack
+            LOG_DEPRECATIONS_CHANNEL=null
+            LOG_LEVEL=debug
+
+            DB_CONNECTION=mysql
+            DB_HOST=${{ secrets.DB_HOST || 'host.docker.internal' }}
+            DB_PORT=${{ secrets.DB_PORT || '3306' }}
+            DB_DATABASE=${{ secrets.DB_DATABASE }}
+            DB_USERNAME=${{ secrets.DB_USERNAME }}
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+
+            BROADCAST_DRIVER=log
+            CACHE_DRIVER=file
+            FILESYSTEM_DISK=local
+            QUEUE_CONNECTION=sync
+            SESSION_DRIVER=file
+            SESSION_LIFETIME=120
+
+            MEMCACHED_HOST=127.0.0.1
+
+            REDIS_HOST=127.0.0.1
+            REDIS_PASSWORD=null
+            REDIS_PORT=6379
+
+            MAIL_MAILER=${{ secrets.MAIL_MAILER || 'smtp' }}
+            MAIL_HOST=${{ secrets.MAIL_HOST }}
+            MAIL_PORT=${{ secrets.MAIL_PORT || '587' }}
+            MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}
+            MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}
+            MAIL_ENCRYPTION=${{ secrets.MAIL_ENCRYPTION || 'tls' }}
+            MAIL_FROM_ADDRESS=${{ secrets.MAIL_FROM_ADDRESS }}
+            MAIL_FROM_NAME="${{ secrets.MAIL_FROM_NAME || secrets.APP_NAME || 'AMT CRM' }}"
+
+            AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            AWS_DEFAULT_REGION=${{ secrets.AWS_DEFAULT_REGION || 'us-east-1' }}
+            AWS_BUCKET=${{ secrets.AWS_BUCKET }}
+            AWS_USE_PATH_STYLE_ENDPOINT=false
+
+            PUSHER_APP_ID=${{ secrets.PUSHER_APP_ID }}
+            PUSHER_APP_KEY=${{ secrets.PUSHER_APP_KEY }}
+            PUSHER_APP_SECRET=${{ secrets.PUSHER_APP_SECRET }}
+            PUSHER_HOST=${{ secrets.PUSHER_HOST }}
+            PUSHER_PORT=${{ secrets.PUSHER_PORT || '443' }}
+            PUSHER_SCHEME=${{ secrets.PUSHER_SCHEME || 'https' }}
+            PUSHER_APP_CLUSTER=${{ secrets.PUSHER_APP_CLUSTER || 'mt1' }}
+
+            VITE_APP_NAME="${{ secrets.APP_NAME || 'AMT CRM' }}"
+            VITE_PUSHER_APP_KEY=${{ secrets.PUSHER_APP_KEY }}
+            VITE_PUSHER_HOST=${{ secrets.PUSHER_HOST }}
+            VITE_PUSHER_PORT=${{ secrets.PUSHER_PORT || '443' }}
+            VITE_PUSHER_SCHEME=${{ secrets.PUSHER_SCHEME || 'https' }}
+            VITE_PUSHER_APP_CLUSTER=${{ secrets.PUSHER_APP_CLUSTER || 'mt1' }}
+
+            # PhonePe Payment Gateway
+            PHONEPE_MERCHANT_ID=${{ secrets.PHONEPE_MERCHANT_ID }}
+            PHONEPE_SALT_KEY=${{ secrets.PHONEPE_SALT_KEY }}
+            PHONEPE_SALT_INDEX=${{ secrets.PHONEPE_SALT_INDEX }}
+            PHONEPE_CLIENT_ID=${{ secrets.PHONEPE_CLIENT_ID }}
+            PHONEPE_CLIENT_SECRET=${{ secrets.PHONEPE_CLIENT_SECRET }}
+            PHONEPE_CLIENT_VERSION=${{ secrets.PHONEPE_CLIENT_VERSION }}
+            PHONEPE_GRANT_TYPE=${{ secrets.PHONEPE_GRANT_TYPE }}
+            PHONEPE_OAUTH_URL=${{ secrets.PHONEPE_OAUTH_URL }}
+            PHONEPE_CHECKOUT_URL=${{ secrets.PHONEPE_CHECKOUT_URL }}
+            PHONEPE_STATUS_URL=${{ secrets.PHONEPE_STATUS_URL }}
+            PHONEPE_CALLBACK_BASE_URL=${{ secrets.PHONEPE_CALLBACK_BASE_URL }}
+            PHONEPE_CALLBACK_BASE_URL_COMPANY=${{ secrets.PHONEPE_CALLBACK_BASE_URL_COMPANY }}
+            PHONEPE_CALLBACK_BASE_URL_PROD=${{ secrets.PHONEPE_CALLBACK_BASE_URL_PROD }}
+            PHONEPE_CALLBACK_BASE_URL_COMPANY_PROD=${{ secrets.PHONEPE_CALLBACK_BASE_URL_COMPANY_PROD }}
+
+            # WhatsApp/SMS Configuration
+            MSG91_AUTH_KEY=${{ secrets.MSG91_AUTH_KEY }}
+            MSG91_SENDER_ID=${{ secrets.MSG91_SENDER_ID }}
+            MSG91_ROUTE=${{ secrets.MSG91_ROUTE }}
+
+            # JWT Configuration
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            JWT_ALGO=${{ secrets.JWT_ALGO || 'HS256' }}
+
+            # Additional Configuration
+            SANCTUM_STATEFUL_DOMAINS=${{ secrets.SANCTUM_STATEFUL_DOMAINS }}
+            SESSION_DOMAIN=${{ secrets.SESSION_DOMAIN }}
+            
+            # Image/File Storage
+            IMAGE_URI=${{ secrets.IMAGE_URI || secrets.APP_URL }}
+            FILESYSTEM_DRIVER=${{ secrets.FILESYSTEM_DRIVER || 'local' }}
+            EOF
+
             # Backup current .env if it exists
-            if [ -f ".env" ]; then
-              cp .env .env.backup.$(date +%Y%m%d_%H%M%S)
+            if [ -f ".env.backup" ]; then
+              cp .env.backup .env.backup.$(date +%Y%m%d_%H%M%S)
             fi
             
-            # Create .env from example if it doesn't exist
-            if [ ! -f ".env" ]; then
-              cp .env.example .env
-              echo "⚠️  New .env created from example. Please configure your environment variables."
-            fi
+            # Create backup of new .env
+            cp .env .env.backup
 
             # Check if db and nginx containers exist and are running
             DB_EXISTS=$(docker ps -a --format '{{.Names}}' | grep -c '^amt_crm_db$' || true)
@@ -230,4 +324,26 @@ jobs:
             ls -t .env.backup.* 2>/dev/null | tail -n +6 | xargs -r rm -f
             
             echo "✅ Deployment completed successfully!"
-            echo "🌐 Application is available at: ${{ secrets.APP_URL || 'http://your-domain.com' }}" 
+            echo "🌐 Application is available at: ${{ secrets.APP_URL || 'http://your-domain.com' }}"
+
+      - name: Notify Deployment Success
+        if: success()
+        run: |
+          echo "🎉 Deployment completed successfully!"
+          echo "📊 Deployment Summary:"
+          echo "- Repository: ${{ github.repository }}"
+          echo "- Branch: ${{ github.ref_name }}"
+          echo "- Commit: ${{ github.sha }}"
+          echo "- Environment: Production"
+          echo "- URL: ${{ secrets.APP_URL || 'http://your-domain.com' }}"
+
+      - name: Notify Deployment Failure
+        if: failure()
+        run: |
+          echo "❌ Deployment failed!"
+          echo "🔍 Check the logs above for details."
+          echo "📊 Failure Summary:"
+          echo "- Repository: ${{ github.repository }}"
+          echo "- Branch: ${{ github.ref_name }}"
+          echo "- Commit: ${{ github.sha }}"
+          echo "- Environment: Production" 
