@@ -103,7 +103,7 @@
             "php-http/discovery": true
         }
     },
-    "repositories": [
+ "repositories": [
       {
         "type": "package",
         "url": "./vendor/phonepe/pg-sdk-php/",
