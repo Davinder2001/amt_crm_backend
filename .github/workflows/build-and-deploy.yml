@@ -130,7 +130,7 @@ jobs:
             sleep 30
 
             # Health check
-            if ! docker compose exec app curl -f http://localhost/api/health; then
+            if ! docker compose exec nginx curl -f http://localhost/health; then
               echo "❌ App health check failed. Checking logs..."
               docker compose logs app
               exit 1
