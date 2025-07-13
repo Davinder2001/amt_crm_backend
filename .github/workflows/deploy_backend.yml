@@ -131,18 +131,7 @@ jobs:
           echo "# Vite Configuration" >> .env.docker
           echo "VITE_APP_NAME=\"${{ secrets.VITE_APP_NAME }}\"" >> .env.docker
           
-          # Debug: Check the .env.docker file
-          echo "=== .env.docker file contents ==="
-          cat .env.docker
-          echo "=== End of .env.docker file ==="
-          
-          # Debug: Check file encoding and line endings
-          echo "=== File info ==="
-          file .env.docker
-          echo "=== Line count ==="
-          wc -l .env.docker
-          echo "=== Last few lines ==="
-          tail -5 .env.docker | cat -A
+
           
           cp .env.docker deployment/
           
@@ -152,7 +141,7 @@ jobs:
       - name: Copy files to server via SCP
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ secrets.PROD_HOST }}
+          host: 31.97.186.147
           username: root
           key: ${{ secrets.PROD_SSH_KEY }}
           port: ${{ secrets.PROD_PORT || 22 }}
@@ -163,7 +152,7 @@ jobs:
       - name: Deploy with SSH and Docker Compose
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.PROD_HOST }}
+          host: 31.97.186.147
           username: root
           key: ${{ secrets.PROD_SSH_KEY }}
           port: ${{ secrets.PROD_PORT || 22 }}
@@ -176,32 +165,16 @@ jobs:
             # Copy environment file
             cp .env.docker .env
             
-            # Create backup of database before deployment (if database container exists)
-            if docker ps -a | grep -q amt_crm_db; then
-              echo "Creating database backup before deployment..."
-              docker compose exec -T db mysqldump -u root -p"${DB_ROOT_PASSWORD}" "${DB_DATABASE}" > backup_$(date +%Y%m%d_%H%M%S).sql || echo "Backup failed, continuing..."
-            fi
+
             
-            # Debug: Check the .env file on server
-            echo "=== .env file contents on server ==="
-            cat .env
-            echo "=== End of .env file ==="
+
             
-            # Debug: Check file encoding and line endings on server
-            echo "=== File info on server ==="
-            file .env
-            echo "=== Line count on server ==="
-            wc -l .env
-            echo "=== Last few lines on server ==="
-            tail -5 .env | cat -A
+            # Stop only the app container (preserve database and nginx)
+            docker compose stop app
+            docker rm -f amt_crm_app 2>/dev/null || true
             
-            # Stop existing containers gracefully (preserve volumes to keep database data)
-            docker compose down --remove-orphans
-            docker rm -f amt_crm_app amt_crm_nginx 2>/dev/null || true
-            # Don't remove the database container to preserve data
-            
-            # Build and start containers
-            docker compose up --build -d
+            # Build and start only the app container
+            docker compose up --build -d app
             
             # Wait for database to be ready
             echo "Waiting for database to be ready..."
