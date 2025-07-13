@@ -56,11 +56,88 @@ jobs:
           cp package-lock.json deployment/
           cp vite.config.js deployment/
           cp docker-entrypoint.sh deployment/
-          cp create-env.sh deployment/
           
-          # Create .env.docker file
-          chmod +x create-env.sh
-          ./create-env.sh
+          # Create .env.docker file from GitHub secrets
+          cat > .env.docker << 'EOF'
+# Application Configuration
+APP_NAME="${{ secrets.APP_NAME }}"
+APP_ENV="${{ secrets.APP_ENV }}"
+APP_KEY="${{ secrets.APP_KEY }}"
+APP_DEBUG="${{ secrets.APP_DEBUG }}"
+APP_URL="${{ secrets.APP_URL }}"
+APP_LOCALE="${{ secrets.APP_LOCALE }}"
+APP_FALLBACK_LOCALE="${{ secrets.APP_FALLBACK_LOCALE }}"
+APP_FAKER_LOCALE="${{ secrets.APP_FAKER_LOCALE }}"
+APP_MAINTENANCE_DRIVER="${{ secrets.APP_MAINTENANCE_DRIVER }}"
+
+# PHP Configuration
+PHP_CLI_SERVER_WORKERS="${{ secrets.PHP_CLI_SERVER_WORKERS }}"
+BCRYPT_ROUNDS="${{ secrets.BCRYPT_ROUNDS }}"
+
+# Logging Configuration
+LOG_CHANNEL="${{ secrets.LOG_CHANNEL }}"
+LOG_STACK="${{ secrets.LOG_STACK }}"
+LOG_DEPRECATIONS_CHANNEL="${{ secrets.LOG_DEPRECATIONS_CHANNEL }}"
+LOG_LEVEL="${{ secrets.LOG_LEVEL }}"
+
+# Database Configuration
+DB_CONNECTION="${{ secrets.DB_CONNECTION }}"
+DB_HOST="${{ secrets.DB_HOST }}"
+DB_PORT="${{ secrets.DB_PORT }}"
+DB_DATABASE="${{ secrets.DB_DATABASE }}"
+DB_USERNAME="${{ secrets.DB_USERNAME }}"
+DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
+DB_ROOT_PASSWORD="${{ secrets.DB_ROOT_PASSWORD }}"
+DB_CHARSET="${{ secrets.DB_CHARSET }}"
+DB_COLLATION="${{ secrets.DB_COLLATION }}"
+
+# Session Configuration
+SESSION_DRIVER="${{ secrets.SESSION_DRIVER }}"
+SESSION_LIFETIME="${{ secrets.SESSION_LIFETIME }}"
+SESSION_ENCRYPT="${{ secrets.SESSION_ENCRYPT }}"
+SESSION_PATH="${{ secrets.SESSION_PATH }}"
+SESSION_SECURE_COOKIE="${{ secrets.SESSION_SECURE_COOKIE }}"
+SESSION_HTTP_ONLY="${{ secrets.SESSION_HTTP_ONLY }}"
+SESSION_TABLE="${{ secrets.SESSION_TABLE }}"
+
+# Cache Configuration
+CACHE_STORE="${{ secrets.CACHE_STORE }}"
+DB_CACHE_TABLE="${{ secrets.DB_CACHE_TABLE }}"
+
+# Queue Configuration
+QUEUE_CONNECTION="${{ secrets.QUEUE_CONNECTION }}"
+DB_QUEUE_TABLE="${{ secrets.DB_QUEUE_TABLE }}"
+
+# Redis Configuration (Disabled)
+# REDIS_CLIENT="${{ secrets.REDIS_CLIENT }}"
+# REDIS_HOST="${{ secrets.REDIS_HOST }}"
+# REDIS_PORT="${{ secrets.REDIS_PORT }}"
+# REDIS_DB="${{ secrets.REDIS_DB }}"
+
+# Broadcasting Configuration
+BROADCAST_DRIVER="${{ secrets.BROADCAST_DRIVER }}"
+BROADCAST_CONNECTION="${{ secrets.BROADCAST_CONNECTION }}"
+
+# Mail Configuration
+MAIL_MAILER="${{ secrets.MAIL_MAILER }}"
+MAIL_SCHEME="${{ secrets.MAIL_SCHEME }}"
+MAIL_HOST="${{ secrets.MAIL_HOST }}"
+MAIL_PORT="${{ secrets.MAIL_PORT }}"
+MAIL_USERNAME="${{ secrets.MAIL_USERNAME }}"
+MAIL_PASSWORD="${{ secrets.MAIL_PASSWORD }}"
+MAIL_FROM_ADDRESS="${{ secrets.MAIL_FROM_ADDRESS }}"
+MAIL_FROM_NAME="${{ secrets.MAIL_FROM_NAME }}"
+
+# AWS Configuration
+AWS_DEFAULT_REGION="${{ secrets.AWS_DEFAULT_REGION }}"
+AWS_USE_PATH_STYLE_ENDPOINT="${{ secrets.AWS_USE_PATH_STYLE_ENDPOINT }}"
+
+# Filesystem Configuration
+FILESYSTEM_DISK="${{ secrets.FILESYSTEM_DISK }}"
+
+# Vite Configuration
+VITE_APP_NAME="${{ secrets.VITE_APP_NAME }}"
+EOF
           
           # Debug: Check the .env.docker file
           echo "=== .env.docker file contents ==="
