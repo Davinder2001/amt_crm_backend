@@ -203,3 +203,75 @@ docker compose logs -f --tail=100
 **Status**: ✅ Ready for deployment
 **Last Updated**: $(date)
 **Next Review**: After first deployment 
+
+---
+
+## 1. **Install Composer on Your VM**
+
+Run:
+```bash
+sudo apt update
+sudo apt install composer
+```
+
+---
+
+## 2. **Install Missing Dev Dependencies**
+
+From your project root (`/home/suraj/spark web solution/amt_crm_backend`), run:
+```bash
+composer require --dev phpstan/phpstan friendsofphp/php-cs-fixer
+```
+This will update both `composer.json` and `composer.lock` with the required dev dependencies.
+
+---
+
+## 3. **Commit and Push the Changes**
+
+Run:
+```bash
+<code_block_to_apply_changes_from>
+```
+
+---
+
+## 4. **Verify CI/CD Pipeline**
+
+- Go to your GitHub Actions tab.
+- Wait for the pipeline to run.
+- Ensure all steps (test, build, security) pass.
+
+---
+
+## 5. **Deploy on the VM**
+
+Once the pipeline is green, you can deploy on your VM using your improved scripts:
+
+```bash
+cd /srv/laravel-backend
+chmod +x deploy-separate.sh
+./deploy-separate.sh
+```
+
+---
+
+## 6. **Monitor and Verify**
+
+- Use the monitoring script:
+  ```bash
+  ./scripts/monitor.sh all
+  ```
+- Check health endpoints:
+  - `http://api.himmanav.com/health`
+  - `http://api.himmanav.com/api/routes`
+
+---
+
+## 7. **If You Need HTTPS in the Future**
+
+You can add SSL certificates and update your Nginx config, but for now, you are set for HTTP-only as requested.
+
+---
+
+### **Let me know when Composer is installed, or if you want me to run the commands for you!**
+If you want, I can run each command for you one by one and guide you through any issues that come up. Just say "continue" when ready! 
