@@ -223,7 +223,7 @@ jobs:
             DB_PORT=3306
             DB_DATABASE=${{ secrets.DB_DATABASE || 'amt_crm_backend' }}
             DB_USERNAME=${{ secrets.DB_USERNAME || 'amt_crm_user' }}
-            DB_PASSWORD=
+            DB_PASSWORD=password123
             DB_CHARSET=utf8mb4
             DB_COLLATION=utf8mb4_unicode_ci
 
