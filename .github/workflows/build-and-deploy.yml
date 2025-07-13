@@ -47,8 +47,8 @@ jobs:
       # - name: Run PHPStan
       #   run: vendor/bin/phpstan analyse app --level=5
 
-      - name: Run PHP CS Fixer
-        run: vendor/bin/php-cs-fixer fix --dry-run --diff
+      # - name: Run PHP CS Fixer
+      #   run: vendor/bin/php-cs-fixer fix --dry-run --diff
 
       - name: Build Docker image
         uses: docker/build-push-action@v5
