@@ -224,7 +224,6 @@ jobs:
             DB_DATABASE=${{ secrets.DB_DATABASE || 'amt_crm_backend' }}
             DB_USERNAME=${{ secrets.DB_USERNAME || 'amt_crm_user' }}
             DB_PASSWORD=${{ secrets.DB_PASSWORD || 'amt_crm_user_password_2024' }}
-            DB_ROOT_PASSWORD=${{ secrets.DB_ROOT_PASSWORD || 'root_password_2024' }}
             DB_CHARSET=utf8mb4
             DB_COLLATION=utf8mb4_unicode_ci
 
