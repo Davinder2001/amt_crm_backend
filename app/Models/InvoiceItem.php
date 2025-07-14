@@ -19,7 +19,6 @@ class InvoiceItem extends Model
         'total',
     ];
 
-
     /**
      * The attributes that should be cast to native types.
      */

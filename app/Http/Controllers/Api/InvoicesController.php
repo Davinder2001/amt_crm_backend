@@ -217,6 +217,7 @@ class InvoicesController extends Controller
                     'total'          => $totalAmount,
                 ]);
 
+                
                 $qty = (float) $row['quantity'];
                 $batch = ItemBatch::find($row['batch_id']);
                 if ($batch) {
