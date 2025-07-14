@@ -29,8 +29,29 @@ RUN composer install --no-dev --no-scripts --no-interaction --prefer-dist --opti
 
 COPY . .
 
-# Remove all merge conflict markers and unnecessary steps
-# Only keep PHP-FPM, permissions, and entrypoint logic
+<<<<<<< HEAD
+# Build frontend assets
+RUN npm run build
+
+# Remove Node.js and npm (not needed in production)
+RUN apk del nodejs npm
+
+# Create nginx directories and set permissions (now www user exists)
+RUN mkdir -p /run/nginx /var/lib/nginx/logs /var/log/nginx /etc/letsencrypt && \
+    chown -R www:www /var/lib/nginx /var/log/nginx /run/nginx /etc/letsencrypt
+
+# Copy nginx configuration
+COPY docker/nginx/nginx.conf /etc/nginx/nginx.conf
+
+# Configure PHP-FPM to run as www user
+RUN sed -i 's/user = www-data/user = www/' /usr/local/etc/php-fpm.d/www.conf && \
+    sed -i 's/group = www-data/group = www/' /usr/local/etc/php-fpm.d/www.conf && \
+    sed -i 's/listen.owner = www-data/listen.owner = www/' /usr/local/etc/php-fpm.d/www.conf && \
+    sed -i 's/listen.group = www-data/listen.group = www/' /usr/local/etc/php-fpm.d/www.conf
+
+# Copy startup script
+=======
+>>>>>>> 2df62b71169ddce0a994218c4260a8697ef3a473
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
@@ -42,10 +63,15 @@ RUN mkdir -p /var/www/bootstrap/cache && \
 
 FROM base AS production
 
+<<<<<<< HEAD
+# Expose ports
+EXPOSE 80 443
+=======
 RUN echo "memory_limit = 512M" > /usr/local/etc/php/conf.d/memory-limit.ini && \
     echo "max_execution_time = 300" >> /usr/local/etc/php/conf.d/memory-limit.ini && \
     echo "upload_max_filesize = 50M" >> /usr/local/etc/php/conf.d/memory-limit.ini && \
     echo "post_max_size = 50M" >> /usr/local/etc/php/conf.d/memory-limit.ini
+>>>>>>> 2df62b71169ddce0a994218c4260a8697ef3a473
 
 RUN sed -i 's/user = www-data/user = www/' /usr/local/etc/php-fpm.d/www.conf && \
     sed -i 's/group = www-data/group = www/' /usr/local/etc/php-fpm.d/www.conf && \
