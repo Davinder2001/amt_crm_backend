@@ -1,3 +1,4 @@
+
 # AMT CRM Combined Frontend + Backend Deployment Guide
 
 This guide covers deploying both the AMT CRM Frontend (Next.js) and Backend (Laravel) on the same VM using a single Nginx reverse proxy.
@@ -15,8 +16,9 @@ Nginx (Reverse Proxy) - Port 80
 ```
 
 **Domain Routing:**
-- `himmanav.com` → Frontend (Next.js)
-- `api.himmanav.com` → Backend (Laravel)
+- `himmanav.com` → Frontend (Next.js) + Backend API (`/api`)
+- All requests to `/api/*` are routed to Laravel backend
+- All other requests are routed to Next.js frontend
 
 ## 📁 Directory Structure
 
@@ -161,8 +163,8 @@ networks:
 ### 2. Frontend Environment (`frontend/env.docker`)
 ```bash
 NODE_ENV=production
-NEXT_PUBLIC_API_URL=http://api.himmanav.com
-NEXT_PUBLIC_SOCKET_URL=ws://api.himmanav.com
+NEXT_PUBLIC_API_URL=http://himmanav.com/api
+NEXT_PUBLIC_SOCKET_URL=ws://himmanav.com
 NEXT_PUBLIC_APP_URL=http://himmanav.com
 ```
 
@@ -172,7 +174,7 @@ APP_NAME="AMT CRM Backend"
 APP_ENV=production
 APP_KEY=base64:your-app-key-here
 APP_DEBUG=false
-APP_URL=http://api.himmanav.com
+APP_URL=http://himmanav.com
 
 DB_CONNECTION=mysql
 DB_HOST=mysql
@@ -184,9 +186,10 @@ DB_PASSWORD=your-password
 
 ### 4. Nginx Configuration (`nginx/nginx.combined.conf`)
 - Routes `himmanav.com` to frontend container
-- Routes `api.himmanav.com` to backend container
+- Routes `/api/*` requests to backend container
 - Includes rate limiting and security headers
 - Handles static file caching
+- Serves Laravel storage and upload files directly
 
 ## 📊 Monitoring & Management
 

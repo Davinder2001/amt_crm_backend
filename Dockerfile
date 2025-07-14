@@ -1,7 +1,6 @@
 # Multi-stage build for production
 FROM php:8.2-fpm-alpine AS base
 
-# Install system dependencies and PHP extensions
 RUN apk add --no-cache \
     libpng-dev \
     jpeg-dev \
@@ -16,48 +15,34 @@ RUN apk add --no-cache \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) pdo_mysql mbstring exif pcntl bcmath gd zip
 
-# Create non-root user for security
 RUN addgroup -g 1000 www && \
     adduser -u 1000 -G www -s /bin/sh -D www
 
-# Install Composer
 COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
 
-# Set working directory
 WORKDIR /var/www
 
-# Copy composer files and install PHP dependencies
 COPY composer.json composer.lock ./
-# Install dependencies without running scripts (scripts will be run later in entrypoint)
 RUN composer install --no-dev --no-scripts --no-interaction --prefer-dist --optimize-autoloader
 
-# Copy package files (skip Node.js build for now)
-COPY package.json package-lock.json ./
-
-# Copy application code
 COPY . .
 
-# Copy entrypoint script
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Ensure bootstrap/cache directory exists and set correct permissions
 RUN mkdir -p /var/www/bootstrap/cache && \
     chown -R www:www /var/www && \
     chmod -R 755 /var/www/storage && \
     chmod -R 775 /var/www/bootstrap/cache && \
     chmod -R 777 /var/www/bootstrap/cache
 
-# Production stage
 FROM base AS production
 
-# Configure PHP for production
 RUN echo "memory_limit = 512M" > /usr/local/etc/php/conf.d/memory-limit.ini && \
     echo "max_execution_time = 300" >> /usr/local/etc/php/conf.d/memory-limit.ini && \
     echo "upload_max_filesize = 50M" >> /usr/local/etc/php/conf.d/memory-limit.ini && \
     echo "post_max_size = 50M" >> /usr/local/etc/php/conf.d/memory-limit.ini
 
-# Configure PHP-FPM for production
 RUN sed -i 's/user = www-data/user = www/' /usr/local/etc/php-fpm.d/www.conf && \
     sed -i 's/group = www-data/group = www/' /usr/local/etc/php-fpm.d/www.conf && \
     sed -i 's/listen.owner = www-data/listen.owner = www/' /usr/local/etc/php-fpm.d/www.conf && \
@@ -67,13 +52,10 @@ RUN sed -i 's/user = www-data/user = www/' /usr/local/etc/php-fpm.d/www.conf && 
     sed -i 's/pm.min_spare_servers = 1/pm.min_spare_servers = 2/' /usr/local/etc/php-fpm.d/www.conf && \
     sed -i 's/pm.max_spare_servers = 3/pm.max_spare_servers = 4/' /usr/local/etc/php-fpm.d/www.conf
 
-# Expose port
 EXPOSE 9000
 
-# Health check (check if PHP-FPM is running)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD ps aux | grep php-fpm | grep -v grep || exit 1
 
-# Start PHP-FPM with entrypoint (run as root initially, entrypoint will switch to www user)
 ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["php-fpm"] 

@@ -65,7 +65,7 @@ print_status "Copying files to temporary directory..."
 mkdir -p "$TEMP_DIR"/{frontend,backend,nginx}
 
 # Copy backend files (current directory)
-cp -r app artisan bootstrap composer.json composer.lock config database docker docker-compose.combined.yml docker-entrypoint.sh Dockerfile .env.example .gitattributes .gitignore package.json package-lock.json phpunit.xml public README.md resources routes scripts storage tests vendor vite.config.js "$TEMP_DIR/backend/"
+cp -r app artisan bootstrap composer.json composer.lock config database docker docker-compose.combined.yml docker-entrypoint.sh Dockerfile .env.example package.json package-lock.json phpunit.xml public README.md resources routes scripts storage tests vendor vite.config.js "$TEMP_DIR/backend/"
 
 # Copy nginx configuration
 cp -r nginx "$TEMP_DIR/"
@@ -160,8 +160,8 @@ fi
 if [ -d "frontend" ] && [ ! -f "frontend/env.docker" ]; then
     cat > frontend/env.docker << 'ENVEOF'
 NODE_ENV=production
-NEXT_PUBLIC_API_URL=http://api.himmanav.com
-NEXT_PUBLIC_SOCKET_URL=ws://api.himmanav.com
+NEXT_PUBLIC_API_URL=http://himmanav.com/api
+NEXT_PUBLIC_SOCKET_URL=ws://himmanav.com
 NEXT_PUBLIC_APP_URL=http://himmanav.com
 ENVEOF
     print_status "Created frontend env.docker"
@@ -216,10 +216,10 @@ rm -f /tmp/amt-crm-combined-*.tar.gz
 print_success "Deployment completed successfully!"
 print_status "Access points:"
 print_status "- Frontend: http://himmanav.com"
-print_status "- Backend API: http://api.himmanav.com"
+print_status "- Backend API: http://himmanav.com/api"
 print_status "- Health checks:"
 print_status "  - Frontend: http://himmanav.com/health"
-print_status "  - Backend: http://api.himmanav.com/health"
+print_status "  - Backend: http://himmanav.com/api/health"
 
 EOF
 
@@ -228,7 +228,7 @@ rm -rf "$TEMP_DIR"
 
 print_success "Combined deployment completed!"
 print_status "Next steps:"
-print_status "1. Update your DNS records to point himmanav.com and api.himmanav.com to $SERVER_IP"
+print_status "1. Update your DNS records to point himmanav.com to $SERVER_IP"
 print_status "2. Configure SSL certificates if needed"
 print_status "3. Update environment variables in backend/.env and frontend/env.docker"
 print_status "4. Run database migrations: ssh -i $SSH_KEY $USERNAME@$SERVER_IP 'cd /srv/amt-crm && docker-compose -f docker-compose.combined.yml exec backend php artisan migrate'" 

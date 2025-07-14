@@ -2,19 +2,19 @@ services:
   # Frontend Application (Next.js)
   frontend:
     build:
-      context: ./frontend
+      context: ../amt_crm_frontend
       dockerfile: Dockerfile
     container_name: amt_crm_frontend
     restart: unless-stopped
     env_file:
-      - ./frontend/env.docker
+      - ../amt_crm_frontend/env.docker
     expose:
       - "3000"
     networks:
       - amt_network
     volumes:
-      - ./frontend/.next:/app/.next
-      - ./frontend/public:/app/public
+      - ../amt_crm_frontend/.next:/app/.next
+      - ../amt_crm_frontend/public:/app/public
 
   # Backend Application (Laravel)
   backend:
