@@ -217,7 +217,7 @@ class InvoicesController extends Controller
                     'total'          => $totalAmount,
                 ]);
 
-                
+
                 $qty = (float) $row['quantity'];
                 $batch = ItemBatch::find($row['batch_id']);
                 if ($batch) {
@@ -360,12 +360,13 @@ class InvoicesController extends Controller
             'invoice'           => $invoice,
             'company_name'      => $companyName,
             'customer_credits'  => $customerCredits,
+            'signature'         => $company->company_signature,
             'company_logo'      => $companyLogo,
             'company_address'   => $company->address ?? 'N/A',
             'company_phone'     => $company->phone ?? 'N/A',
             'company_gstin'     => $company->gstin ?? 'N/A',
             'footer_note'       => 'Thank you for your business',
-            'show_signature'    => true,
+            'show_signature'    => false,
             'delivery_boy_name' => $deliveryBoyName,
         ]);
 
