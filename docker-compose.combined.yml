@@ -1,0 +1,78 @@
+services:
+  # Frontend Application (Next.js)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: amt_crm_frontend
+    restart: unless-stopped
+    env_file:
+      - ./frontend/env.docker
+    expose:
+      - "3000"
+    networks:
+      - amt_network
+    volumes:
+      - ./frontend/.next:/app/.next
+      - ./frontend/public:/app/public
+
+  # Backend Application (Laravel)
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: amt_crm_backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    expose:
+      - "8000"
+    networks:
+      - amt_network
+    volumes:
+      - ./storage:/var/www/html/storage
+      - ./public:/var/www/html/public
+    depends_on:
+      - mysql
+
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: amt_crm_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d
+    networks:
+      - amt_network
+
+  # Main Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: amt_crm_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.combined.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/logs:/var/log/nginx
+      - ./nginx/ssl:/etc/nginx/ssl
+      - ./public:/var/www/html/public
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - amt_network
+
+volumes:
+  mysql_data:
+
+networks:
+  amt_network:
+    driver: bridge 
