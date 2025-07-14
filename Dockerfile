@@ -50,6 +50,9 @@ RUN rm -rf /usr/local/bin/node /usr/local/bin/npm /usr/local/lib/node_modules /u
 RUN mkdir -p /run/nginx /var/lib/nginx/logs /var/log/nginx /etc/letsencrypt && \
     chown -R www:www /var/lib/nginx /var/log/nginx /run/nginx /etc/letsencrypt
 
+# Create nginx cache directory for client temp files
+RUN mkdir -p /var/cache/nginx && chown -R www-data:www-data /var/cache/nginx || chown -R www:www /var/cache/nginx
+
 # Copy nginx configuration
 COPY docker/nginx/nginx.conf /etc/nginx/nginx.conf
 
