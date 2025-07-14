@@ -45,9 +45,6 @@ jobs:
           cp -r resources deployment/
           cp -r routes deployment/
           cp -r storage deployment/
-          cp -r infra deployment/
-          cp -r docker deployment/
-          
           # Copy individual files
           cp artisan deployment/
           cp composer.json deployment/
@@ -57,28 +54,8 @@ jobs:
           cp package.json deployment/
           cp package-lock.json deployment/
           cp vite.config.js deployment/
-          cp docker-entrypoint.sh deployment/
-          cp create-env.sh deployment/
-          cp setup-ssl.sh deployment/
-          
-          # Create .env.docker file
-          chmod +x create-env.sh
-          ./create-env.sh
-          
-          # Debug: Check the .env.docker file
-          echo "=== .env.docker file contents ==="
-          cat .env.docker
-          echo "=== End of .env.docker file ==="
-          
-          # Debug: Check file encoding and line endings
-          echo "=== File info ==="
-          file .env.docker
-          echo "=== Line count ==="
-          wc -l .env.docker
-          echo "=== Last few lines ==="
-          tail -5 .env.docker | cat -A
-          
-          cp .env.docker deployment/
+          # Only copy .env.example if needed
+          cp .env.example deployment/
           
           # Create tar.gz for deployment
           tar -czf deployment.tar.gz -C deployment .
