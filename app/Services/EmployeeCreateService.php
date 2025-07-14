@@ -56,7 +56,6 @@ class EmployeeCreateService
 
         $employee->assignRole($data['role']);
 
-        // ✅ Profile picture upload
         $profilePicturePath = null;
         if (isset($data['profilePicture']) && $data['profilePicture']->isValid()) {
             $filename = time() . '_' . uniqid() . '.' . $data['profilePicture']->getClientOriginalExtension();

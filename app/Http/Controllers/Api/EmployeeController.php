@@ -60,7 +60,7 @@ class EmployeeController extends Controller
             'name'                      => 'required|string|min:3|max:50',
             'email'                     => 'required|email|max:100',
             'password'                  => 'required|string|min:8|max:30',
-            'number'                    => 'required|numeric|size:10',
+            'number'                    => 'required|digits:10',
             'role'                      => 'required|exists:roles,name',
             'salary'                    => 'required|numeric|min:0',
             'dateOfHire'                => 'required|date',
@@ -73,7 +73,7 @@ class EmployeeController extends Controller
             'maritalStatus'             => 'required|string|max:20',
             'idProofType'               => 'nullable|string',
             'idProofValue'              => 'nullable|string',
-            'emergencyContact'          => 'required|numeric|size:10',
+            'emergencyContact'          => 'required|digits:10',
             'emergencyContactRelation'  => 'required|string|min:3|max:30',
             'workLocation'              => 'required|string|min:3|max:100',
             'joiningType'               => 'required|in:full-time,part-time,contract',
@@ -81,11 +81,11 @@ class EmployeeController extends Controller
             'previousEmployer'          => 'required|string|min:3|max:50',
             'acc_hol_name'              => 'required|string|min:3|max:100',
             'bankName'                  => 'required|string|min:2|max:50',
-            'accountNo'                 => 'required|numeric|min:9|max:18',
+            'accountNo'                 => 'required|digits_between:9,18',
             'ifscCode'                  => 'required|string|size:11',
             'panNo'                     => 'required|string|size:10',
             'upiId'                     => 'required|string|min:8|max:50',
-            'addressProof'              => 'required|string|min:5|max:50',
+            'addressProof'              => 'required|string',
             'id_proof_type'             => 'nullable|string|min:5|max:50',
             'profilePicture'            => 'nullable|file|image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);
@@ -124,7 +124,6 @@ class EmployeeController extends Controller
                 'message' => "You have reached your {$packageType} employee limit of {$allowedEmployeeCount}.",
             ], 403);
         }
-
 
         try {
             $employee = $userCreateService->createEmployee($validator->validated());
@@ -175,7 +174,7 @@ class EmployeeController extends Controller
                 'name'                      => 'sometimes|string|min:3|max:50',
                 'email'                     => 'sometimes|email|max:100',
                 'password'                  => 'sometimes|string|min:8|max:30',
-                'number'                    => 'sometimes|numeric|size:10',
+                'number'                    => 'sometimes|digits:10',
                 'role'                      => 'sometimes|exists:roles,name',
                 'salary'                    => 'sometimes|numeric|min:0',
                 'dateOfHire'                => 'sometimes|date',
@@ -188,7 +187,7 @@ class EmployeeController extends Controller
                 'maritalStatus'             => 'sometimes|string|max:20',
                 'idProofType'               => 'nullable|string',
                 'idProofValue'              => 'nullable|string',
-                'emergencyContact'          => 'sometimes|numeric|size:10',
+                'emergencyContact'          => 'sometimes|digits:10',
                 'emergencyContactRelation'  => 'sometimes|string|min:3|max:30',
                 'workLocation'              => 'sometimes|string|min:3|max:100',
                 'joiningType'               => 'sometimes|in:full-time,part-time,contract',
@@ -196,11 +195,11 @@ class EmployeeController extends Controller
                 'previousEmployer'          => 'sometimes|string|min:3|max:50',
                 'acc_hol_name'              => 'sometimes|string|min:3|max:100',
                 'bankName'                  => 'sometimes|string|min:2|max:50',
-                'accountNo'                 => 'sometimes|numeric|min:9|max:18',
+                'accountNo'                 => 'sometimes|digits_between:9,18',
                 'ifscCode'                  => 'sometimes|string|size:11',
                 'panNo'                     => 'sometimes|string|size:10',
                 'upiId'                     => 'sometimes|string|min:8|max:50',
-                'addressProof'              => 'sometimes|string|min:5|max:50',
+                'addressProof'              => 'sometimes|string',
                 'profilePicture'            => 'sometimes|file|image|mimes:jpeg,png,jpg,webp|max:2048',
             ]);
 

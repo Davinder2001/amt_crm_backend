@@ -47,7 +47,7 @@ class RevenueController extends Controller
     /**
      * Show monthly revenue summary for the current year.
      */
-    public function monthlyRevenueSummary(Request $request)
+    public function monthlyRevenueSummary()
     {
         $year = now()->year;
 
