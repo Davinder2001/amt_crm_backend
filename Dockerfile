@@ -42,7 +42,8 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Set correct permissions
 RUN chown -R www:www /var/www && \
-    chmod -R 755 /var/www/storage /var/www/bootstrap/cache
+    chmod -R 755 /var/www/storage && \
+    chmod -R 775 /var/www/bootstrap/cache
 
 # Production stage
 FROM base AS production

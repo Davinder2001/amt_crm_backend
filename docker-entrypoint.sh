@@ -14,10 +14,16 @@ composer dump-autoload --optimize --no-dev
 # Clear any existing cached files
 rm -rf bootstrap/cache/* 2>/dev/null || true
 
+# Ensure bootstrap/cache directory exists and has proper permissions
+mkdir -p bootstrap/cache
+chmod -R 775 storage bootstrap/cache
+
 # Set proper permissions (only if running as root)
 if [ "$(id -u)" = "0" ]; then
-    chmod -R 775 storage bootstrap/cache
     chown -R www:www storage bootstrap/cache
+else
+    # If not running as root, ensure the current user can write to these directories
+    chmod -R 775 storage bootstrap/cache
 fi
 
 # Run migrations
