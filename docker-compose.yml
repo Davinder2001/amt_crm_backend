@@ -25,9 +25,9 @@ services:
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: password123
-      MYSQL_PASSWORD: password123
       MYSQL_DATABASE: ${DB_DATABASE}
       MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
     volumes:
       - ./docker/mysql/init:/docker-entrypoint-initdb.d
       - db_data:/var/lib/mysql
