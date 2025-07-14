@@ -75,7 +75,7 @@ class EmployeeSeeder extends Seeder
                     'id_proof_type'            => 'Aadhar',
                     'idProofValue'             => '1234-5678-9012',
                     'emergencyContact'         => 9999999900 + $employeeCounter,
-                    'emergencyContactRelation' => 1, // assuming numeric relation for testing
+                    'emergencyContactRelation' => 'uknown', 
                     'workLocation'             => 'Head Office',
                     'joiningType'              => 'full-time',
                     'department'               => 'IT',

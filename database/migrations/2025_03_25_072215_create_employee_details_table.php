@@ -29,8 +29,8 @@ return new class extends Migration
             $table->string('idProofValue', 100)->nullable();
             $table->string('id_proof_type', 50)->nullable();
 
-            $table->unsignedBigInteger('emergencyContact')->nullable(); // ✅ numeric
-            $table->unsignedBigInteger('emergencyContactRelation')->nullable(); // ✅ numeric
+            $table->unsignedBigInteger('emergencyContact')->nullable();
+            $table->string('emergencyContactRelation')->nullable();
 
             $table->string('workLocation', 100)->nullable();
             $table->enum('joiningType', ['full-time', 'part-time', 'contract']);
