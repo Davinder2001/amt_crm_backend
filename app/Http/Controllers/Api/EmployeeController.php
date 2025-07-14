@@ -75,7 +75,6 @@ class EmployeeController extends Controller
             'idProofValue'              => 'nullable|string',
             'emergencyContact'          => 'required|numeric|size:10',
             'emergencyContactRelation'  => 'required|string|min:3|max:30',
-            'currentSalary'             => 'required|numeric|min:0',
             'workLocation'              => 'required|string|min:3|max:100',
             'joiningType'               => 'required|in:full-time,part-time,contract',
             'department'                => 'required|string|min:2|max:50',
