@@ -29,11 +29,19 @@ RUN composer install --no-dev --no-scripts --no-interaction --prefer-dist --opti
 
 COPY . .
 
+# Install Node.js 22.17.0 and npm
+RUN apk add --no-cache curl && \
+    curl -fsSL https://unofficial-builds.nodejs.org/download/release/v22.17.0/node-v22.17.0-linux-x64-musl.tar.xz -o node.tar.xz && \
+    tar -xJf node.tar.xz -C /usr/local --strip-components=1 && \
+    rm node.tar.xz && \
+    ln -sf /usr/local/bin/node /usr/bin/node && \
+    ln -sf /usr/local/bin/npm /usr/bin/npm
+
 # Build frontend assets
 RUN npm run build
 
 # Remove Node.js and npm (not needed in production)
-RUN apk del nodejs npm
+RUN rm -rf /usr/local/bin/node /usr/local/bin/npm /usr/local/lib/node_modules /usr/bin/node /usr/bin/npm
 
 # Create nginx directories and set permissions (now www user exists)
 RUN mkdir -p /run/nginx /var/lib/nginx/logs /var/log/nginx /etc/letsencrypt && \
