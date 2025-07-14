@@ -45,7 +45,8 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 RUN mkdir -p /var/www/bootstrap/cache && \
     chown -R www:www /var/www && \
     chmod -R 755 /var/www/storage && \
-    chmod -R 775 /var/www/bootstrap/cache
+    chmod -R 775 /var/www/bootstrap/cache && \
+    chmod -R 777 /var/www/bootstrap/cache
 
 # Production stage
 FROM base AS production
@@ -66,9 +67,6 @@ RUN sed -i 's/user = www-data/user = www/' /usr/local/etc/php-fpm.d/www.conf && 
     sed -i 's/pm.min_spare_servers = 1/pm.min_spare_servers = 2/' /usr/local/etc/php-fpm.d/www.conf && \
     sed -i 's/pm.max_spare_servers = 3/pm.max_spare_servers = 4/' /usr/local/etc/php-fpm.d/www.conf
 
-# Switch to non-root user
-USER www
-
 # Expose port
 EXPOSE 9000
 
@@ -76,6 +74,6 @@ EXPOSE 9000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD ps aux | grep php-fpm | grep -v grep || exit 1
 
-# Start PHP-FPM with entrypoint
+# Start PHP-FPM with entrypoint (run as root initially, entrypoint will switch to www user)
 ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["php-fpm"] 

@@ -19,10 +19,13 @@ else
     chmod -R 775 storage bootstrap/cache
 fi
 
+# Ensure bootstrap/cache is world-writable as a fallback
+chmod -R 777 bootstrap/cache
+
 # Generate autoloader and run composer scripts
 echo "Setting up Laravel application..."
 composer dump-autoload --optimize --no-dev
-composer run-scripts post-autoload-dump --no-dev
+composer run-script post-autoload-dump --no-dev
 
 # Clear any existing cached files
 rm -rf bootstrap/cache/* 2>/dev/null || true
