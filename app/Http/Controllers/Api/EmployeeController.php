@@ -182,7 +182,7 @@ class EmployeeController extends Controller
                 'dateOfHire'                => 'sometimes|date',
                 'joiningDate'               => 'sometimes|date',
                 'shiftTimings'              => 'nullable|string|max:20',
-                'address'                   => 'sometimes|string|min:5|max:100',
+                'address'                   => 'sometimes',
                 'nationality'               => 'sometimes|string|min:3|max:30',
                 'dob'                       => 'sometimes|date',
                 'religion'                  => 'sometimes|string|min:3|max:30',
