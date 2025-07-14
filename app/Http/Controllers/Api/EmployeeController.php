@@ -210,6 +210,7 @@ class EmployeeController extends Controller
                 ], 422);
             }
 
+            
             $data = $validator->validated();
 
             if (!empty($data['password'])) {
