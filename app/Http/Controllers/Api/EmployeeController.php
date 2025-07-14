@@ -66,7 +66,7 @@ class EmployeeController extends Controller
             'dateOfHire'                => 'required|date',
             'joiningDate'               => 'required|date',
             'shiftTimings'              => 'nullable|integer|exists:shifts,id',
-            'address'                   => 'required|text',
+            'address'                   => 'required',
             'nationality'               => 'required|string|min:3|max:30',
             'dob'                       => 'required|date',
             'religion'                  => 'required|string|min:3|max:30',
