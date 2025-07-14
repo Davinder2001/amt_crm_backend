@@ -205,6 +205,7 @@ class InvoicesController extends Controller
 
                 InvoiceItem::create([
                     'invoice_id'     => $inv->id,
+                    'invoice_id'     => $selectedCompany->company->id,
                     'item_id'        => $item->id,
                     'variant_id'     => $row['variant_id'] ?? null,
                     'description'    => $item->name,

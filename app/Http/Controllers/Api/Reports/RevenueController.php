@@ -12,7 +12,7 @@ class RevenueController extends Controller
     /**
      * Show monthly revenue per item for the current year.
      */
-    public function revenue(Request $request)
+    public function revenue()
     {
         $year = now()->year;
 

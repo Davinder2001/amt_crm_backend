@@ -12,7 +12,7 @@ class SalesController extends Controller
     /**
      * Show current month's sales and comparison with last month.
      */
-    public function sales(Request $request)
+    public function sales()
     {
         $year = now()->year;
 
@@ -47,7 +47,10 @@ class SalesController extends Controller
         ]);
     }
 
-    public function monthlySalesSummary(Request $request)
+    /**
+     * Get monthly sales summary for the current year.
+     */
+    public function monthlySalesSummary()
     {
         $year = now()->year;
 
@@ -61,7 +64,6 @@ class SalesController extends Controller
             ->get()
             ->keyBy('month');
 
-        // Ensure all 12 months are included even if sales are 0
         $salesData = collect(range(1, 12))->map(function ($month) use ($monthlySales) {
             return [
                 'month' => date("F", mktime(0, 0, 0, $month, 1)),
@@ -75,7 +77,10 @@ class SalesController extends Controller
         ]);
     }
 
-    public function topSellingItems(Request $request)
+    /**
+     * Get top selling items for the current year.
+     */
+    public function topSellingItems()
     {
         $year = now()->year;
 
@@ -86,7 +91,7 @@ class SalesController extends Controller
         ")
             ->whereYear('created_at', $year)
             ->groupBy('description')
-            ->orderByDesc('total_quantity') // Or use 'total_sales' to sort by revenue
+            ->orderByDesc('total_quantity')
             ->limit(5)
             ->get()
             ->map(function ($item) {
