@@ -35,7 +35,9 @@ services:
       - amt_crm_network
 
   nginx:
-    image: nginx:alpine
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
     container_name: amt_crm_nginx
     restart: unless-stopped
     ports:
@@ -44,9 +46,6 @@ services:
       - ./docker/nginx/conf.d:/etc/nginx/conf.d
       - ./public:/var/www/public
       - ./docker/nginx/logs:/var/log/nginx
-      - ./docker-entrypoint-nginx.sh:/docker-entrypoint-nginx.sh
-    entrypoint: ["/docker-entrypoint-nginx.sh"]
-    command: ["nginx", "-g", "daemon off;"]
     depends_on:
       - app
     networks:

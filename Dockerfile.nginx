@@ -1,0 +1,19 @@
+FROM nginx:alpine
+
+# Copy our custom entrypoint script
+COPY docker-entrypoint-nginx.sh /docker-entrypoint-nginx.sh
+RUN chmod +x /docker-entrypoint-nginx.sh
+
+# Create nginx cache directories
+RUN mkdir -p /var/cache/nginx/client_temp \
+    /var/cache/nginx/fastcgi_temp \
+    /var/cache/nginx/proxy_temp \
+    /var/cache/nginx/scgi_temp \
+    /var/cache/nginx/uwsgi_temp
+
+# Set proper permissions
+RUN chown -R nginx:nginx /var/cache/nginx
+
+# Use our custom entrypoint
+ENTRYPOINT ["/docker-entrypoint-nginx.sh"]
+CMD ["nginx", "-g", "daemon off;"] 
