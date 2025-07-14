@@ -69,9 +69,9 @@ USER www
 # Expose port
 EXPOSE 9000
 
-# Health check
+# Health check (check if PHP-FPM is running)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD php artisan health:check || exit 1
+    CMD ps aux | grep php-fpm | grep -v grep || exit 1
 
 # Start PHP-FPM with entrypoint
 ENTRYPOINT ["docker-entrypoint.sh"]

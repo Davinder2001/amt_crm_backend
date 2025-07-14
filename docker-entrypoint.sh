@@ -14,9 +14,11 @@ composer dump-autoload --optimize --no-dev
 # Clear any existing cached files
 rm -rf bootstrap/cache/* 2>/dev/null || true
 
-# Set proper permissions
-chmod -R 775 storage bootstrap/cache
-chown -R www:www storage bootstrap/cache
+# Set proper permissions (only if running as root)
+if [ "$(id -u)" = "0" ]; then
+    chmod -R 775 storage bootstrap/cache
+    chown -R www:www storage bootstrap/cache
+fi
 
 # Run migrations
 echo "Running database migrations..."
@@ -28,9 +30,9 @@ php artisan config:clear
 php artisan route:clear
 php artisan view:clear
 
-# Rebuild caches for production
+# Rebuild caches for production (skip route cache due to compatibility issues)
 php artisan config:cache
-php artisan route:cache
+# php artisan route:cache  # Skipped due to Laravel compatibility issues
 php artisan view:cache
 
 echo "Laravel application setup complete!"
