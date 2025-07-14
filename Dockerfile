@@ -28,6 +28,7 @@ WORKDIR /var/www
 
 # Copy composer files and install PHP dependencies
 COPY composer.json composer.lock ./
+# Install dependencies without running scripts (scripts will be run later in entrypoint)
 RUN composer install --no-dev --no-scripts --no-interaction --prefer-dist --optimize-autoloader
 
 # Copy package files (skip Node.js build for now)
@@ -40,8 +41,9 @@ COPY . .
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Set correct permissions
-RUN chown -R www:www /var/www && \
+# Ensure bootstrap/cache directory exists and set correct permissions
+RUN mkdir -p /var/www/bootstrap/cache && \
+    chown -R www:www /var/www && \
     chmod -R 755 /var/www/storage && \
     chmod -R 775 /var/www/bootstrap/cache
 

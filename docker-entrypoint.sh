@@ -7,13 +7,6 @@ until php artisan tinker --execute="DB::connection()->getPdo();" 2>/dev/null; do
     sleep 5
 done
 
-# Generate autoloader and clear caches
-echo "Setting up Laravel application..."
-composer dump-autoload --optimize --no-dev
-
-# Clear any existing cached files
-rm -rf bootstrap/cache/* 2>/dev/null || true
-
 # Ensure bootstrap/cache directory exists and has proper permissions
 mkdir -p bootstrap/cache
 chmod -R 775 storage bootstrap/cache
@@ -25,6 +18,14 @@ else
     # If not running as root, ensure the current user can write to these directories
     chmod -R 775 storage bootstrap/cache
 fi
+
+# Generate autoloader and run composer scripts
+echo "Setting up Laravel application..."
+composer dump-autoload --optimize --no-dev
+composer run-scripts post-autoload-dump --no-dev
+
+# Clear any existing cached files
+rm -rf bootstrap/cache/* 2>/dev/null || true
 
 # Run migrations
 echo "Running database migrations..."
