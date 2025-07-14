@@ -1,7 +1,6 @@
-# Multi-stage build for better security and smaller image
+# Multi-stage build for production
 FROM php:8.2-fpm-alpine AS base
 
-# Install system dependencies and PHP extensions
 RUN apk add --no-cache \
     libpng-dev \
     jpeg-dev \
@@ -12,37 +11,25 @@ RUN apk add --no-cache \
     unzip \
     oniguruma-dev \
     libxml2-dev \
-    nginx \
     wget \
     certbot \
     certbot-nginx \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) pdo_mysql mbstring exif pcntl bcmath gd zip
 
-# Create non-root user for security (do this early)
 RUN addgroup -g 1000 www && \
     adduser -u 1000 -G www -s /bin/sh -D www
 
-# Install Composer
 COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
 
-# Install Node.js 20.x LTS
-RUN apk add --no-cache nodejs npm
-
-# Set working directory
 WORKDIR /var/www
 
-# Copy composer files and install PHP dependencies
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --no-scripts --no-interaction --prefer-dist --optimize-autoloader
 
-# Copy package files and install Node.js dependencies
-COPY package.json package-lock.json ./
-RUN npm ci
-
-# Copy application code
 COPY . .
 
+<<<<<<< HEAD
 # Build frontend assets
 RUN npm run build
 
@@ -63,23 +50,42 @@ RUN sed -i 's/user = www-data/user = www/' /usr/local/etc/php-fpm.d/www.conf && 
     sed -i 's/listen.group = www-data/listen.group = www/' /usr/local/etc/php-fpm.d/www.conf
 
 # Copy startup script
+=======
+>>>>>>> 2df62b71169ddce0a994218c4260a8697ef3a473
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Set correct permissions
-RUN chown -R www:www /var/www && \
-    chmod -R 755 /var/www/storage /var/www/bootstrap/cache && \
-    chown www:www /usr/local/bin/docker-entrypoint.sh
+RUN mkdir -p /var/www/bootstrap/cache && \
+    chown -R www:www /var/www && \
+    chmod -R 755 /var/www/storage && \
+    chmod -R 775 /var/www/bootstrap/cache && \
+    chmod -R 777 /var/www/bootstrap/cache
 
-# Switch to non-root user
-USER www
+FROM base AS production
 
+<<<<<<< HEAD
 # Expose ports
 EXPOSE 80 443
+=======
+RUN echo "memory_limit = 512M" > /usr/local/etc/php/conf.d/memory-limit.ini && \
+    echo "max_execution_time = 300" >> /usr/local/etc/php/conf.d/memory-limit.ini && \
+    echo "upload_max_filesize = 50M" >> /usr/local/etc/php/conf.d/memory-limit.ini && \
+    echo "post_max_size = 50M" >> /usr/local/etc/php/conf.d/memory-limit.ini
+>>>>>>> 2df62b71169ddce0a994218c4260a8697ef3a473
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD wget --quiet --tries=1 --spider http://localhost/health || exit 1
+RUN sed -i 's/user = www-data/user = www/' /usr/local/etc/php-fpm.d/www.conf && \
+    sed -i 's/group = www-data/group = www/' /usr/local/etc/php-fpm.d/www.conf && \
+    sed -i 's/listen.owner = www-data/listen.owner = www/' /usr/local/etc/php-fpm.d/www.conf && \
+    sed -i 's/listen.group = www-data/listen.group = www/' /usr/local/etc/php-fpm.d/www.conf && \
+    sed -i 's/pm.max_children = 5/pm.max_children = 10/' /usr/local/etc/php-fpm.d/www.conf && \
+    sed -i 's/pm.start_servers = 2/pm.start_servers = 3/' /usr/local/etc/php-fpm.d/www.conf && \
+    sed -i 's/pm.min_spare_servers = 1/pm.min_spare_servers = 2/' /usr/local/etc/php-fpm.d/www.conf && \
+    sed -i 's/pm.max_spare_servers = 3/pm.max_spare_servers = 4/' /usr/local/etc/php-fpm.d/www.conf
 
-# Start both nginx and PHP-FPM
-ENTRYPOINT ["docker-entrypoint.sh"] 
+EXPOSE 9000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD ps aux | grep php-fpm | grep -v grep || exit 1
+
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["php-fpm"] 

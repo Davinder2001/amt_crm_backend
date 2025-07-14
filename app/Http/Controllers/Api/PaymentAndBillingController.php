@@ -57,10 +57,6 @@ class PaymentAndBillingController extends Controller
         }
 
         $data = $validator->validated();
-
-        $activeCompany     = SelectedCompanyService::getSelectedCompanyOrFail();
-        $currentPackageId  = $activeCompany->company->package_id;
-        $company           = $activeCompany->company;
         $newPackageId      = $data['package_id'];
         $selectedType      = $data['package_type'];
 

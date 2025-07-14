@@ -13,7 +13,7 @@ class SuperAdminSeeder extends Seeder
 {
     public function run()
     {
-        $defaultCompanyId = 'AMTCOM0000001';
+        $defaultCompanyId = 'AMTCOM0000000';
 
         $role = Role::updateOrCreate(
             ['name' => 'super-admin', 'guard_name' => 'web'],
@@ -25,30 +25,12 @@ class SuperAdminSeeder extends Seeder
             [
                 'name'      => 'Super Admin',
                 'number'    => '7894561230',
-                'uid'       => 'AMT0000000001',
+                'uid'       => 'AMT0000000000',
                 'user_type' => 'super-admin',
                 'password'  => Hash::make('superadminpassword'),
             ]
         );
 
         $user->assignRole($role);
-
-        $company = Company::updateOrCreate(
-            ['company_slug' => 'default-company'],
-            [
-                'company_name'        => 'Default Company',
-                'company_id'          => $defaultCompanyId,
-                'payment_status'      => 'completed',
-                'verification_status' => 'verified',
-            ]
-        );
-
-        CompanyUser::updateOrCreate(
-            ['user_id' => $user->id, 'company_id' => $company->id],
-            [
-                'user_type'  => 'admin',
-                'status'     => 1,
-            ]
-        );
     }
 }

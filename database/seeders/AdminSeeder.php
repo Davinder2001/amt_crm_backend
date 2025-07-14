@@ -6,7 +6,6 @@ use App\Models\User;
 use App\Models\Company;
 use App\Models\Role;
 use App\Models\Package;
-use App\Models\BusinessCategory;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -17,31 +16,31 @@ class AdminSeeder extends Seeder
     {
         $companies = [
             [
-                'company_id'   => 'AMTCOM0000002',
+                'company_id'   => 'AMTCOM0000001',
                 'company_name' => 'Demo Admin Company One',
                 'company_slug' => 'demo-admin-company-one',
                 'package_name' => 'Basic',
             ],
             [
-                'company_id'   => 'AMTCOM0000003',
+                'company_id'   => 'AMTCOM0000002',
                 'company_name' => 'Demo Admin Company Two',
                 'company_slug' => 'demo-admin-company-two',
                 'package_name' => 'Standard',
             ],
             [
-                'company_id'   => 'AMTCOM0000004',
+                'company_id'   => 'AMTCOM0000003',
                 'company_name' => 'Demo Admin Company Three',
                 'company_slug' => 'demo-admin-company-three',
                 'package_name' => 'Premium',
             ],
             [
-                'company_id'   => 'AMTCOM0000005',
+                'company_id'   => 'AMTCOM0000004',
                 'company_name' => 'Demo Admin Company Four',
                 'company_slug' => 'demo-admin-company-four',
                 'package_name' => 'Basic',
             ],
             [
-                'company_id'   => 'AMTCOM0000006',
+                'company_id'   => 'AMTCOM0000005',
                 'company_name' => 'Demo Admin Company Five',
                 'company_slug' => 'demo-admin-company-five',
                 'package_name' => 'Standard',
@@ -53,35 +52,35 @@ class AdminSeeder extends Seeder
                 'name'     => 'Admin One',
                 'email'    => 'admin1@example.com',
                 'number'   => '9000000001',
-                'uid'      => 'AMT0000000002',
+                'uid'      => 'AMT0000000001',
                 'password' => Hash::make('password1'),
             ],
             [
                 'name'     => 'Admin Two',
                 'email'    => 'admin2@example.com',
                 'number'   => '9000000002',
-                'uid'      => 'AMT0000000003',
+                'uid'      => 'AMT0000000002',
                 'password' => Hash::make('password2'),
             ],
             [
                 'name'     => 'Admin Three',
                 'email'    => 'admin3@example.com',
                 'number'   => '9000000003',
-                'uid'      => 'AMT0000000004',
+                'uid'      => 'AMT0000000003',
                 'password' => Hash::make('password3'),
             ],
             [
                 'name'     => 'Admin Four',
                 'email'    => 'admin4@example.com',
                 'number'   => '9000000004',
-                'uid'      => 'AMT0000000005',
+                'uid'      => 'AMT0000000004',
                 'password' => Hash::make('password4'),
             ],
             [
                 'name'     => 'Admin Five',
                 'email'    => 'admin5@example.com',
                 'number'   => '9000000005',
-                'uid'      => 'AMT0000000006',
+                'uid'      => 'AMT0000000005',
                 'password' => Hash::make('password5'),
             ],
         ];

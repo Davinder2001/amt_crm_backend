@@ -3,25 +3,42 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Package extends Model
 {
     protected $fillable = [
         'name',
-        'monthly_price',
+        'package_type',
+        'user_id',
         'annual_price',
         'three_years_price',
+        'employee_limit',
+        'chat',
+        'task',
+        'hr',
     ];
 
-    public function businessCategories()
+    protected $casts = [
+        'chat' => 'boolean',
+        'task' => 'boolean',
+        'hr'   => 'boolean',
+    ];
+
+    /**
+     * Many-to-Many: Package ↔ BusinessCategory
+     */
+    public function businessCategories(): BelongsToMany
     {
         return $this->belongsToMany(BusinessCategory::class, 'business_category_package');
     }
 
-    // app/Models/Package.php
-
-    public function limits()
+    /**
+     * Belongs-To: Package ↔ User (specific type)
+     */
+    public function user(): BelongsTo
     {
-        return $this->hasMany(PackageLimit::class);
+        return $this->belongsTo(User::class);
     }
 }

@@ -12,6 +12,10 @@ use App\Services\SelectedCompanyService;
 
 class AttributeController extends Controller
 {
+    /**
+     * Display a listing of the resource.
+     *
+     */
     public function index(): JsonResponse
     {
         $attributes = Attribute::with('values')->get();
@@ -26,6 +30,10 @@ class AttributeController extends Controller
         return $response;
     }
 
+    /**
+     * Get variations with their values.
+     *
+     */
     public function variations(): JsonResponse
     {
         $attributes = Attribute::with('values')->where('status', 'active')->get();
@@ -40,6 +48,10 @@ class AttributeController extends Controller
         return $response;
     }
 
+    /**
+     * Store a newly created resource in storage.
+     *
+     */
     public function store(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -83,6 +95,10 @@ class AttributeController extends Controller
         return $response;
     }
 
+    /**
+     * Display the specified resource.
+     *
+     */
     public function show($id): JsonResponse
     {
         $attribute = Attribute::with('values')->find($id);
@@ -107,6 +123,10 @@ class AttributeController extends Controller
         return $response;
     }
 
+    /**
+     * Update the specified resource in storage.
+     *
+     */
     public function update(Request $request, $id): JsonResponse
     {
         $attribute = Attribute::find($id);
@@ -159,6 +179,10 @@ class AttributeController extends Controller
         return $response;
     }
 
+    /**
+     * Remove the specified resource from storage.
+     *
+     */
     public function destroy($id): JsonResponse
     {
         $attribute = Attribute::find($id);
@@ -185,6 +209,10 @@ class AttributeController extends Controller
         return $response;
     }
 
+    /**
+     * Toggle the status of the specified resource.
+     *
+     */
     public function toggleStatus($id): JsonResponse
     {
         $attribute = Attribute::find($id);

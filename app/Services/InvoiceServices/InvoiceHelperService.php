@@ -80,13 +80,15 @@ class InvoiceHelperService
             return;
         }
 
+        $role = $deliveryUser->getRoleNames()->first();
+
         Task::create([
             'name'          => 'Deliver Invoice #' . $invoice->invoice_number,
             'description'   => 'Deliver invoice to ' . $invoice->client_name . ' at ' . ($invoice->delivery_address ?? 'N/A'),
             'assigned_by'   => Auth::id(),
             'assigned_to'   => $deliveryBoyId,
             'company_id'    => $invoice->company_id,
-            'assigned_role' => $deliveryUser->role ?? 'delivery_boy',
+            'assigned_role' => $role ?? 'delivery_boy',
             'start_date'    => Carbon::now(),
             'end_date'      => Carbon::now()->addDays(1),
             'attachments'   => [],
@@ -96,11 +98,13 @@ class InvoiceHelperService
     }
 
 
+
     public static function sendInvoiceEmail(string $email, $invoice, $company): void
     {
         $pdf = Pdf::loadView('invoices.pdf', [
             'invoice'           => $invoice,
             'company_name'      => $company->company_name,
+            'signature'         => $company->company_signature,
             'company_address'   => $company->address ?? 'N/A',
             'company_phone'     => $company->phone ?? 'N/A',
             'company_gstin'     => $company->gstin ?? 'N/A',

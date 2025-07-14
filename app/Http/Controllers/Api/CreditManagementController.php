@@ -14,6 +14,11 @@ use App\Http\Resources\CustomerCreditResource;
 class CreditManagementController extends Controller
 {
 
+    /**
+     * Display a listing of the resource.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function index()
     {
         $credits = CustomerCredit::with('invoice', 'customer')->where('status', '!=', 'paid')->get();
@@ -24,6 +29,11 @@ class CreditManagementController extends Controller
         ]);
     }
 
+    /**
+     * Get unique users with outstanding credits.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function users()
     {
         $credits = CustomerCredit::with('customer', 'invoice')->get();
@@ -53,7 +63,12 @@ class CreditManagementController extends Controller
         ]);
     }
 
-
+    /**
+     * Show due credits for a specific customer.
+     *
+     * @param int $customerId
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function show($customerId)
     {
         $credits = CustomerCredit::with('invoice', 'customer')->where('customer_id', $customerId)->where('status', '!=', 'paid')->get();
@@ -73,6 +88,13 @@ class CreditManagementController extends Controller
     }
 
 
+    /**
+     * Close all dues for a specific credit.
+     *
+     * @param \Illuminate\Http\Request $request
+     * @param int $creditId
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function closeDue(Request $request, $creditId)
     {
         $selectedCredit     = CustomerCredit::with('customer')->findOrFail($creditId);

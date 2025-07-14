@@ -120,6 +120,9 @@
                 @if (!empty($invoice->delivery_pincode))
                     <p><strong>Delivery Pincode:</strong> {{ $invoice->delivery_pincode }}</p>
                 @endif
+                @if (!empty($delivery_boy_name))
+                    <p><strong>Delivery Boy:</strong> {{ $delivery_boy_name }}</p>
+                @endif
             </div>
 
             <table>
@@ -196,9 +199,10 @@
             @if (!empty($show_signature))
                 <div class="signature">
                     <p>Authorized Signatory</p>
-                    <img src="{{ public_path('signature.png') }}" alt="Signature">
+                    <img src="{{ storage_path('app/public/' . $signature) }}" alt="Signature">
                 </div>
             @endif
+
         </div>
     </div>
 </body>

@@ -22,7 +22,7 @@ class AttendanceController extends Controller
      */
     public function recordAttendance(Request $request): JsonResponse
     {
-        $user       = $request->user();
+        $user = $request->user();
         $activeCompany = SelectedCompanyService::getSelectedCompanyOrFail();
 
 
@@ -32,7 +32,7 @@ class AttendanceController extends Controller
             ], 422);
         }
 
-        $today      = Carbon::today()->toDateString();
+        $today = Carbon::today()->toDateString();
 
         $attendance = Attendance::firstOrNew([
             'user_id'         => $user->id,
@@ -51,12 +51,12 @@ class AttendanceController extends Controller
                 ], 422);
             }
 
-            $image      = $request->file('image');
-            $imageName  = uniqid('attendance_', true) . '.' . $image->getClientOriginalExtension();
+            $image = $request->file('image');
+            $imageName = uniqid('attendance_', true) . '.' . $image->getClientOriginalExtension();
             $image->move(public_path('images/attendance_images'), $imageName);
 
-            $clockInImagePath   = 'images/attendance_images/' . $imageName;
-            $time               = Carbon::now('Asia/Kolkata')->format('h:i A');
+            $clockInImagePath = 'images/attendance_images/' . $imageName;
+            $time = Carbon::now('Asia/Kolkata')->format('h:i A');
 
             $attendance->company_id       = $activeCompany->company_id;
             $attendance->clock_in         = $time;
@@ -83,8 +83,8 @@ class AttendanceController extends Controller
                 ], 422);
             }
 
-            $image      = $request->file('image');
-            $imageName  = uniqid('attendance_', true) . '.' . $image->getClientOriginalExtension();
+            $image = $request->file('image');
+            $imageName = uniqid('attendance_', true) . '.' . $image->getClientOriginalExtension();
             $image->move(public_path('images/attendance_images'), $imageName);
 
             $clockInImagePath = 'images/attendance_images/' . $imageName;
@@ -115,15 +115,13 @@ class AttendanceController extends Controller
                 ], 422);
             }
 
-            $image      = $request->file('image');
-            $imageName  = uniqid('attendance_', true) . '.' . $image->getClientOriginalExtension();
-
+            $image = $request->file('image');
+            $imageName = uniqid('attendance_', true) . '.' . $image->getClientOriginalExtension();
             $image->move(public_path('images/attendance_images'), $imageName);
-
-            $clockOutImagePath              = 'images/attendance_images/' . $imageName;
-            $time                           = Carbon::now('Asia/Kolkata')->format('h:i A');
-            $attendance->clock_out          = $time;
-            $attendance->clock_out_image    = $clockOutImagePath;
+            $clockOutImagePath = 'images/attendance_images/' . $imageName;
+            $time = Carbon::now('Asia/Kolkata')->format('h:i A');
+            $attendance->clock_out = $time;
+            $attendance->clock_out_image = $clockOutImagePath;
             $attendance->save();
 
             return response()->json([
@@ -175,7 +173,6 @@ class AttendanceController extends Controller
             ], 404);
         }
 
-        // Apply frequency filter
         $leaveQuery = LeaveApplication::where('user_id', $user->id)
             ->where('leave_id', $leave->id)
             ->where('company_id', $activeCompany->company_id);
@@ -251,8 +248,6 @@ class AttendanceController extends Controller
             'already_exist' => $skippedDates,
         ]);
     }
-
-
 
 
     /**
@@ -342,11 +337,9 @@ class AttendanceController extends Controller
             ], 404);
         }
 
-        // Approve attendance
         $attendance->approval_status = 'approved';
         $attendance->save();
 
-        // If attendance is a leave, approve linked leave application
         if ($attendance->status === 'leave') {
             LeaveApplication::where('attendance_id', $attendance->id)
                 ->update(['status' => 'approved']);
@@ -356,6 +349,7 @@ class AttendanceController extends Controller
             'message' => 'Attendance approved successfully.',
         ], 200);
     }
+
     /**
      * Reject the attendance.
      */
@@ -369,11 +363,9 @@ class AttendanceController extends Controller
             ], 404);
         }
 
-        // Reject attendance
         $attendance->approval_status = 'rejected';
         $attendance->save();
 
-        // If attendance is a leave, reject linked leave application
         if ($attendance->status === 'leave') {
             LeaveApplication::where('attendance_id', $attendance->id)
                 ->update(['status' => 'rejected']);
@@ -394,8 +386,6 @@ class AttendanceController extends Controller
             ]
         ], 200);
     }
-
-
 
     /**
      * Get attendance summary by custom date range from request body.
@@ -456,7 +446,6 @@ class AttendanceController extends Controller
                 ->where('leave_id', $leave->id)
                 ->where('company_id', $activeCompany->company_id);
 
-            // Apply frequency filter
             if ($leave->frequency === 'monthly') {
                 $leaveQuery->whereMonth('leave_date', now()->month)
                     ->whereYear('leave_date', now()->year);

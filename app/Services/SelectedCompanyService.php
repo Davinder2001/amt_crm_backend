@@ -26,25 +26,37 @@ class SelectedCompanyService
                 'selected_company' => 'super-admin'
             ];
         }
-        
+
+        $token = $user->currentAccessToken();
+        $activeCompanyId = $token?->active_company_id ?? null;
+
+        if (!$activeCompanyId) {
+            abort(response()->json([
+                'message' => 'Selected company not provided in token.'
+            ], 400));
+        }
 
         $selectedCompany = CompanyUser::where('user_id', $user->id)
-            ->where('status', 1)
+            ->where('company_id', $activeCompanyId)
             ->with('company')
             ->first();
 
         if (!$selectedCompany) {
-            abort(response()->json(['message' => 'Active company not found.'], 422));
+            abort(response()->json([
+                'message' => 'Active company not found or unauthorized.'
+            ], 422));
         }
 
         return $selectedCompany;
     }
 
+
+
     public static function getCompanyIdOrFail()
     {
         $company = self::getSelectedCompanyOrFail();
         if ($company instanceof \Illuminate\Http\JsonResponse) {
-            return $company; 
+            return $company;
         }
 
         return $company->company_id;

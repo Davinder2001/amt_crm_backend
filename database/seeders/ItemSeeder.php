@@ -18,11 +18,11 @@ class ItemSeeder extends Seeder
     {
         DB::transaction(function () {
             $companies = [
-                ['id' => 2, 'company_name' => 'Demo Admin Company One'],
-                ['id' => 3, 'company_name' => 'Demo Admin Company Two'],
-                ['id' => 4, 'company_name' => 'Demo Admin Company Three'],
-                ['id' => 5, 'company_name' => 'Demo Admin Company Four'],
-                ['id' => 6, 'company_name' => 'Demo Admin Company Five'],
+                ['id' => 1, 'company_name' => 'Demo Admin Company One'],
+                ['id' => 2, 'company_name' => 'Demo Admin Company Two'],
+                ['id' => 3, 'company_name' => 'Demo Admin Company Three'],
+                ['id' => 4, 'company_name' => 'Demo Admin Company Four'],
+                ['id' => 5, 'company_name' => 'Demo Admin Company Five'],
             ];
 
             $baseCategories = [
@@ -125,7 +125,8 @@ class ItemSeeder extends Seeder
                                 'company_id'          => $companyId,
                                 'item_id'             => $item->id,
                                 'invoice_number'      => 'INV-' . strtoupper(Str::random(5)),
-                                'quantity'            => rand(10, 50),
+                                'quantity'            => 20,
+                                'stock'               => 20,
                                 'purchase_date'       => now()->subDays(rand(1, 30)),
                                 'date_of_manufacture' => now()->subDays(rand(30, 60)),
                                 'date_of_expiry'      => now()->addDays(rand(180, 360)),

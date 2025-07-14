@@ -1,107 +1,57 @@
 services:
-  nginx-proxy:
-    image: jwilder/nginx-proxy:alpine
-    container_name: nginx-proxy
-    restart: always
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./infra/certs:/etc/nginx/certs:ro
-      - ./infra/vhost.d:/etc/nginx/vhost.d
-      - ./infra/html:/usr/share/nginx/html
-    environment:
-      - ENABLE_IPV6=true
-    networks:
-      - backend
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  letsencrypt:
-    image: jrcs/letsencrypt-nginx-proxy-companion
-    container_name: nginx-proxy-le
-    restart: always
-    environment:
-      - NGINX_PROXY_CONTAINER=nginx-proxy
-      - DEFAULT_EMAIL=himmanav11@gmail.com
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./infra/certs:/etc/nginx/certs:rw
-      - ./infra/vhost.d:/etc/nginx/vhost.d
-      - ./infra/html:/usr/share/nginx/html
-    depends_on:
-      - nginx-proxy
-    networks:
-      - backend
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
   app:
-    build: .
-    image: amt_crm_backend_app
-    container_name: amt_crm_backend_app
-    restart: always
-    working_dir: /var/www
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: amt_crm_app
     volumes:
       - ./storage:/var/www/storage
       - ./bootstrap/cache:/var/www/bootstrap/cache
-    env_file:
-      - .env.docker
+      - ./public:/var/www/public
     environment:
-      - VIRTUAL_HOST=api.himmanav.com
-      - LETSENCRYPT_HOST=api.himmanav.com
-      - LETSENCRYPT_EMAIL=himmanav11@gmail.com
-    expose:
-      - "80"
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - DB_HOST=db
+    env_file:
+      - .env
     depends_on:
-      db:
-        condition: service_healthy
+      - db
     networks:
-      - backend
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+      - amt_crm_network
 
   db:
     image: mysql:8.0
-    container_name: amt_crm_backend_db
-    restart: always
+    container_name: amt_crm_db
+    restart: unless-stopped
     environment:
+      MYSQL_ROOT_PASSWORD: password123
+      MYSQL_PASSWORD: password123
       MYSQL_DATABASE: ${DB_DATABASE}
       MYSQL_USER: ${DB_USERNAME}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
-      MYSQL_CHARACTER_SET_SERVER: utf8mb4
-      MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
     volumes:
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d
       - db_data:/var/lib/mysql
-      - ./database/init:/docker-entrypoint-initdb.d:ro
-    ports:
-      - "127.0.0.1:3306:3306"
     networks:
-      - backend
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD}"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
-    command: --default-authentication-plugin=mysql_native_password
+      - amt_crm_network
+
+  nginx:
+    image: nginx:alpine
+    container_name: amt_crm_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d
+      - ./public:/var/www/public
+      - ./docker/nginx/logs:/var/log/nginx
+    depends_on:
+      - app
+    networks:
+      - amt_crm_network
 
 volumes:
   db_data:
-    driver: local
 
 networks:
-  backend:
+  amt_crm_network:
     driver: bridge 

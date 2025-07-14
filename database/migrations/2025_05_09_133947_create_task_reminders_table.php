@@ -16,7 +16,6 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('task_id')->constrained()->onDelete('cascade');
             $table->dateTime('reminder_at');
-            $table->date('task_end_date');
             $table->timestamps();
         });
         

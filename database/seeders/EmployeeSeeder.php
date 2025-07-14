@@ -15,11 +15,11 @@ class EmployeeSeeder extends Seeder
     public function run(): void
     {
         $companyIds = [
+            'AMTCOM0000001',
             'AMTCOM0000002',
             'AMTCOM0000003',
             'AMTCOM0000004',
             'AMTCOM0000005',
-            'AMTCOM0000006',
         ];
 
         $employeeCounter = 1;

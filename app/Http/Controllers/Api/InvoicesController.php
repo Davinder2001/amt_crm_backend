@@ -5,9 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Invoice;
 use App\Models\Item;
+use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use App\Services\InvoiceServices\InvoiceHelperService;
-use App\Models\Package;
 use App\Models\CompanyAccount;
 use App\Models\ItemBatch;
 use App\Models\ItemVariant;
@@ -50,104 +50,7 @@ class InvoicesController extends Controller
             'invoice' => $invoice,
         ], 201);
     }
-    /**
-     * Store a newly created invoice and return the PDF content.
-     */
-    public function storeAndPrint(Request $request)
-    {
-        [$invoice, $pdfContent] = $this->createInvoiceAndPdf($request);
 
-        return response($pdfContent, 200)
-            ->header('Content-Type', 'application/pdf')
-            ->header(
-                'Content-Disposition',
-                'inline; filename="invoice_' . $invoice->invoice_number . '.pdf"'
-            );
-    }
-
-    /**
-     * Store a newly created invoice and send it via email.
-     */
-    public function storeAndMail(Request $request)
-    {
-        [$invoice, $pdfContent] = $this->createInvoiceAndPdf($request);
-
-        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $companyName     = $selectedCompany->company->company_name;
-        $logoFile        = $selectedCompany->company->company_logo;
-
-        if (!empty($logoFile) && !is_dir(public_path($logoFile))) {
-            $companyLogo = public_path($logoFile);
-        } else {
-            $companyLogo = null;
-        }
-
-        if ($invoice->client_email) {
-            Mail::send(
-                'invoices.pdf',
-                [
-                    'invoice'          => $invoice,
-                    'company_name'     => $companyName,
-                    'company_logo'     => $companyLogo,
-                    'company_address'  => $selectedCompany->company->address ?? 'N/A',
-                    'company_phone'    => $selectedCompany->company->phone ?? 'N/A',
-                    'company_gstin'    => $selectedCompany->company->gstin ?? 'N/A',
-                    'footer_note'      => 'Thank you for your business',
-                    'show_signature'   => true,
-                ],
-
-                function ($message) use ($invoice, $pdfContent) {
-                    $message->to($invoice->client_email)
-                        ->subject('Your Invoice #' . $invoice->invoice_number)
-                        ->attachData(
-                            $pdfContent,
-                            'invoice_' . $invoice->invoice_number . '.pdf',
-                            ['mime' => 'application/pdf']
-                        );
-                }
-            );
-        }
-
-        return response()->json([
-            'status'  => true,
-            'message' => 'Invoice created and emailed successfully.',
-            'invoice' => $invoice,
-        ], 201);
-    }
-
-    /**
-     * Download the invoice as a PDF.
-     */
-    public function download($id)
-    {
-        $invoice         = Invoice::with('items')->findOrFail($id);
-        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $companyName     = $selectedCompany->company->company_name;
-        $logoFile        = $selectedCompany->company->company_logo;
-
-        if (!empty($logoFile) && !is_dir(public_path($logoFile))) {
-            $companyLogo = public_path($logoFile);
-        } else {
-            $companyLogo = null;
-        }
-
-        $invoiceID = $invoice->id;
-        $customerCredits = CustomerCredit::where('invoice_id', $invoiceID)->get();
-
-        $pdf = Pdf::loadView('invoices.pdf', [
-            'invoice'          => $invoice,
-            'company_name'     => $companyName,
-            'customer_credits' => $customerCredits,
-            'company_logo'     => $companyLogo,
-            'company_address'  => $selectedCompany->company->address ?? 'N/A',
-            'company_phone'    => $selectedCompany->company->phone ?? 'N/A',
-            'company_gstin'    => $selectedCompany->company->gstin ?? 'N/A',
-            'footer_note'      => 'Thank you for your business',
-            'show_signature'   => true,
-        ]);
-
-        return $pdf->download('invoice_' . $invoice->invoice_number . '.pdf');
-    }
 
     /**
      * Create an invoice and generate a PDF.
@@ -197,30 +100,9 @@ class InvoicesController extends Controller
 
         $data            = $validator->validated();
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $company         = $selectedCompany->company;
         $issuedById      = Auth::id();
         $issuedByName    = Auth::user()->name;
 
-        $package          = Package::with('limits')->find($company->package_id);
-        $subscriptionType = $company->subscription_type;
-
-        $limit        = collect($package->limits)->firstWhere('variant_type', $subscriptionType);
-        $allowedCount = $limit->invoices_number ?? 0;
-        $invoiceQuery = Invoice::where('company_id', $company->id);
-        $now          = now();
-
-        if ($subscriptionType === 'monthly') {
-            $invoiceQuery->whereYear('invoice_date', $now->year)->whereMonth('invoice_date', $now->month);
-        } elseif ($subscriptionType === 'annual') {
-            $invoiceQuery->whereYear('invoice_date', $now->year);
-        } elseif ($subscriptionType === 'three_years') {
-            $startYear = $now->copy()->subYears(2)->startOfYear();
-            $invoiceQuery->whereBetween('invoice_date', [$startYear, $now->endOfYear()]);
-        }
-
-        if ($invoiceQuery->count() >= $allowedCount) {
-            throw new \Exception("You have reached your invoice limit for the {$subscriptionType} package ({$allowedCount} invoices).");
-        }
 
         $unitPriceFor = static function (int $itemId, int $batchId, ?int $variantId = null, string $saleBy = 'piece'): float {
             $batch = ItemBatch::where('id', $batchId)->where('item_id', $itemId)->firstOrFail();
@@ -258,9 +140,9 @@ class InvoicesController extends Controller
                 $finalServiceCharge = $serviceChargeAmount + $serviceChargeGstAmount;
             }
 
-            $subtotal = $total + $finalServiceCharge;
+            $subtotal       = $total + $finalServiceCharge;
             $discountAmount = $discountPercentage = 0;
-            $finalAmount = round($subtotal);
+            $finalAmount    = round($subtotal);
 
             if ($data['discount_type'] === 'amount' && $data['discount_price'] > 0) {
                 $discountAmount = $data['discount_price'];
@@ -277,36 +159,38 @@ class InvoicesController extends Controller
             }
 
             $customer = InvoiceHelperService::createCustomer($data, $selectedCompany->company_id);
-            $companyCode = $selectedCompany->company->company_id;
-            $lastInv = Invoice::where('company_id', $selectedCompany->company_id)->whereDate('invoice_date', now()->toDateString())->orderBy('invoice_number', 'desc')->first();
-            $nextSeq = $lastInv ? ((int) substr($lastInv->invoice_number, -4)) + 1 : 1;
-            $invoiceNo = "{$companyCode}" . now()->format('ymd') . str_pad($nextSeq, 3, '0', STR_PAD_LEFT);
+            $today = now()->toDateString();
+            $shortDate = now()->format('ymd');
+            $companyCode = 'C' . $selectedCompany->company->id;
+            $lastInv = Invoice::where('company_id', $selectedCompany->company->id)->whereDate('invoice_date', $today)->orderBy('invoice_number', 'desc')->first();
+            $nextSeq = $lastInv ? ((int) substr($lastInv->invoice_number, -3)) + 1 : 1;
+            $invoiceNo = $companyCode . $shortDate . str_pad($nextSeq, 3, '0', STR_PAD_LEFT);
 
             $inv = Invoice::create([
-                'invoice_number'         => $invoiceNo,
-                'client_name'            => $data['client_name'] ?? 'Guest',
-                'client_phone'           => $data['number'],
-                'client_email'           => $data['email'] ?? null,
-                'invoice_date'           => $data['invoice_date'],
-                'total_amount'           => $subtotal,
-                'sub_total'              => $total,
-                'service_charge_amount'  => $serviceChargeAmount,
-                'service_charge_percent' => 18,
-                'service_charge_gst'     => $serviceChargeGstAmount,
-                'service_charge_final'   => $finalServiceCharge,
-                'discount_amount'        => $discountAmount,
-                'discount_percentage'    => $discountPercentage,
-                'delivery_charge'        => $data['delivery_charge'] ?? 0,
-                'delivery_address'       => $data['address'] ?? null,
-                'delivery_pincode'       => $data['pincode'] ?? null,
-                'final_amount'           => $finalAmount,
-                'payment_method'         => $data['payment_method'],
-                'bank_account_id'        => $data['bank_account_id'] ?? null,
-                'credit_note'            => $data['credit_note'] ?? null,
+                'invoice_number'          => $invoiceNo,
+                'client_name'             => $data['client_name'] ?? 'Guest',
+                'client_phone'            => $data['number'],
+                'client_email'            => $data['email'] ?? null,
+                'invoice_date'            => $data['invoice_date'],
+                'total_amount'            => $subtotal,
+                'sub_total'               => $total,
+                'service_charge_amount'   => $serviceChargeAmount,
+                'service_charge_percent'  => 18,
+                'service_charge_gst'      => $serviceChargeGstAmount,
+                'service_charge_final'    => $finalServiceCharge,
+                'discount_amount'         => $discountAmount,
+                'discount_percentage'     => $discountPercentage,
+                'delivery_charge'         => $data['delivery_charge'] ?? 0,
+                'delivery_address'        => $data['address'] ?? null,
+                'delivery_pincode'        => $data['pincode'] ?? null,
+                'final_amount'            => $finalAmount,
+                'payment_method'          => $data['payment_method'],
+                'bank_account_id'         => $data['bank_account_id'] ?? null,
+                'credit_note'             => $data['credit_note'] ?? null,
                 'delivery_boy'            => $data['delivery_boy'] ?? null,
-                'issued_by'              => $issuedById,
-                'issued_by_name'         => $issuedByName,
-                'company_id'             => $selectedCompany->company_id,
+                'issued_by'               => $issuedById,
+                'issued_by_name'          => $issuedByName,
+                'company_id'              => $selectedCompany->company_id,
             ]);
 
             $historyItems = [];
@@ -379,6 +263,112 @@ class InvoicesController extends Controller
     }
 
 
+    /**
+     * Store a newly created invoice and return the PDF content.
+     */
+    public function storeAndPrint(Request $request)
+    {
+        [$invoice, $pdfContent] = $this->createInvoiceAndPdf($request);
+
+        return response($pdfContent, 200)
+            ->header('Content-Type', 'application/pdf')
+            ->header(
+                'Content-Disposition',
+                'inline; filename="invoice_' . $invoice->invoice_number . '.pdf"'
+            );
+    }
+
+    /**
+     * Store a newly created invoice and send it via email.
+     */
+    public function storeAndMail(Request $request)
+    {
+        [$invoice, $pdfContent] = $this->createInvoiceAndPdf($request);
+
+        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+        $companyName     = $selectedCompany->company->company_name;
+        $logoFile        = $selectedCompany->company->company_logo;
+
+        if (!empty($logoFile) && !is_dir(public_path($logoFile))) {
+            $companyLogo = public_path($logoFile);
+        } else {
+            $companyLogo = null;
+        }
+
+        if ($invoice->client_email) {
+            Mail::send(
+                'invoices.pdf',
+                [
+                    'invoice'          => $invoice,
+                    'company_name'     => $companyName,
+                    'company_logo'     => $companyLogo,
+                    'company_address'  => $selectedCompany->company->address ?? 'N/A',
+                    'company_phone'    => $selectedCompany->company->phone ?? 'N/A',
+                    'company_gstin'    => $selectedCompany->company->gstin ?? 'N/A',
+                    'footer_note'      => 'Thank you for your business',
+                    'show_signature'   => true,
+                ],
+
+                function ($message) use ($invoice, $pdfContent) {
+                    $message->to($invoice->client_email)
+                        ->subject('Your Invoice #' . $invoice->invoice_number)
+                        ->attachData(
+                            $pdfContent,
+                            'invoice_' . $invoice->invoice_number . '.pdf',
+                            ['mime' => 'application/pdf']
+                        );
+                }
+            );
+        }
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'Invoice created and emailed successfully.',
+            'invoice' => $invoice,
+        ], 201);
+    }
+
+    /**
+     * Download the invoice as a PDF.
+     */
+    public function download($id)
+    {
+        $invoice         = Invoice::with('items')->findOrFail($id);
+        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+        $company         = $selectedCompany->company;
+
+        $companyName     = $company->company_name;
+        $logoFile        = $company->company_logo;
+
+        $companyLogo = (!empty($logoFile) && !is_dir(public_path($logoFile)))
+            ? public_path($logoFile)
+            : null;
+
+        $invoiceID = $invoice->id;
+        $customerCredits = CustomerCredit::where('invoice_id', $invoiceID)->get();
+
+        // ✅ Fetch delivery boy by ID from the invoice
+        $deliveryBoyName = null;
+        if ($invoice->delivery_boy) {
+            $deliveryBoy = User::find($invoice->delivery_boy);
+            $deliveryBoyName = $deliveryBoy?->name ?? null;
+        }
+
+        $pdf = Pdf::loadView('invoices.pdf', [
+            'invoice'           => $invoice,
+            'company_name'      => $companyName,
+            'customer_credits'  => $customerCredits,
+            'company_logo'      => $companyLogo,
+            'company_address'   => $company->address ?? 'N/A',
+            'company_phone'     => $company->phone ?? 'N/A',
+            'company_gstin'     => $company->gstin ?? 'N/A',
+            'footer_note'       => 'Thank you for your business',
+            'show_signature'    => true,
+            'delivery_boy_name' => $deliveryBoyName,
+        ]);
+
+        return $pdf->download('invoice_' . $invoice->invoice_number . '.pdf');
+    }
 
 
     /**
@@ -576,7 +566,9 @@ class InvoicesController extends Controller
         ]);
     }
 
-
+    /**
+     * Display the card payment history.
+     */
     public function cardPaymentHistory()
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();

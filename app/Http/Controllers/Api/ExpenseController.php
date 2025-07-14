@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\ExpenseResource;
 use App\Models\Expense;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Validator;
 use App\Services\SelectedCompanyService;
@@ -14,15 +15,8 @@ class ExpenseController extends Controller
 {
     public function index()
     {
-        $query = Expense::query();
-
-        if (request()->filled('status')) {
-            $query->where('status', request('status'));
-        }
-
-        return ExpenseResource::collection(
-            $query->latest()->get()
-        );
+        $expenses = Expense::with(['items', 'invoices', 'users'])->get();
+        return ExpenseResource::collection($expenses);
     }
 
     public function store(Request $request)
@@ -30,20 +24,22 @@ class ExpenseController extends Controller
         $companyId = SelectedCompanyService::getSelectedCompanyOrFail()->company_id;
 
         $validator = Validator::make($request->all(), [
-            'heading'     => ['required', 'string', 'max:255'],
-            'price'       => ['required', 'numeric', 'min:0'],
-            'status'      => ['nullable', 'in:pending,approved,rejected'],
-            'file'        => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:2048'],
-            'description' => ['nullable', 'string'],
-            'tags'        => ['nullable', 'array'],
-            'tags.*.name' => ['required', 'string', 'max:50'],
+            'heading'                   => ['required', 'string', 'max:255'],
+            'price'                     => ['required', 'numeric', 'min:0'],
+            'status'                    => ['nullable', 'in:pending,approved,paid,rejected'],
+            'file'                      => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:2048'],
+            'description'               => ['nullable', 'string'],
+            'invoice_ids'               => ['nullable', 'array'],
+            'invoice_ids.*'             => ['integer', 'exists:invoices,id'],
+            'user_ids'                  => ['nullable', 'array'],
+            'user_ids.*'                => ['integer', 'exists:users,id'],
+            'items_batches'            => ['nullable', 'array'],
+            'items_batches.*.item_id'  => ['required', 'integer', 'exists:store_items,id'],
+            'items_batches.*.batch_id' => ['required', 'integer', 'exists:item_batches,id'],
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors'  => $validator->errors(),
-            ], 422);
+            return response()->json(['message' => 'Validation failed', 'errors' => $validator->errors()], 422);
         }
 
         $data = $validator->validated();
@@ -53,18 +49,33 @@ class ExpenseController extends Controller
             $data['file_path'] = $this->saveFile($request->file('file'));
         }
 
-        $data['tags'] = $data['tags'] ?? [];
+        DB::beginTransaction();
+        try {
+            $expense = Expense::create($data);
 
-        $expense = Expense::create($data);
+            // Sync pivot relationships
+            $expense->invoices()->sync($data['invoice_ids'] ?? []);
+            $expense->users()->sync($data['user_ids'] ?? []);
 
-        return (new ExpenseResource($expense))
-            ->response()
-            ->setStatusCode(201);
+            if (!empty($data['items_batches'])) {
+                $pivotData = [];
+                foreach ($data['items_batches'] as $pair) {
+                    $pivotData[$pair['item_id']] = ['batch_id' => $pair['batch_id']];
+                }
+                $expense->items()->sync($pivotData);
+            }
+
+            DB::commit();
+            return (new ExpenseResource($expense->refresh()))->response()->setStatusCode(201);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Something went wrong', 'error' => $e->getMessage()], 500);
+        }
     }
 
     public function show($id)
     {
-        $expense = Expense::findOrFail($id);
+        $expense = Expense::with(['items', 'invoices', 'users'])->findOrFail($id);
         return new ExpenseResource($expense);
     }
 
@@ -73,20 +84,22 @@ class ExpenseController extends Controller
         $expense = Expense::findOrFail($id);
 
         $validator = Validator::make($request->all(), [
-            'heading'     => ['sometimes', 'string', 'max:255'],
-            'price'       => ['sometimes', 'numeric', 'min:0'],
-            'status'      => ['nullable', 'in:pending,approved,rejected'],
-            'file'        => ['sometimes', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:2048'],
-            'description' => ['nullable', 'string'],
-            'tags'        => ['nullable', 'array'],
-            'tags.*.name' => ['required', 'string', 'max:50'],
+            'heading'                   => ['sometimes', 'string', 'max:255'],
+            'price'                     => ['sometimes', 'numeric', 'min:0'],
+            'status'                    => ['nullable', 'in:pending,approved,paid,rejected'],
+            'file'                      => ['sometimes', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:2048'],
+            'description'               => ['nullable', 'string'],
+            'invoice_ids'               => ['nullable', 'array'],
+            'invoice_ids.*'             => ['integer', 'exists:invoices,id'],
+            'user_ids'                  => ['nullable', 'array'],
+            'user_ids.*'                => ['integer', 'exists:users,id'],
+            'items_batches'            => ['nullable', 'array'],
+            'items_batches.*.item_id'  => ['required', 'integer', 'exists:store_items,id'],
+            'items_batches.*.batch_id' => ['required', 'integer', 'exists:item_batches,id'],
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors'  => $validator->errors(),
-            ], 422);
+            return response()->json(['message' => 'Validation failed', 'errors' => $validator->errors()], 422);
         }
 
         $data = $validator->validated();
@@ -98,13 +111,32 @@ class ExpenseController extends Controller
             $data['file_path'] = $this->saveFile($request->file('file'));
         }
 
-        if (array_key_exists('tags', $data)) {
-            $data['tags'] = $data['tags'] ?? [];
+        DB::beginTransaction();
+        try {
+            $expense->update($data);
+
+            if (isset($data['invoice_ids'])) {
+                $expense->invoices()->sync($data['invoice_ids']);
+            }
+
+            if (isset($data['user_ids'])) {
+                $expense->users()->sync($data['user_ids']);
+            }
+
+            if (isset($data['items_batches'])) {
+                $pivotData = [];
+                foreach ($data['items_batches'] as $pair) {
+                    $pivotData[$pair['item_id']] = ['batch_id' => $pair['batch_id']];
+                }
+                $expense->items()->sync($pivotData);
+            }
+
+            DB::commit();
+            return new ExpenseResource($expense->refresh());
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Something went wrong', 'error' => $e->getMessage()], 500);
         }
-
-        $expense->update($data);
-
-        return new ExpenseResource($expense->refresh());
     }
 
     public function destroy($id)

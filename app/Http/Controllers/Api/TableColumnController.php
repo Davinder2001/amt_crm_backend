@@ -4,131 +4,128 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Validator;
 use App\Models\TableManagement;
 use App\Models\TableMeta;
-use Illuminate\Support\Facades\Auth;
 use App\Services\SelectedCompanyService;
-use App\Models\TablesListed;
-use App\Models\TableColumn;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\DB;
 
 class TableColumnController extends Controller
 {
-    public function store(Request $request)
+    /**
+     * Store a new table
+     */
+    public function store(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'table_id'          => 'required|exists:tables_listed,id',
-            'meta'              => 'required|array|min:1',
-            'meta.*.col_name'   => 'required|string|max:255',
-            'meta.*.value'      => 'required|boolean',
+            'table_name' => 'required|string|max:255',
+            'table_description' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
-                'message' => 'Validation error.',
-                'errors'  => $validator->errors()
+                'status' => false,
+                'message' => 'Validation failed.',
+                'errors' => $validator->errors()
             ], 422);
         }
 
-        DB::beginTransaction();
-
-        try {
-
-            $activeCompanyId    = SelectedCompanyService::getSelectedCompanyOrFail();
-            $userId             = Auth::id();
-
-            $table = TableManagement::updateOrCreate(
-                [
-                    'company_id' => $activeCompanyId->company->id,
-                    'user_id'    => $userId,
-                ],
-                [
-                    'tables_listed_id' => $request->table_id,
-                ]
-            );
-
-            $trueCols = [];
-
-            foreach ($request->meta as $metaData) {
-                $colName = $metaData['col_name'];
-                $value = $metaData['value'];
-
-                if ($value === true) {
-                    TableMeta::updateOrCreate(
-                        ['table_id' => $table->id, 'col_name' => $colName],
-                        ['value' => true]
-                    );
-
-                    $trueCols[] = $colName;
-                } else {
-
-                    TableMeta::where('table_id', $table->id)->where('col_name', $colName)->delete();
-                }
-            }
-
-            TableMeta::where('table_id', $table->id)->whereNotIn('col_name', $trueCols)->delete();
-            DB::commit();
-
-            return response()->json([
-                'message' => 'Table and its columns processed successfully.',
-                'data'    => $table->load('metas')
-            ]);
-        } catch (\Throwable $e) {
-            DB::rollBack();
-            return response()->json([
-                'message' => 'Failed to process table.',
-                'error'   => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    public function storeTable(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation error.',
-                'errors'  => $validator->errors(),
-            ], 422);
-        }
-
-        $table = TablesListed::create([
-            'name' => $request->name,
+        $company = SelectedCompanyService::getSelectedCompanyOrFail();
+        
+        $table = TableManagement::create([
+            'table_name' => $request->table_name,
+            'table_description' => $request->table_description,
+            'company_id' => $company->company_id,
         ]);
 
         return response()->json([
+            'status' => true,
             'message' => 'Table created successfully.',
-            'data'    => $table,
-        ]);
+            'data' => $table
+        ], 201);
     }
 
-
-    public function storeColumn(Request $request)
+    /**
+     * Store a new table with columns
+     */
+    public function storeTable(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'table_id'     => 'required|exists:tables_listed,id',
-            'column_name'  => 'required|string|max:255',
+            'table_name' => 'required|string|max:255',
+            'table_description' => 'nullable|string',
+            'columns' => 'required|array|min:1',
+            'columns.*.column_name' => 'required|string|max:255',
+            'columns.*.column_type' => 'required|string|max:100',
+            'columns.*.is_required' => 'boolean',
+            'columns.*.default_value' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
-                'message' => 'Validation error.',
-                'errors'  => $validator->errors(),
+                'status' => false,
+                'message' => 'Validation failed.',
+                'errors' => $validator->errors()
             ], 422);
         }
 
-        $column = TableColumn::create([
-            'table_id'     => $request->table_id,
-            'column_name'  => $request->column_name,
+        $company = SelectedCompanyService::getSelectedCompanyOrFail();
+        
+        $table = TableManagement::create([
+            'table_name' => $request->table_name,
+            'table_description' => $request->table_description,
+            'company_id' => $company->company_id,
+        ]);
+
+        foreach ($request->columns as $column) {
+            TableMeta::create([
+                'table_id' => $table->id,
+                'column_name' => $column['column_name'],
+                'column_type' => $column['column_type'],
+                'is_required' => $column['is_required'] ?? false,
+                'default_value' => $column['default_value'] ?? null,
+            ]);
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Table with columns created successfully.',
+            'data' => $table->load('metas')
+        ], 201);
+    }
+
+    /**
+     * Store a new column for existing table
+     */
+    public function storeColumn(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'table_id' => 'required|exists:table_managements,id',
+            'column_name' => 'required|string|max:255',
+            'column_type' => 'required|string|max:100',
+            'is_required' => 'boolean',
+            'default_value' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Validation failed.',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $column = TableMeta::create([
+            'table_id' => $request->table_id,
+            'column_name' => $request->column_name,
+            'column_type' => $request->column_type,
+            'is_required' => $request->is_required ?? false,
+            'default_value' => $request->default_value ?? null,
         ]);
 
         return response()->json([
-            'message' => 'Column added successfully.',
-            'data'    => $column,
-        ]);
+            'status' => true,
+            'message' => 'Column created successfully.',
+            'data' => $column
+        ], 201);
     }
-}
+} 

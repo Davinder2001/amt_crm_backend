@@ -14,16 +14,18 @@ use App\Services\SelectedCompanyService;
 
 class LeavesAndHolidayController extends Controller
 {
-    // ============================
-    // LEAVES CRUD
-    // ============================
-
+    /**
+     * Get all leaves for the selected company.
+     */
     public function getLeaves()
     {
         $leaves = Leave::all();
         return LeaveResource::collection($leaves);
     }
 
+    /**
+     * Create Leave for the selected company.
+     */
     public function createLeave(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -53,6 +55,9 @@ class LeavesAndHolidayController extends Controller
         ]);
     }
 
+    /**
+     * Update Leave for the selected company.
+     */
     public function updateLeave(Request $request, $id)
     {
         $leave = Leave::findOrFail($id);
@@ -81,6 +86,9 @@ class LeavesAndHolidayController extends Controller
         ]);
     }
 
+    /**
+     * Delete Leave for the selected company.
+     */
     public function deleteLeave($id)
     {
         $leave = Leave::findOrFail($id);
@@ -93,6 +101,9 @@ class LeavesAndHolidayController extends Controller
     // HOLIDAYS CRUD
     // ============================
 
+    /**
+     * Get all holidays for the selected company.
+     */
     public function getHolidays()
     {
         $company = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -102,6 +113,9 @@ class LeavesAndHolidayController extends Controller
         return HolidayResource::collection($holidays);
     }
 
+    /**
+     * Create a holiday for the selected company.
+     */
     public function createHoliday(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -172,7 +186,9 @@ class LeavesAndHolidayController extends Controller
         ]);
     }
 
-
+    /**
+     * Update a holiday for the selected company.
+     */
     public function updateHoliday(Request $request, $id)
     {
         $holiday = Holiday::findOrFail($id);
@@ -251,7 +267,9 @@ class LeavesAndHolidayController extends Controller
         ]);
     }
 
-
+    /**
+     * Delete a holiday for the selected company.
+     */
     public function deleteHoliday($id)
     {
         $holiday = Holiday::findOrFail($id);
@@ -260,7 +278,9 @@ class LeavesAndHolidayController extends Controller
         return response()->json(['message' => 'Holiday deleted successfully.']);
     }
 
-
+    /**
+     * Bulk delete holidays of a specific type for the selected company.
+     */
     public function bulkDeleteHolidays(Request $request)
     {
         $validator = Validator::make($request->all(), [
