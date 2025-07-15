@@ -37,6 +37,7 @@ class Company extends Model
         'business_proof_back',
         'subscription_date',
         'subscription_status',
+        'terms_and_conditions',
     ];
 
     /**

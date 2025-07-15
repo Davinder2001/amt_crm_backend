@@ -36,7 +36,7 @@ class ItemsController extends Controller
 
         return response()->json([
             'status' => true,
-            'data' => ItemResource::collection($items->items()), 
+            'items' => ItemResource::collection($items->items()), 
             'pagination' => [
                 'current_page' => $items->currentPage(),
                 'per_page' => $items->perPage(),

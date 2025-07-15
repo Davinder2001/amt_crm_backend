@@ -32,7 +32,15 @@ class InvoicesController extends Controller
 
         return response()->json([
             'status'   => true,
-            'invoices' => $invoices
+            'invoices' => $invoices,
+             'pagination' => [
+                'current_page' => $invoices->currentPage(),
+                'per_page' => $invoices->perPage(),
+                'total' => $invoices->total(),
+                'last_page' => $invoices->lastPage(),
+                'next_page_url' => $invoices->nextPageUrl(),
+                'prev_page_url' => $invoices->previousPageUrl(),
+            ]
         ]);
     }
 

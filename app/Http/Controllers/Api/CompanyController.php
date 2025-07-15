@@ -365,7 +365,7 @@ class CompanyController extends Controller
         $company = Company::findOrFail($id);
 
         $validator = Validator::make($request->all(), [
-            'company_name'          => 'sometimes|string|max:255',
+            // 'company_name'          => 'sometimes|string|max:255',
             'company_logo'          => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'company_signature'     => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'business_address'      => 'nullable|string',
@@ -373,6 +373,7 @@ class CompanyController extends Controller
             'business_proof_type'   => 'nullable|string|max:255',
             'business_proof_front'  => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'business_proof_back'   => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'terms_and_conditions'  => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
@@ -434,7 +435,7 @@ class CompanyController extends Controller
         }
 
         $company->update([
-            'company_name'          => $data['company_name'] ?? $company->company_name,
+            // 'company_name'          => $data['company_name'] ?? $company->company_name,
             'company_logo'          => $logoPath,
             'company_signature'     => $signaturePath,
             'company_slug'          => $slug,
@@ -443,6 +444,7 @@ class CompanyController extends Controller
             'business_proof_type'   => $data['business_proof_type'] ?? $company->business_proof_type,
             'business_proof_front'  => $frontPath,
             'business_proof_back'   => $backPath,
+            'terms_and_conditions'  => $data['terms_and_conditions'] ?? $company->terms_and_conditions,
         ]);
 
         return response()->json([
@@ -451,9 +453,6 @@ class CompanyController extends Controller
             'company' => $company->fresh(), 
         ], 200);
     }
-
-
-
 
     /**
      * Get all accounts for the selected company.
