@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
+use App\Http\Resources\InvoiceResource;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Services\SelectedCompanyService;
@@ -28,21 +29,23 @@ class InvoicesController extends Controller
     public function index(Request $request)
     {
         $perPage = $request->get('per_page', 10);
+
         $invoices = Invoice::with(['items', 'credit'])->latest()->paginate($perPage);
 
         return response()->json([
             'status'   => true,
-            'invoices' => $invoices,
-             'pagination' => [
-                'current_page' => $invoices->currentPage(),
-                'per_page' => $invoices->perPage(),
-                'total' => $invoices->total(),
-                'last_page' => $invoices->lastPage(),
+            'invoices' => InvoiceResource::collection($invoices->items()),
+            'pagination' => [
+                'current_page'  => $invoices->currentPage(),
+                'per_page'      => $invoices->perPage(),
+                'total'         => $invoices->total(),
+                'last_page'     => $invoices->lastPage(),
                 'next_page_url' => $invoices->nextPageUrl(),
                 'prev_page_url' => $invoices->previousPageUrl(),
             ]
         ]);
     }
+
 
 
     /**
