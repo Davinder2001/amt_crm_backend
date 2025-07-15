@@ -329,6 +329,45 @@ class AuthController extends Controller
     }
 
     /**
+     * Change the password for the logged-in user.
+     */
+    public function changePassword(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'oldPassword' => 'required|string',
+            'newPassword' => 'required|string|min:8',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        $data = $validator->validated();
+        $user = Auth::user();
+
+        if (!Hash::check($data['oldPassword'], $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Current password is incorrect.'
+            ], 403);
+        }
+
+        $user->update([
+            'password' => Hash::make($data['newPassword']),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password changed successfully.'
+        ], 200);
+    }
+
+
+
+    /**
      * Get all active tokens for the logged-in user.
      */
     public function getLoginSessions(Request $request): JsonResponse

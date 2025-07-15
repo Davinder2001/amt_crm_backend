@@ -105,7 +105,8 @@ Route::prefix('v1')->group(function () {
         // Auth API's
         Route::post('logout', [AuthController::class, 'logout']);
         Route::get('/auth/sessions', [AuthController::class, 'getLoginSessions']);
-        Route::post('password/change', [AuthController::class, 'resetPassword']);
+        Route::post('password/change', [AuthController::class, 'changePassword']);
+        Route::post('password/reset', [AuthController::class, 'resetPassword']);
         Route::apiResource('permissions', PermissionController::class);
 
 

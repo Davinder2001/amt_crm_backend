@@ -39,13 +39,26 @@ class EmployeeController extends Controller
      */
     public function index(Request $request)
     {
-        $userType   = $request->user_type;
-        $employees  = User::where('user_type', $userType)->with(['roles.permissions', 'companies', 'employeeDetail.shift'])->get();
+        $userType = $request->user_type;
+        $perPage  = $request->get('per_page', 10);
+
+        $employees = User::where('user_type', $userType)
+            ->with(['roles.permissions', 'companies', 'employeeDetail.shift'])
+            ->latest()
+            ->paginate($perPage);
 
         return response()->json([
+            'status'    => true,
             'message'   => 'Employees retrieved successfully.',
-            'employees' => EmployeeResource::collection($employees),
-            'total'     => $employees->count(),
+            'employees' => EmployeeResource::collection($employees->items()),
+            'pagination' => [
+                'current_page'   => $employees->currentPage(),
+                'per_page'       => $employees->perPage(),
+                'total'          => $employees->total(),
+                'last_page'      => $employees->lastPage(),
+                'next_page_url'  => $employees->nextPageUrl(),
+                'prev_page_url'  => $employees->previousPageUrl(),
+            ]
         ], 200);
     }
 
@@ -186,7 +199,7 @@ class EmployeeController extends Controller
                 'religion'                  => 'sometimes|string|min:3|max:30',
                 'maritalStatus'             => 'sometimes|string|max:20',
                 'idProofType'               => 'nullable|string',
-                'idProofValue'              => 'nullable|string',
+                'idProofValue'              => 'nullable',
                 'emergencyContact'          => 'sometimes|digits:10',
                 'emergencyContactRelation'  => 'sometimes|string|min:3|max:30',
                 'workLocation'              => 'sometimes|string|min:3|max:100',

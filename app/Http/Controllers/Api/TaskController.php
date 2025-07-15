@@ -19,10 +19,24 @@ class TaskController extends Controller
     /**
      * Display a listing of the tasks.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $tasks = Task::all();
-        return TaskResource::collection($tasks);
+        $perPage = $request->get('per_page', 10); // Default 10 per page
+
+        $tasks = Task::latest()->paginate($perPage);
+
+        return response()->json([
+            'status' => true,
+            'tasks' => TaskResource::collection($tasks->items()),
+            'pagination' => [
+                'current_page'   => $tasks->currentPage(),
+                'per_page'       => $tasks->perPage(),
+                'total'          => $tasks->total(),
+                'last_page'      => $tasks->lastPage(),
+                'next_page_url'  => $tasks->nextPageUrl(),
+                'prev_page_url'  => $tasks->previousPageUrl(),
+            ]
+        ]);
     }
 
     /**
@@ -33,8 +47,8 @@ class TaskController extends Controller
         $authUser           = $request->user();
         $selectedCompany    = SelectedCompanyService::getSelectedCompanyOrFail();
         $company            = $selectedCompany->company;
-      
-       
+
+
 
         $request->merge([
             'notify' => filter_var($request->input('notify'), FILTER_VALIDATE_BOOLEAN)
@@ -186,18 +200,34 @@ class TaskController extends Controller
     /**
      * Display a listing of all tasks assigned to the authenticated user.
      */
-    public function myTasks()
+    public function myTasks(Request $request)
     {
         $user = Auth::user();
-        $tasks = Task::where('assigned_to', $user->id)->get();
+        $perPage = $request->get('per_page', 10); // Default 10 per page
+
+        $tasks = Task::where('assigned_to', $user->id)
+            ->latest()
+            ->paginate($perPage);
 
         if ($tasks->isEmpty()) {
             return response()->json([
+                'status'  => true,
                 'message' => 'No tasks assigned to you.'
             ], 200);
         }
 
-        return TaskResource::collection($tasks);
+        return response()->json([
+            'status' => true,
+            'tasks' => TaskResource::collection($tasks->items()),
+            'pagination' => [
+                'current_page'   => $tasks->currentPage(),
+                'per_page'       => $tasks->perPage(),
+                'total'          => $tasks->total(),
+                'last_page'      => $tasks->lastPage(),
+                'next_page_url'  => $tasks->nextPageUrl(),
+                'prev_page_url'  => $tasks->previousPageUrl(),
+            ]
+        ]);
     }
 
 
