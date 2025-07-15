@@ -8,7 +8,6 @@ use App\Models\Item;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use App\Services\InvoiceServices\InvoiceHelperService;
-use App\Models\CompanyAccount;
 use App\Models\ItemBatch;
 use App\Models\ItemVariant;
 use App\Models\InvoiceItem;
@@ -17,7 +16,6 @@ use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Services\SelectedCompanyService;
@@ -27,15 +25,17 @@ class InvoicesController extends Controller
     /**
      * Show a list of all attributes with their values.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $invoices   = Invoice::with(['items', 'credit'])->latest()->get();
+        $perPage = $request->get('per_page', 10);
+        $invoices = Invoice::with(['items', 'credit'])->latest()->paginate($perPage);
 
         return response()->json([
             'status'   => true,
-            'invoices' => $invoices,
+            'invoices' => $invoices
         ]);
     }
+
 
     /**
      * Store a newly created invoice in storage.
@@ -270,10 +270,7 @@ class InvoicesController extends Controller
      */
     public function storeAndPrint(Request $request)
     {
-        // ✅ First, create and save the invoice
         [$invoice] = $this->createInvoiceAndPdf($request);
-
-        // ✅ Now generate the PDF here
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
         $company = $selectedCompany->company;
 
@@ -292,64 +289,12 @@ class InvoicesController extends Controller
             'show_signature'   => false,
         ])->output();
 
-        // ✅ Return as inline PDF for print
         return response($pdfContent, 200)
             ->header('Content-Type', 'application/pdf')
             ->header(
                 'Content-Disposition',
                 'inline; filename="invoice_' . $invoice->invoice_number . '.pdf"'
             );
-    }
-
-
-    /**
-     * Store a newly created invoice and send it via email.
-     */
-    public function storeAndMail(Request $request)
-    {
-        [$invoice, $pdfContent] = $this->createInvoiceAndPdf($request);
-
-        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $companyName     = $selectedCompany->company->company_name;
-        $logoFile        = $selectedCompany->company->company_logo;
-
-        if (!empty($logoFile) && !is_dir(public_path($logoFile))) {
-            $companyLogo = public_path($logoFile);
-        } else {
-            $companyLogo = null;
-        }
-
-        if ($invoice->client_email) {
-            Mail::send(
-                'invoices.pdf',
-                [
-                    'invoice'          => $invoice,
-                    'company_name'     => $companyName,
-                    'company_logo'     => $companyLogo,
-                    'company_address'  => $selectedCompany->company->address ?? 'N/A',
-                    'company_phone'    => $selectedCompany->company->phone ?? 'N/A',
-                    'company_gstin'    => $selectedCompany->company->gstin ?? 'N/A',
-                    'footer_note'      => 'Thank you for your business',
-                    'show_signature'   => true,
-                ],
-
-                function ($message) use ($invoice, $pdfContent) {
-                    $message->to($invoice->client_email)
-                        ->subject('Your Invoice #' . $invoice->invoice_number)
-                        ->attachData(
-                            $pdfContent,
-                            'invoice_' . $invoice->invoice_number . '.pdf',
-                            ['mime' => 'application/pdf']
-                        );
-                }
-            );
-        }
-
-        return response()->json([
-            'status'  => true,
-            'message' => 'Invoice created and emailed successfully.',
-            'invoice' => $invoice,
-        ], 201);
     }
 
     /**
@@ -561,235 +506,5 @@ class InvoicesController extends Controller
             'message'     => 'Invoice created successfully. PDF ready for sharing.',
             'pdf_base64'  => 'data:application/pdf;base64,' . $base64Pdf,
         ], 201);
-    }
-
-
-
-
-    /**
-     * Display the online payment history.
-     */
-    public function onlinePaymentHistory()
-    {
-        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $invoices = Invoice::where('company_id', $selectedCompany->company_id)->where('payment_method', 'online')->get();
-
-        $grouped = $invoices->groupBy('bank_account_id')->map(function ($invoiceGroup, $bankAccountId) {
-            $bankAccount = CompanyAccount::find($bankAccountId);
-
-            return [
-                'bank_account_id'   => $bankAccountId,
-                'bank_name'         => $bankAccount->bank_name ?? 'N/A',
-                'account_number'    => $bankAccount->account_number ?? 'N/A',
-                'ifsc_code'         => $bankAccount->ifsc_code ?? 'N/A',
-                'total_transferred' => $invoiceGroup->sum('final_amount'),
-                'transactions'      => $invoiceGroup->map(function ($inv) {
-                    return [
-                        'invoice_number' => $inv->invoice_number,
-                        'invoice_date'   => $inv->invoice_date,
-                        'amount'         => $inv->final_amount,
-                    ];
-                })->values()
-            ];
-        })->values();
-
-        return response()->json([
-            'status' => true,
-            'data' => $grouped,
-        ]);
-    }
-
-
-    /**
-     * Display the cash payment history.
-     */
-    public function cashPaymentHistory()
-    {
-        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $invoices        = Invoice::where('company_id', $selectedCompany->company_id)->where('payment_method', 'cash')->get();
-
-        $grouped = $invoices->groupBy('invoice_date')->map(function ($dateGroup, $date) {
-            return [
-                'date' => $date,
-                'total' => $dateGroup->sum('final_amount'),
-                'transactions' => $dateGroup->map(function ($inv) {
-                    return [
-                        'invoice_number' => $inv->invoice_number,
-                        'amount' => $inv->final_amount,
-                    ];
-                })->values()
-            ];
-        })->values();
-
-        return response()->json([
-            'status' => true,
-            'payment_method' => 'cash',
-            'data' => $grouped
-        ]);
-    }
-
-    /**
-     * Display the card payment history.
-     */
-    public function cardPaymentHistory()
-    {
-        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $invoices = Invoice::where('company_id', $selectedCompany->company_id)->where('payment_method', 'card')->get();
-
-        $grouped = $invoices->groupBy('invoice_date')->map(function ($dateGroup, $date) {
-            return [
-                'date' => $date,
-                'total' => $dateGroup->sum('final_amount'),
-                'transactions' => $dateGroup->map(function ($inv) {
-                    return [
-                        'invoice_number' => $inv->invoice_number,
-                        'amount' => $inv->final_amount,
-                    ];
-                })->values()
-            ];
-        })->values();
-
-        return response()->json([
-            'status' => true,
-            'payment_method' => 'card',
-            'data' => $grouped
-        ]);
-    }
-
-    /**
-     * Display the credit payment history.
-     */
-    public function creditPaymentHistory()
-    {
-        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $invoices = Invoice::where('company_id', $selectedCompany->company_id)->where('payment_method', 'credit')->get();
-
-        $grouped = $invoices->groupBy('invoice_date')->map(function ($dateGroup, $date) {
-            return [
-                'date' => $date,
-                'total' => $dateGroup->sum('final_amount'),
-                'transactions' => $dateGroup->map(function ($inv) {
-                    return [
-                        'invoice_number' => $inv->invoice_number,
-                        'amount'         => $inv->final_amount,
-                    ];
-                })->values()
-            ];
-        })->values();
-
-        return response()->json([
-            'status'         => true,
-            'payment_method' => 'credit',
-            'data'           => $grouped
-        ]);
-    }
-
-    /**
-     * Display the self-consumption payment history.
-     */
-    public function selfConsumptionHistory()
-    {
-        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $invoices        = Invoice::where('company_id', $selectedCompany->company_id)->where('payment_method', 'self')->get();
-
-        $grouped = $invoices->groupBy('invoice_date')->map(function ($dateGroup, $date) {
-            return [
-                'date'  => $date,
-                'total' => $dateGroup->sum('final_amount'),
-                'transactions' => $dateGroup->map(function ($inv) {
-                    return [
-                        'invoice_number' => $inv->invoice_number,
-                        'amount'         => $inv->final_amount,
-                    ];
-                })->values()
-            ];
-        })->values();
-
-        return response()->json([
-            'status'         => true,
-            'payment_method' => 'self consumption',
-            'data'           => $grouped
-        ]);
-    }
-
-    /**
-     * Store a newly created invoice and send it via WhatsApp.
-     */
-    public function storeAndSendWhatsapp(Request $request)
-    {
-        [$invoice, $pdfContent] = $this->createInvoiceAndPdf($request);
-
-        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $logoFile        = $selectedCompany->company->company_logo;
-
-        $folderPath = public_path('invoices');
-        if (!file_exists($folderPath)) {
-            mkdir($folderPath, 0755, true);
-        }
-
-        $companyLogo = (!empty($logoFile) && !is_dir(public_path($logoFile))) ? public_path($logoFile) : null;
-
-        $fileName = 'invoice_' . $invoice->invoice_number . '.pdf';
-        $filePath = $folderPath . '/' . $fileName;
-        file_put_contents($filePath, $pdfContent);
-        $publicUrl = asset('invoices/' . $fileName);
-
-        $payload = [
-            "integrated_number" => "918219678757",
-            "content_type" => "template",
-            "payload" => [
-                "messaging_product" => "whatsapp",
-                "type" => "template",
-                "template" => [
-                    "name" => "invoice",
-                    "language" => [
-                        "code" => "en",
-                        "policy" => "deterministic"
-                    ],
-                    "namespace" => "c448fd19_1766_40ad_b98d_bae2703feb98",
-                    "to_and_components" => [
-                        [
-                            "to" => [$invoice->client_phone],
-                            "components" => [
-                                "header_1" => [
-                                    "filename" => $fileName,
-                                    "type"  => "document",
-                                    "value" => $publicUrl
-                                ],
-                                "body_1" => [
-                                    "type"  => "text",
-                                    "value" => $invoice->client_name ?? 'Customer'
-                                ],
-                                "body_2" => [
-                                    "type"  => "text",
-                                    "value" => '₹' . number_format($invoice->final_amount, 2)
-                                ]
-                            ]
-                        ]
-                    ]
-                ]
-            ]
-        ];
-
-        $response = Http::withHeaders([
-            'authkey'       => '451198A9qD8Lu26821c9a6P1',
-            'Content-Type'  => 'application/json'
-        ])->post('https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/', $payload);
-
-        if ($response->successful()) {
-            $invoice->update(['sent_on_whatsapp' => true]);
-            return response()->json([
-                'status'  => true,
-                'message' => 'Invoice created and WhatsApp message sent.',
-                'invoice' => $invoice,
-            ], 201);
-        } else {
-            return response()->json([
-                'status'  => false,
-                'message' => 'Invoice saved but WhatsApp sending failed.',
-                'invoice' => $invoice,
-                'error'   => $response->body()
-            ], 500);
-        }
     }
 }

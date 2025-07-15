@@ -44,7 +44,8 @@ use App\Http\Controllers\Api\{
     ItemStockController,
     ExpenseController,
     DashboardController,
-    PackageDetailController
+    PackageDetailController,
+    InvoicePaymentHistoryController
 };
 
 use App\Http\Controllers\Api\Reports\SalesController;
@@ -381,11 +382,11 @@ Route::prefix('v1')->group(function () {
 
             // All payment history API's
             Route::prefix('/payments-history')->group(function () {
-                Route::get('/online', [InvoicesController::class, 'onlinePaymentHistory']);
-                Route::get('/cash', [InvoicesController::class, 'cashPaymentHistory']);
-                Route::get('/card', [InvoicesController::class, 'cardPaymentHistory']);
-                Route::get('/credit', [InvoicesController::class, 'creditPaymentHistory']);
-                Route::get('/self-consumption', [InvoicesController::class, 'selfConsumptionHistory']);
+                Route::get('/online', [InvoicePaymentHistoryController::class, 'onlinePaymentHistory']);
+                Route::get('/cash', [InvoicePaymentHistoryController::class, 'cashPaymentHistory']);
+                Route::get('/card', [InvoicePaymentHistoryController::class, 'cardPaymentHistory']);
+                Route::get('/credit', [InvoicePaymentHistoryController::class, 'creditPaymentHistory']);
+                Route::get('/self-consumption', [InvoicePaymentHistoryController::class, 'selfConsumptionHistory']);
             });
 
 
