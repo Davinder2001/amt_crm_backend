@@ -513,18 +513,34 @@ class InvoicesController extends Controller
      */
     public function storeAndShare(Request $request)
     {
-        [$invoice, $pdfContent] = $this->createInvoiceAndPdf($request);
+        [$invoice] = $this->createInvoiceAndPdf($request);
+        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+        $company = $selectedCompany->company;
 
-        // ✅ Convert PDF binary content to Base64
+        $companyLogo = (!empty($company->company_logo) && !is_dir(public_path($company->company_logo)))
+            ? public_path($company->company_logo)
+            : null;
+
+        $pdfContent = Pdf::loadView('invoices.pdf', [
+            'invoice'          => $invoice,
+            'company_name'     => $company->company_name,
+            'company_logo'     => $companyLogo,
+            'company_address'  => $company->address ?? 'N/A',
+            'company_phone'    => $company->phone ?? 'N/A',
+            'company_gstin'    => $company->gstin ?? 'N/A',
+            'footer_note'      => 'Thank you for your business',
+            'show_signature'   => false,
+        ])->output();
+
         $base64Pdf = base64_encode($pdfContent);
 
         return response()->json([
             'status'      => true,
             'message'     => 'Invoice created successfully. PDF ready for sharing.',
-            'invoice'     => $invoice,
-            'pdf_base64'  => 'data:application/pdf;base64,' . $base64Pdf, // ✅ Directly usable in frontend
+            'pdf_base64'  => 'data:application/pdf;base64,' . $base64Pdf,
         ], 201);
     }
+
 
 
 
