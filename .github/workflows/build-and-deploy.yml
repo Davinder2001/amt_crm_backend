@@ -169,7 +169,7 @@ jobs:
           key: ${{ secrets.PROD_SSH_KEY }}
           port: ${{ secrets.PROD_PORT || 22 }}
           source: "deployment.tar.gz"
-          target: "/srv/laravel-backend"
+          target: "/srv"
           overwrite: true
           timeout: 300s
           debug: true
@@ -188,10 +188,17 @@ jobs:
           use_insecure_cipher: false
           script: |
             set -e
-            cd /srv/laravel-backend
             
-            # Extract deployment package
-            tar -xzf deployment.tar.gz
+            # Create new directory structure
+            echo "🏗️ Creating new directory structure..."
+            mkdir -p /srv/amt_crm_backend
+            mkdir -p /srv/amt_crm_nginx
+            mkdir -p /srv/amt_crm_db
+            mkdir -p /srv/amt_crm_frontend
+            
+            # Extract deployment package to backend directory
+            cd /srv/amt_crm_backend
+            tar -xzf /srv/deployment.tar.gz
             
             # Create production .env file from secrets
             echo "🔧 Creating production environment file..."
@@ -255,18 +262,91 @@ jobs:
             # Create backup of new .env
             cp .env .env.backup
 
-            # Check if db and nginx containers exist and are running
+            # Move nginx config to nginx directory
+            echo "📁 Setting up nginx configuration..."
+            cp nginx/nginx.combined.conf /srv/amt_crm_nginx/nginx.conf
+            cp docker-entrypoint-nginx.sh /srv/amt_crm_nginx/
+            chmod +x /srv/amt_crm_nginx/docker-entrypoint-nginx.sh
+            
+            # Create docker-compose.yml in root /srv directory
+            echo "🐳 Creating main docker-compose.yml..."
+            cat > /srv/docker-compose.yml << 'EOF'
+            version: '3.8'
+            
+            services:
+              app:
+                build: ./amt_crm_backend
+                container_name: amt_crm_app
+                restart: unless-stopped
+                volumes:
+                  - ./amt_crm_backend:/var/www
+                  - ./amt_crm_backend/storage:/var/www/storage
+                networks:
+                  - amt_crm_network
+                depends_on:
+                  - db
+                environment:
+                  - DB_HOST=db
+                healthcheck:
+                  test: ["CMD", "ps", "aux", "|", "grep", "php-fpm", "|", "grep", "-v", "grep"]
+                  interval: 30s
+                  timeout: 10s
+                  retries: 3
+                  start_period: 60s
+            
+              nginx:
+                image: nginx:alpine
+                container_name: amt_crm_nginx
+                restart: unless-stopped
+                ports:
+                  - "80:80"
+                volumes:
+                  - ./amt_crm_nginx/nginx.conf:/etc/nginx/nginx.conf
+                  - ./amt_crm_nginx/docker-entrypoint-nginx.sh:/docker-entrypoint-nginx.sh
+                networks:
+                  - amt_crm_network
+                depends_on:
+                  - app
+                command: ["/bin/sh", "-c", "mkdir -p /var/cache/nginx/client_temp && nginx -g 'daemon off;'"]
+            
+              db:
+                image: mysql:8.0
+                container_name: amt_crm_db
+                restart: unless-stopped
+                environment:
+                  MYSQL_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
+                  MYSQL_DATABASE: ${{ secrets.DB_DATABASE }}
+                  MYSQL_USER: ${{ secrets.DB_USERNAME }}
+                  MYSQL_PASSWORD: ${{ secrets.DB_PASSWORD }}
+                volumes:
+                  - ./amt_crm_db/data:/var/lib/mysql
+                  - ./amt_crm_db/init:/docker-entrypoint-initdb.d
+                networks:
+                  - amt_crm_network
+                healthcheck:
+                  test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+                  timeout: 20s
+                  retries: 10
+            
+            networks:
+              amt_crm_network:
+                driver: bridge
+            EOF
+            
+            # Check if containers exist and are running
             DB_EXISTS=$(docker ps -a --format '{{.Names}}' | grep -c '^amt_crm_db$' || true)
             NGINX_EXISTS=$(docker ps -a --format '{{.Names}}' | grep -c '^amt_crm_nginx$' || true)
 
             # If first deploy (db/nginx not running), bring up all
             if [ "$DB_EXISTS" -eq 0 ] || [ "$NGINX_EXISTS" -eq 0 ]; then
               echo "🚀 First deploy: starting all containers (db, nginx, app)"
+              cd /srv
               docker compose up --build -d
             else
               echo "🔄 Subsequent deploy: only updating app container"
               
               # Graceful shutdown of app container
+              cd /srv
               docker compose stop app || true
               docker rm -f amt_crm_app 2>/dev/null || true
               
@@ -279,6 +359,7 @@ jobs:
             sleep 10
             
             # Check container status
+            cd /srv
             docker compose ps
 
             # Fix permissions for Laravel
@@ -321,10 +402,21 @@ jobs:
 
             # Cleanup
             echo "🧹 Cleaning up..."
-            rm -f deployment.tar.gz
+            rm -f /srv/deployment.tar.gz
             
             # Remove old backups (keep last 5)
+            cd /srv/amt_crm_backend
             ls -t .env.backup.* 2>/dev/null | tail -n +6 | xargs -r rm -f
+            
+            # Show final directory structure
+            echo "📁 Final directory structure:"
+            ls -la /srv/
+            echo "📁 Backend structure:"
+            ls -la /srv/amt_crm_backend/
+            echo "📁 Nginx structure:"
+            ls -la /srv/amt_crm_nginx/
+            echo "📁 Database structure:"
+            ls -la /srv/amt_crm_db/
             
             echo "✅ Deployment completed successfully!"
             echo "🌐 Application is available at: ${{ secrets.APP_URL }}"
