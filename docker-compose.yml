@@ -18,6 +18,12 @@ services:
       - db
     networks:
       - amt_crm_network
+    healthcheck:
+      test: ["CMD", "ps", "aux", "|", "grep", "php-fpm", "|", "grep", "-v", "grep"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   db:
     image: mysql:8.0
@@ -33,23 +39,25 @@ services:
       - db_data:/var/lib/mysql
     networks:
       - amt_crm_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
 
   nginx:
-    build:
-      context: .
-      dockerfile: Dockerfile.nginx
+    image: nginx:alpine
     container_name: amt_crm_nginx
     restart: unless-stopped
     ports:
       - "80:80"
     volumes:
-      - ./docker/nginx/conf.d:/etc/nginx/conf.d
-      - ./public:/var/www/public
-      - ./docker/nginx/logs:/var/log/nginx
-    depends_on:
-      - app
+      - ./nginx/nginx.combined.conf:/etc/nginx/nginx.conf
+      - ./docker-entrypoint-nginx.sh:/docker-entrypoint-nginx.sh
     networks:
       - amt_crm_network
+    depends_on:
+      - app
+    command: ["/bin/sh", "-c", "mkdir -p /var/cache/nginx/client_temp && nginx -g 'daemon off;'"]
 
 volumes:
   db_data:
