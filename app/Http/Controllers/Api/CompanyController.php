@@ -358,6 +358,104 @@ class CompanyController extends Controller
 
 
     /**
+     * Update company details (Admin can update after registration)
+     */
+    public function updateCompanyDetails(Request $request, $id)
+    {
+        $company = Company::findOrFail($id);
+
+        $validator = Validator::make($request->all(), [
+            'company_name'          => 'sometimes|string|max:255',
+            'company_logo'          => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'company_signature'     => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'business_address'      => 'nullable|string',
+            'pin_code'              => 'nullable|string|max:10',
+            'business_proof_type'   => 'nullable|string|max:255',
+            'business_proof_front'  => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'business_proof_back'   => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation errors',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        $data = $validator->validated();
+ 
+        $logoPath = $company->company_logo;
+        $signaturePath = $company->company_signature;
+        $frontPath = $company->business_proof_front;
+        $backPath = $company->business_proof_back;
+
+        if ($request->hasFile('company_logo')) {
+            $logoPath = $request->file('company_logo')->storeAs(
+                'uploads/business_proofs',
+                uniqid('company_logo_') . '.' . $request->file('company_logo')->getClientOriginalExtension(),
+                'public'
+            );
+        }
+
+        if ($request->hasFile('company_signature')) {
+            $signaturePath = $request->file('company_signature')->storeAs(
+                'uploads/business_proofs',
+                uniqid('company_signature_') . '.' . $request->file('company_signature')->getClientOriginalExtension(),
+                'public'
+            );
+        }
+
+        if ($request->hasFile('business_proof_front')) {
+            $frontPath = $request->file('business_proof_front')->storeAs(
+                'uploads/business_proofs',
+                uniqid('proof_front_') . '.' . $request->file('business_proof_front')->getClientOriginalExtension(),
+                'public'
+            );
+        }
+
+        if ($request->hasFile('business_proof_back')) {
+            $backPath = $request->file('business_proof_back')->storeAs(
+                'uploads/business_proofs',
+                uniqid('proof_back_') . '.' . $request->file('business_proof_back')->getClientOriginalExtension(),
+                'public'
+            );
+        }
+
+        $slug = $company->company_slug;
+        if (!empty($data['company_name']) && $data['company_name'] !== $company->company_name) {
+            $slug = Str::slug($data['company_name']);
+            if (Company::where('company_slug', $slug)->where('id', '!=', $company->id)->exists()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Another company already exists with this name.',
+                ], 409);
+            }
+        }
+
+        $company->update([
+            'company_name'          => $data['company_name'] ?? $company->company_name,
+            'company_logo'          => $logoPath,
+            'company_signature'     => $signaturePath,
+            'company_slug'          => $slug,
+            'business_address'      => $data['business_address'] ?? $company->business_address,
+            'pin_code'              => $data['pin_code'] ?? $company->pin_code,
+            'business_proof_type'   => $data['business_proof_type'] ?? $company->business_proof_type,
+            'business_proof_front'  => $frontPath,
+            'business_proof_back'   => $backPath,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Company details updated successfully.',
+            'company' => $company->fresh(), 
+        ], 200);
+    }
+
+
+
+
+    /**
      * Get all accounts for the selected company.
      */
     public function getCompanyAccounts()
