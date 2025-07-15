@@ -54,7 +54,7 @@ RUN mkdir -p /run/nginx /var/lib/nginx/logs /var/log/nginx /etc/letsencrypt && \
 RUN mkdir -p /var/cache/nginx/client_temp && chown -R www-data:www-data /var/cache/nginx || chown -R www:www /var/cache/nginx
 
 # Copy nginx configuration
-COPY docker/nginx/nginx.conf /etc/nginx/nginx.conf
+COPY nginx/nginx.combined.conf /etc/nginx/nginx.conf
 
 # Configure PHP-FPM to run as www user
 RUN sed -i 's/user = www-data/user = www/' /usr/local/etc/php-fpm.d/www.conf && \
