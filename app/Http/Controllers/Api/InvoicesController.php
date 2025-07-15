@@ -270,8 +270,29 @@ class InvoicesController extends Controller
      */
     public function storeAndPrint(Request $request)
     {
-        [$invoice, $pdfContent] = $this->createInvoiceAndPdf($request);
+        // ✅ First, create and save the invoice
+        [$invoice] = $this->createInvoiceAndPdf($request);
 
+        // ✅ Now generate the PDF here
+        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+        $company = $selectedCompany->company;
+
+        $companyLogo = (!empty($company->company_logo) && !is_dir(public_path($company->company_logo)))
+            ? public_path($company->company_logo)
+            : null;
+
+        $pdfContent = Pdf::loadView('invoices.pdf', [
+            'invoice'          => $invoice,
+            'company_name'     => $company->company_name,
+            'company_logo'     => $companyLogo,
+            'company_address'  => $company->address ?? 'N/A',
+            'company_phone'    => $company->phone ?? 'N/A',
+            'company_gstin'    => $company->gstin ?? 'N/A',
+            'footer_note'      => 'Thank you for your business',
+            'show_signature'   => false,
+        ])->output();
+
+        // ✅ Return as inline PDF for print
         return response($pdfContent, 200)
             ->header('Content-Type', 'application/pdf')
             ->header(
@@ -279,6 +300,7 @@ class InvoicesController extends Controller
                 'inline; filename="invoice_' . $invoice->invoice_number . '.pdf"'
             );
     }
+
 
     /**
      * Store a newly created invoice and send it via email.
