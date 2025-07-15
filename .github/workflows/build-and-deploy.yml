@@ -377,7 +377,7 @@ jobs:
             
             # Run migrations if needed
             echo "🗄️  Running database migrations..."
-            docker compose exec app php artisan migrate --force || true
+            docker compose exec app php artisan migrate --force --no-interaction || true
 
             # Wait for app to be fully ready
             echo "⏳ Waiting for app to be ready..."
