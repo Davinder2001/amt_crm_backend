@@ -389,7 +389,7 @@ jobs:
 
             # Optional health check (non-blocking)
             echo "🏥 Performing optional health check..."
-            if curl -f -s -m 10 http://localhost/health > /dev/null; then
+              if curl -f -s -m 10 http://localhost/health > /dev/null; then
               echo "✅ Health check passed"
             else
               echo "⚠️  Health check failed, but continuing deployment..."
