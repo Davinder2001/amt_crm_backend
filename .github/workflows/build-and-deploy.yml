@@ -396,12 +396,12 @@ jobs:
             echo "🏥 Performing optional health check..."
               if curl -f -s -m 10 http://localhost/health > /dev/null; then
               echo "✅ Health check passed"
-            else
+              else
               echo "⚠️  Health check failed, but continuing deployment..."
               echo "📋 Container logs for debugging:"
               docker compose logs app --tail=20 || true
               docker compose logs nginx --tail=10 || true
-            fi
+              fi
 
             # Cleanup
             echo "🧹 Cleaning up..."
