@@ -373,7 +373,7 @@ class CompanyController extends Controller
             'business_proof_type'   => 'nullable|string|max:255',
             'business_proof_front'  => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'business_proof_back'   => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-            'terms_and_conditions'  => 'nullable|string',
+            'term_and_conditions'   => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
@@ -444,13 +444,13 @@ class CompanyController extends Controller
             'business_proof_type'   => $data['business_proof_type'] ?? $company->business_proof_type,
             'business_proof_front'  => $frontPath,
             'business_proof_back'   => $backPath,
-            'terms_and_conditions'  => $data['terms_and_conditions'] ?? $company->terms_and_conditions,
+            'terms_and_conditions'  => $data['term_and_conditions'] ?? $company->terms_and_conditions,
         ]);
 
         return response()->json([
             'success' => true,
             'message' => 'Company details updated successfully.',
-            'company' => $company->fresh(), 
+            'data'    => new CompanyResource($company), 
         ], 200);
     }
 

@@ -45,6 +45,7 @@ class CompanyResource extends JsonResource
 
             'payment_status' => $this->payment_status,
             'verification_status' => $this->verification_status,
+            'terms_and_conditions' => $this->terms_and_conditions,
         ];
     }
 }
