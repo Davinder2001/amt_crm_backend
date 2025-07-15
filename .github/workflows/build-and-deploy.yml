@@ -129,7 +129,9 @@ jobs:
             resources/ \
             routes/ \
             storage/ \
+            vendor/ \
             docker/ \
+            nginx/ \
             artisan \
             composer.json \
             composer.lock \
@@ -271,7 +273,6 @@ jobs:
             # Create docker-compose.yml in root /srv directory
             echo "🐳 Creating main docker-compose.yml..."
             cat > /srv/docker-compose.yml << 'EOF'
-            version: '3.8'
             
             services:
               app:
