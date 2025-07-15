@@ -17,7 +17,7 @@ services:
     depends_on:
       - db
     networks:
-      - amt_crm_network
+      - amt_crm_shared_network
     healthcheck:
       test: ["CMD", "ps", "aux", "|", "grep", "php-fpm", "|", "grep", "-v", "grep"]
       interval: 30s
@@ -38,7 +38,7 @@ services:
       - ./docker/mysql/init:/docker-entrypoint-initdb.d
       - db_data:/var/lib/mysql
     networks:
-      - amt_crm_network
+      - amt_crm_shared_network
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       timeout: 20s
@@ -54,7 +54,7 @@ services:
       - ./nginx/nginx.combined.conf:/etc/nginx/nginx.conf
       - ./docker-entrypoint-nginx.sh:/docker-entrypoint-nginx.sh
     networks:
-      - amt_crm_network
+      - amt_crm_shared_network
     depends_on:
       - app
     command: ["/bin/sh", "-c", "mkdir -p /var/cache/nginx/client_temp && nginx -g 'daemon off;'"]
@@ -63,5 +63,6 @@ volumes:
   db_data:
 
 networks:
-  amt_crm_network:
-    driver: bridge 
+  amt_crm_shared_network:
+    external: true
+    name: amt_crm_shared_network 

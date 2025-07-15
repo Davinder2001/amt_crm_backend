@@ -270,6 +270,10 @@ jobs:
             cp docker-entrypoint-nginx.sh /srv/amt_crm_nginx/
             chmod +x /srv/amt_crm_nginx/docker-entrypoint-nginx.sh
             
+            # Create shared external network
+            echo "🌐 Creating shared external network..."
+            docker network create amt_crm_shared_network 2>/dev/null || echo "Network already exists"
+            
             # Create docker-compose.yml in root /srv directory
             echo "🐳 Creating main docker-compose.yml..."
             cat > /srv/docker-compose.yml << 'EOF'
@@ -283,7 +287,7 @@ jobs:
                   - ./amt_crm_backend:/var/www
                   - ./amt_crm_backend/storage:/var/www/storage
                 networks:
-                  - amt_crm_network
+                  - amt_crm_shared_network
                 depends_on:
                   - db
                 environment:
@@ -305,7 +309,7 @@ jobs:
                   - ./amt_crm_nginx/nginx.conf:/etc/nginx/nginx.conf
                   - ./amt_crm_nginx/docker-entrypoint-nginx.sh:/docker-entrypoint-nginx.sh
                 networks:
-                  - amt_crm_network
+                  - amt_crm_shared_network
                 depends_on:
                   - app
                 command: ["/bin/sh", "-c", "mkdir -p /var/cache/nginx/client_temp && nginx -g 'daemon off;'"]
@@ -323,15 +327,16 @@ jobs:
                   - ./amt_crm_db/data:/var/lib/mysql
                   - ./amt_crm_db/init:/docker-entrypoint-initdb.d
                 networks:
-                  - amt_crm_network
+                  - amt_crm_shared_network
                 healthcheck:
                   test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
                   timeout: 20s
                   retries: 10
             
             networks:
-              amt_crm_network:
-                driver: bridge
+              amt_crm_shared_network:
+                external: true
+                name: amt_crm_shared_network
             EOF
             
             # Check if containers exist and are running
