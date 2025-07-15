@@ -395,6 +395,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/{id}/download', [InvoicesController::class, 'download']);
             Route::post('/', [InvoicesController::class, 'store']);
             Route::post('/print', [InvoicesController::class, 'storeAndPrint']);
+            Route::post('/save-share', [InvoicesController::class, 'storeAndShare']);
             Route::post('/mail', [InvoicesController::class, 'storeAndMail']);
             Route::post('/{id}/store-whatsapp', [InvoicesController::class, 'sendToWhatsapp']);
             Route::post('/{id}/whatsapp', [InvoicesController::class, 'sendToWhatsapp']);

@@ -507,6 +507,27 @@ class InvoicesController extends Controller
     }
 
 
+
+    /**
+     * Store a newly created invoice and return Base64 encoded PDF.
+     */
+    public function storeAndShare(Request $request)
+    {
+        [$invoice, $pdfContent] = $this->createInvoiceAndPdf($request);
+
+        // ✅ Convert PDF binary content to Base64
+        $base64Pdf = base64_encode($pdfContent);
+
+        return response()->json([
+            'status'      => true,
+            'message'     => 'Invoice created successfully. PDF ready for sharing.',
+            'invoice'     => $invoice,
+            'pdf_base64'  => 'data:application/pdf;base64,' . $base64Pdf, // ✅ Directly usable in frontend
+        ], 201);
+    }
+
+
+
     /**
      * Display the online payment history.
      */

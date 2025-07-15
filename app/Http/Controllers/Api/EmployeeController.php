@@ -165,11 +165,11 @@ class EmployeeController extends Controller
     /**
      * Update the specified employee.
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, $id, EmployeeCreateService $employeeService)
     {
-        $employee = User::where('user_type', 'employee')->findOrFail($id);
-
         try {
+            $employee = User::where('user_type', 'employee')->findOrFail($id);
+
             $validator = Validator::make($request->all(), [
                 'name'                      => 'sometimes|string|min:3|max:50',
                 'email'                     => 'sometimes|email|max:100',
@@ -179,8 +179,8 @@ class EmployeeController extends Controller
                 'salary'                    => 'sometimes|numeric|min:0',
                 'dateOfHire'                => 'sometimes|date',
                 'joiningDate'               => 'sometimes|date',
-                'shiftTimings'              => 'nullable|string|max:20',
-                'address'                   => 'sometimes',
+                'shiftTimings'              => 'nullable|integer|exists:shifts,id',
+                'address'                   => 'sometimes|string|min:3|max:200',
                 'nationality'               => 'sometimes|string|min:3|max:30',
                 'dob'                       => 'sometimes|date',
                 'religion'                  => 'sometimes|string|min:3|max:30',
@@ -199,7 +199,7 @@ class EmployeeController extends Controller
                 'ifscCode'                  => 'sometimes|string|size:11',
                 'panNo'                     => 'sometimes|string|size:10',
                 'upiId'                     => 'sometimes|string|min:8|max:50',
-                'addressProof'              => 'sometimes|string',
+                'addressProof'              => 'sometimes|string|min:5|max:50',
                 'profilePicture'            => 'sometimes|file|image|mimes:jpeg,png,jpg,webp|max:2048',
             ]);
 
@@ -210,41 +210,14 @@ class EmployeeController extends Controller
                 ], 422);
             }
 
-            
             $data = $validator->validated();
 
-            if (!empty($data['password'])) {
-                $data['password'] = Hash::make($data['password']);
-            }
-
-            if (!isset($data['role'])) {
-                return response()->json([
-                    'message' => 'Role is required when updating an employee.',
-                ], 400);
-            }
-
-            $employee->update(Arr::except($data, ['role', 'salary', 'dateOfHire', 'joiningDate', 'shiftTimings']));
-
-            $employee->syncRoles($data['role']);
-            $metaFields = [
-                'salary'       => $data['salary']       ?? null,
-                'dateOfHire'   => $data['dateOfHire']   ?? null,
-                'joiningDate'  => $data['joiningDate']  ?? null,
-                'shiftTimings' => $data['shiftTimings'] ?? null,
-            ];
-
-            foreach ($metaFields as $metaKey => $metaValue) {
-                if (!is_null($metaValue)) {
-                    UserMeta::updateOrCreate(
-                        ['user_id'      => $employee->id, 'meta_key' => $metaKey],
-                        ['meta_value'   => $metaValue]
-                    );
-                }
-            }
+            // ✅ Delegate update logic to the service
+            $updatedEmployee = $employeeService->updateEmployee($employee, $data);
 
             return response()->json([
                 'message'  => 'Employee updated successfully.',
-                'employee' => new EmployeeResource($employee->load('roles')),
+                'employee' => $updatedEmployee->load('roles', 'employeeDetail'),
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
@@ -263,7 +236,9 @@ class EmployeeController extends Controller
         $employee = User::where('user_type', 'employee')->findOrFail($id);
         $employee->delete();
 
-        return response()->json(['message' => 'Employee deleted successfully.']);
+        return response()->json([
+            'message' => 'Employee deleted successfully.'
+        ], 200);
     }
 
     /**
@@ -290,6 +265,6 @@ class EmployeeController extends Controller
         return response()->json([
             'message' => 'Employee status updated successfully.',
             'employee' => $employee,
-        ]);
+        ], 200);
     }
 }
