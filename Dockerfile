@@ -76,6 +76,9 @@ FROM base AS production
 # Expose ports
 EXPOSE 80 443
 
+# Install shell for production stage
+RUN apk add --no-cache bash
+
 RUN echo "memory_limit = 512M" > /usr/local/etc/php/conf.d/memory-limit.ini && \
     echo "max_execution_time = 300" >> /usr/local/etc/php/conf.d/memory-limit.ini && \
     echo "upload_max_filesize = 50M" >> /usr/local/etc/php/conf.d/memory-limit.ini && \
