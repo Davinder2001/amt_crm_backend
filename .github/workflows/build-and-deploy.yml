@@ -124,6 +124,10 @@ jobs:
 
       - name: Create deployment package
         run: |
+          # Ensure all necessary directories exist
+          mkdir -p public storage/bootstrap/cache storage/framework/cache storage/framework/sessions storage/framework/views storage/logs storage/app
+          
+          # Create deployment package
           tar -czf deployment.tar.gz \
             app/ \
             bootstrap/ \
@@ -146,6 +150,15 @@ jobs:
             vite.config.js \
             docker-entrypoint.sh \
             .env.example
+          
+          # Verify the package was created
+          if [ -f "deployment.tar.gz" ]; then
+            echo "✅ Deployment package created successfully"
+            ls -lh deployment.tar.gz
+          else
+            echo "❌ Failed to create deployment package"
+            exit 1
+          fi
 
       - name: Test SSH connectivity
         uses: appleboy/ssh-action@v1.0.3
