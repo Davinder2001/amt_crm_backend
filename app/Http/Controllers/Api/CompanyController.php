@@ -223,11 +223,14 @@ class CompanyController extends Controller
     /**
      * Get the selected company for the authenticated user.
      */
+
+
     public function getSelectedCompanies()
     {
         $user = Auth::user();
         $token = $user->currentAccessToken();
 
+        // ✅ Super Admin Shortcut
         if ($user->hasRole('super-admin')) {
             return response()->json([
                 'message'           => 'Selected company retrieved successfully.',
@@ -236,13 +239,13 @@ class CompanyController extends Controller
             ]);
         }
 
+        // ✅ Get Active Company ID from token
         $activeCompanyId = $token?->active_company_id;
-
         if (!$activeCompanyId) {
             return response()->json(['error' => 'No active company selected'], 404);
         }
 
-        // 3. Check if user belongs to the company
+        // ✅ Verify User Belongs to Company
         $companyUser = CompanyUser::where('user_id', $user->id)
             ->where('company_id', $activeCompanyId)
             ->with('company')
@@ -252,9 +255,10 @@ class CompanyController extends Controller
             return response()->json(['error' => 'Company not found or unauthorized'], 403);
         }
 
+        // ✅ Return using CompanyResource
         return response()->json([
             'message'           => 'Selected company retrieved successfully.',
-            'selected_company'  => $companyUser->company,
+            'selected_company'  => new CompanyResource($companyUser->company),
             'company_user_role' => $companyUser->role,
         ]);
     }
@@ -386,7 +390,7 @@ class CompanyController extends Controller
         }
 
         $data = $validator->validated();
- 
+
         $logoPath = $company->company_logo;
         $signaturePath = $company->company_signature;
         $frontPath = $company->business_proof_front;
@@ -452,7 +456,7 @@ class CompanyController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Company details updated successfully.',
-            'data'    => new CompanyResource($company), 
+            'data'    => new CompanyResource($company),
         ], 200);
     }
 
