@@ -17,7 +17,31 @@ COPY . .
 RUN npm run build
 
 # Stage 2: Composer dependencies stage
-FROM composer:2.7 AS composer
+FROM php:8.2-cli-alpine AS composer
+
+# Install system dependencies and PHP extensions needed for composer
+RUN apk add --no-cache \
+    libpng-dev \
+    jpeg-dev \
+    freetype-dev \
+    libzip-dev \
+    zip \
+    git \
+    unzip \
+    oniguruma-dev \
+    libxml2-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j$(nproc) pdo_mysql mbstring exif pcntl bcmath gd zip \
+    && apk del --no-cache \
+        libpng-dev \
+        jpeg-dev \
+        freetype-dev \
+        libzip-dev \
+        oniguruma-dev \
+        libxml2-dev
+
+# Install Composer
+COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /app
 
@@ -110,7 +134,7 @@ RUN sed -i 's/user = www-data/user = www/' /usr/local/etc/php-fpm.d/www.conf && 
     sed -i 's/pm.min_spare_servers = 1/pm.min_spare_servers = 2/' /usr/local/etc/php-fpm.d/www.conf && \
     sed -i 's/pm.max_spare_servers = 3/pm.max_spare_servers = 4/' /usr/local/etc/php-fpm.d/www.conf
 
-# PHP configuration
+# PHP configuration for Laravel 12
 RUN echo "memory_limit = 512M" > /usr/local/etc/php/conf.d/memory-limit.ini && \
     echo "max_execution_time = 300" >> /usr/local/etc/php/conf.d/memory-limit.ini && \
     echo "upload_max_filesize = 50M" >> /usr/local/etc/php/conf.d/memory-limit.ini && \
@@ -120,7 +144,8 @@ RUN echo "memory_limit = 512M" > /usr/local/etc/php/conf.d/memory-limit.ini && \
     echo "opcache.interned_strings_buffer = 8" >> /usr/local/etc/php/conf.d/opcache.ini && \
     echo "opcache.max_accelerated_files = 4000" >> /usr/local/etc/php/conf.d/opcache.ini && \
     echo "opcache.revalidate_freq = 2" >> /usr/local/etc/php/conf.d/opcache.ini && \
-    echo "opcache.fast_shutdown = 1" >> /usr/local/etc/php/conf.d/opcache.ini
+    echo "opcache.fast_shutdown = 1" >> /usr/local/etc/php/conf.d/opcache.ini && \
+    echo "opcache.enable_cli = 1" >> /usr/local/etc/php/conf.d/opcache.ini
 
 # Expose ports
 EXPOSE 80 443 9000

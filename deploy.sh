@@ -93,10 +93,12 @@ if command -v docker-compose &> /dev/null; then
     docker-compose exec app php artisan config:cache || true
     docker-compose exec app php artisan view:cache || true
     docker-compose exec app php artisan migrate --force --no-interaction || true
+    docker-compose exec app php artisan optimize || true
 else
     docker compose exec app php artisan config:cache || true
     docker compose exec app php artisan view:cache || true
     docker compose exec app php artisan migrate --force --no-interaction || true
+    docker compose exec app php artisan optimize || true
 fi
 
 # Wait for app to be fully ready

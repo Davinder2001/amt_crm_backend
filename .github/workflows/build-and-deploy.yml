@@ -21,7 +21,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ env.PHP_VERSION }}
-          extensions: mbstring, xml, ctype, iconv, intl, pdo_mysql, dom, filter, gd, json, pdo, bcmath, zip
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_mysql, dom, filter, gd, json, pdo, bcmath, zip, exif, pcntl
           coverage: none
           tools: composer:v2
 
@@ -408,6 +408,7 @@ jobs:
             echo "⚡ Running Laravel optimizations..."
             docker compose exec app php artisan config:cache || true
             docker compose exec app php artisan view:cache || true
+            docker compose exec app php artisan optimize || true
             # Skip route cache for now due to compatibility issues
             echo "⚠️  Skipping route cache due to compatibility"
             
