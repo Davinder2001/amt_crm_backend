@@ -7,6 +7,11 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\File;
 use App\Models\Item;
+use App\Models\ItemBatch;
+use App\Models\Tax;
+use App\Models\VendorInvoice;
+use App\Models\VendorPaymentHistory;
+use App\Models\StoreVendor;
 use App\Services\OcrParsingService;
 use App\Models\Category;
 use App\Services\SelectedCompanyService;
@@ -48,17 +53,14 @@ class ProductOcrController extends Controller
             ], 500);
         }
 
-        // Try GPT parsing first
         $parsedBy = 'gpt';
         $extractedItems = $ocr->parseWithGpt($rawText);
 
-        // If GPT fails or gives invalid structure, fallback to manual
         if (!is_array($extractedItems) || count($extractedItems) === 0 || !isset($extractedItems[0]['name'])) {
             $parsedBy = 'manual';
             $extractedItems = $ocr->parseManually($rawText);
         }
 
-        // Calculate grand total
         $grandTotal = 0;
         foreach ($extractedItems as &$item) {
             $qty = (int)($item['quantity'] ?? 0);
@@ -93,56 +95,168 @@ class ProductOcrController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'products'              => 'required|array|min:1',
-            'products.*.name'       => 'required|string',
-            'products.*.quantity'   => 'required|integer|min:1',
-            'products.*.price'      => 'required|numeric|min:0',
+            'invoice_no'            => 'required|string|max:255',
+            'vendor_name'           => 'required|string|max:255',
+            'vendor_no'             => 'required|string|max:20',
+            'vendor_email'          => 'nullable|email|max:255',
+            'vendor_address'        => 'nullable|string|max:500',
+            'tax_mode'              => 'nullable|in:overall,individual',
+            'payment_method'        => 'required|in:Paid,Unpaid,Pending',
+            'credit_payment_type'   => 'nullable|string|max:255',
+            'partial_amount'        => 'nullable|integer|min:0',
             'tax_id'                => 'nullable|integer|exists:taxes,id',
+
+            // ✅ Items is coming as a JSON string
+            'items'                 => 'required|string',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
-                'status'    => false,
-                'message'   => 'Validation failed',
-                'errors'    => $validator->errors(),
+                'status'  => false,
+                'message' => 'Validation failed',
+                'errors'  => $validator->errors(),
             ], 422);
         }
 
-        $products           = $request->input('products');
-        $taxId              = $request->input('tax_id', 0);
-        $selectedCompany    = SelectedCompanyService::getSelectedCompanyOrFail();
-        $lastItemCode       = Item::where('company_id', $selectedCompany->id)->max('item_code') ?? 0;
+        $data = $validator->validated();
 
-        $uncategorizedCategory = Category::firstOrCreate([
-            'company_id' => $selectedCompany->id,
-            'name' => 'Uncategorized',
+        // ✅ Decode JSON string to array
+        $itemsData = json_decode($data['items'], true);
+
+        if (!is_array($itemsData)) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'The items field must be a valid JSON array.',
+            ], 422);
+        }
+
+        // ✅ Additional validation for decoded items
+        $itemValidator = Validator::make(['items' => $itemsData], [
+            'items'            => 'required|array|min:1',
+            'items.*.name'     => 'required|string|max:255',
+            'items.*.price'    => 'required|numeric|min:0',
+            'items.*.quantity' => 'required|integer|min:1',
+            'items.*.subTotal' => 'required|numeric|min:0',
         ]);
 
-        $savedItems = [];
+        if ($itemValidator->fails()) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Item validation failed',
+                'errors'  => $itemValidator->errors(),
+            ], 422);
+        }
 
-        foreach ($products as $product) {
+        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+
+        // ✅ Vendor Creation
+        $vendor = StoreVendor::firstOrCreate(
+            [
+                'vendor_number' => $data['vendor_no'],
+                'company_id'    => $selectedCompany->id,
+            ],
+            [
+                'vendor_name'    => $data['vendor_name'],
+                'vendor_email'   => $data['vendor_email'] ?? null,
+                'vendor_address' => $data['vendor_address'] ?? null,
+            ]
+        );
+
+        // ✅ Invoice Creation
+        $invoice = VendorInvoice::create([
+            'vendor_id'    => $vendor->id,
+            'invoice_no'   => $data['invoice_no'],
+            'invoice_date' => now(),
+        ]);
+
+        // ✅ Vendor Payment History
+        $creditPaymentType = $data['credit_payment_type'] ?? null;
+        VendorPaymentHistory::create([
+            'vendor_invoice_id'   => $invoice->id,
+            'payment_method'      => $data['payment_method'],
+            'credit_payment_type' => $creditPaymentType,
+            'partial_amount'      => $data['partial_amount'] ?? null,
+            'amount_paid'         => $data['partial_amount'] ?? 0,
+            'payment_date'        => now(),
+            'note'                => ($creditPaymentType === 'partial')
+                ? 'Partial payment'
+                : 'Full payment',
+        ]);
+
+        $taxPercentage = optional(Tax::find($data['tax_id'] ?? null))->rate;
+
+        $lastItemCode = Item::where('company_id', $selectedCompany->id)->max('item_code') ?? 0;
+        $uncategorizedCategory = Category::firstOrCreate([
+            'company_id' => $selectedCompany->id,
+            'name'       => 'Uncategorized',
+        ]);
+
+        $savedBatches = [];
+
+        foreach ($itemsData as $itemData) {
             $lastItemCode++;
 
-            $item = Item::create([
-                'company_id'     => $selectedCompany->id,
-                'item_code'      => $lastItemCode,
-                'name'           => $product['name'],
-                'quantity_count' => $product['quantity'],
-                'price'          => $product['price'],
-            ]);
+            // ✅ Create Item (Basic Info Only)
+            $item = Item::firstOrCreate(
+                [
+                    'company_id' => $selectedCompany->id,
+                    'name'       => $itemData['name'],
+                ],
+                [
+                    'item_code'     => $lastItemCode,
+                    'brand_id'      => null,
+                    'measurement'   => null,
+                    'featured_image' => null,
+                    'images'        => [],
+                    'availability_stock' => 0,
+                    'catalog'       => false,
+                    'online_visibility' => false,
+                ]
+            );
 
-            if ($taxId > 0) {
-                $item->taxes()->attach($taxId);
+            if (!$item->categories()->where('category_id', $uncategorizedCategory->id)->exists()) {
+                $item->categories()->attach($uncategorizedCategory->id);
             }
 
-            $item->categories()->attach($uncategorizedCategory->id);
-            $savedItems[] = $item;
+            if (!empty($data['tax_id']) && !$item->taxes()->where('tax_id', $data['tax_id'])->exists()) {
+                $item->taxes()->attach($data['tax_id']);
+            }
+
+            // ✅ Create Batch (Stock, Price, Vendor, etc.)
+            $price = (float) $itemData['price'];
+            $costWithTax = round($price + ($taxPercentage ? $price * $taxPercentage / 100 : 0), 2);
+
+            $batch = ItemBatch::create([
+                'company_id'          => $selectedCompany->id,
+                'vendor_id'           => $vendor->id,
+                'item_id'             => $item->id,
+                'invoice_number'      => $data['invoice_no'],
+                'quantity'            => $itemData['quantity'],
+                'stock'               => $itemData['quantity'],
+                'purchase_date'       => now(),
+                'date_of_manufacture' => now(),
+                'date_of_expiry'      => null,
+                'replacement'         => null,
+                'cost_price'          => $costWithTax,
+                'tax_type'            => 'exclude',
+                'regular_price'       => $price,
+                'sale_price'          => $price,
+                'product_type'        => 'regular',
+                'unit_of_measure'     => null,
+                'units_in_peace'      => $itemData['quantity'],
+                'price_per_unit'      => $price,
+            ]);
+
+            $savedBatches[] = $batch;
         }
 
         return response()->json([
-            'status' => true,
-            'message' => 'Products saved successfully.',
-            'items' => $savedItems,
+            'status'        => true,
+            'message'       => 'Invoice, items, batches, and payment history stored successfully.',
+            'invoice_id'    => $invoice->id,
+            'vendor'        => $vendor->vendor_name,
+            'batches_count' => count($savedBatches),
+            'batches'       => $savedBatches,
         ], 201);
     }
 }
