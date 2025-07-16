@@ -26,3 +26,4 @@ networks:
   amt_crm_shared_network:
     external: true
     name: amt_crm_shared_network 
+    
