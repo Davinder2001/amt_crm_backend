@@ -38,7 +38,12 @@ RUN apk add --no-cache \
         freetype-dev \
         libzip-dev \
         oniguruma-dev \
-        libxml2-dev
+        libxml2-dev \
+    && apk add --no-cache \
+        libpng \
+        jpeg \
+        freetype \
+        libzip
 
 # Install Composer
 COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
@@ -77,7 +82,12 @@ RUN apk add --no-cache \
         freetype-dev \
         libzip-dev \
         oniguruma-dev \
-        libxml2-dev
+        libxml2-dev \
+    && apk add --no-cache \
+        libpng \
+        jpeg \
+        freetype \
+        libzip
 
 # Create non-root user
 RUN addgroup -g 1000 www && \
