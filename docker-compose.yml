@@ -64,7 +64,6 @@ services:
       - "80:80"
     volumes:
       - ./nginx/nginx.combined.conf:/etc/nginx/nginx.conf:ro
-      - ./docker-entrypoint-nginx.sh:/docker-entrypoint-nginx.sh:ro
       - nginx_logs:/var/log/nginx
       - app_storage:/var/www/storage:ro
     networks:

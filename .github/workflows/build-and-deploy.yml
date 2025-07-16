@@ -150,7 +150,6 @@ jobs:
             package-lock.json \
             vite.config.js \
             docker-entrypoint.sh \
-            docker-entrypoint-nginx.sh \
             .env.example
           
           # Verify the package was created
@@ -160,12 +159,6 @@ jobs:
             
             # Verify critical files are in the package
             echo "🔍 Verifying critical files in deployment package..."
-            if tar -tzf deployment.tar.gz | grep -q "docker-entrypoint-nginx.sh"; then
-              echo "✅ docker-entrypoint-nginx.sh found in package"
-            else
-              echo "❌ docker-entrypoint-nginx.sh missing from package!"
-              exit 1
-            fi
             
             if tar -tzf deployment.tar.gz | grep -q "nginx/nginx.combined.conf"; then
               echo "✅ nginx/nginx.combined.conf found in package"
@@ -312,14 +305,7 @@ jobs:
               exit 1
             fi
             
-            if [ -f "docker-entrypoint-nginx.sh" ]; then
-              cp docker-entrypoint-nginx.sh /srv/amt_crm_nginx/
-              chmod +x /srv/amt_crm_nginx/docker-entrypoint-nginx.sh
-              echo "✅ docker-entrypoint-nginx.sh copied successfully"
-            else
-              echo "❌ docker-entrypoint-nginx.sh not found!"
-              exit 1
-            fi
+            echo "✅ nginx configuration setup completed"
             
             # Create shared external network
             echo "🌐 Creating shared external network..."
@@ -394,7 +380,6 @@ jobs:
                   - "80:80"
                 volumes:
                   - ./amt_crm_nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-                  - ./amt_crm_nginx/docker-entrypoint-nginx.sh:/docker-entrypoint-nginx.sh:ro
                   - nginx_logs:/var/log/nginx
                   - app_storage:/var/www/storage:ro
                 networks:
