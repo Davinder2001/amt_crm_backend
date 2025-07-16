@@ -144,17 +144,42 @@ jobs:
             composer.json \
             composer.lock \
             Dockerfile \
+            Dockerfile.nginx \
             docker-compose.yml \
             package.json \
             package-lock.json \
             vite.config.js \
             docker-entrypoint.sh \
+            docker-entrypoint-nginx.sh \
             .env.example
           
           # Verify the package was created
           if [ -f "deployment.tar.gz" ]; then
             echo "✅ Deployment package created successfully"
             ls -lh deployment.tar.gz
+            
+            # Verify critical files are in the package
+            echo "🔍 Verifying critical files in deployment package..."
+            if tar -tzf deployment.tar.gz | grep -q "docker-entrypoint-nginx.sh"; then
+              echo "✅ docker-entrypoint-nginx.sh found in package"
+            else
+              echo "❌ docker-entrypoint-nginx.sh missing from package!"
+              exit 1
+            fi
+            
+            if tar -tzf deployment.tar.gz | grep -q "nginx/nginx.combined.conf"; then
+              echo "✅ nginx/nginx.combined.conf found in package"
+            else
+              echo "❌ nginx/nginx.combined.conf missing from package!"
+              exit 1
+            fi
+            
+            if tar -tzf deployment.tar.gz | grep -q "Dockerfile.nginx"; then
+              echo "✅ Dockerfile.nginx found in package"
+            else
+              echo "❌ Dockerfile.nginx missing from package!"
+              exit 1
+            fi
           else
             echo "❌ Failed to create deployment package"
             exit 1
@@ -279,9 +304,22 @@ jobs:
 
             # Move nginx config to nginx directory
             echo "📁 Setting up nginx configuration..."
-            cp nginx/nginx.combined.conf /srv/amt_crm_nginx/nginx.conf
-            cp docker-entrypoint-nginx.sh /srv/amt_crm_nginx/
-            chmod +x /srv/amt_crm_nginx/docker-entrypoint-nginx.sh
+            if [ -f "nginx/nginx.combined.conf" ]; then
+              cp nginx/nginx.combined.conf /srv/amt_crm_nginx/nginx.conf
+              echo "✅ nginx.conf copied successfully"
+            else
+              echo "❌ nginx/nginx.combined.conf not found!"
+              exit 1
+            fi
+            
+            if [ -f "docker-entrypoint-nginx.sh" ]; then
+              cp docker-entrypoint-nginx.sh /srv/amt_crm_nginx/
+              chmod +x /srv/amt_crm_nginx/docker-entrypoint-nginx.sh
+              echo "✅ docker-entrypoint-nginx.sh copied successfully"
+            else
+              echo "❌ docker-entrypoint-nginx.sh not found!"
+              exit 1
+            fi
             
             # Create shared external network
             echo "🌐 Creating shared external network..."
