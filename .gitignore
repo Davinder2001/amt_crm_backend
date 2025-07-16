@@ -1,24 +1,85 @@
-/.phpunit.cache
-/node_modules
-/public/build
-/public/hot
-/public
-/public/storage
-/storage/*.key
-/storage/pail
-/vendor
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Environment files
 .env
 .env.backup
 .env.production
-.phpactor.json
+!.env.example
+!.env.docker
+
+# NPM configuration
+.npmrc
+
+# Node modules and build artifacts
+node_modules
+npm-debug.log
+yarn-error.log
+public/build
+public/hot
+
+# Laravel specific
+storage/*.key
+storage/pail
 .phpunit.result.cache
 Homestead.json
 Homestead.yaml
-npm-debug.log
-yarn-error.log
-/auth.json
-/.fleet
-/.idea
-/.nova
-/.vscode
-/.zed
+
+# IDE files
+.vscode
+.idea
+.nova
+.fleet
+.zed
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+storage/logs/*
+
+# Cache
+.phpactor.json
+.phpunit.cache
+
+# Documentation
+README.md
+CHANGELOG.md
+*.md
+
+# Tests
+tests
+phpunit.xml
+
+# Scripts
+env-to-github-secrets.sh
+
+# GitHub
+.github
+
+# Docker
+.dockerignore
+
+# Development files
+*.sqlite
+*.sqlite3
+
+# Public uploads (keep directories, ignore files)
+public/uploads/*
+!public/uploads/.gitkeep
+public/images/*
+!public/images/.gitkeep
+public/invoices/*
+!public/invoices/.gitkeep
+public/salary-slips/*
+!public/salary-slips/.gitkeep
+public/task_attachments/*
+!public/task_attachments/.gitkeep
+public/ocr_uploads/*
+!public/ocr_uploads/.gitkeep
+public/storage/*
+!public/storage/.gitkeep
