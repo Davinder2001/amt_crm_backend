@@ -56,4 +56,13 @@ phpunit.xml
 env-to-github-secrets.sh
 
 # GitHub
-.github 
+.github
+
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Development files
+*.sqlite
+*.sqlite3 

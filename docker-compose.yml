@@ -1,21 +1,28 @@
+version: '3.8'
+
 services:
   app:
     build:
       context: .
       dockerfile: Dockerfile
+      target: production
     container_name: amt_crm_app
+    restart: unless-stopped
     volumes:
-      - ./storage:/var/www/storage
-      - ./bootstrap/cache:/var/www/bootstrap/cache
-      - ./public:/var/www/public
+      - app_storage:/var/www/storage
+      - app_cache:/var/www/bootstrap/cache
     environment:
       - APP_ENV=production
       - APP_DEBUG=false
       - DB_HOST=db
+      - CACHE_DRIVER=file
+      - SESSION_DRIVER=file
+      - QUEUE_CONNECTION=sync
     env_file:
       - .env
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - amt_crm_shared_network
     healthcheck:
@@ -24,16 +31,23 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/tmp
 
   db:
     image: mysql:8.0
     container_name: amt_crm_db
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: password123
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
       MYSQL_DATABASE: ${DB_DATABASE}
       MYSQL_USER: ${DB_USERNAME}
       MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_INITDB_SKIP_TZINFO: 1
     volumes:
       - ./docker/mysql/init:/docker-entrypoint-initdb.d
       - db_data:/var/lib/mysql
@@ -43,6 +57,11 @@ services:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       timeout: 20s
       retries: 10
+      start_period: 30s
+    security_opt:
+      - no-new-privileges:true
+
+
 
   nginx:
     image: nginx:alpine
@@ -50,17 +69,32 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
+      - "443:443"
     volumes:
-      - ./nginx/nginx.combined.conf:/etc/nginx/nginx.conf
-      - ./docker-entrypoint-nginx.sh:/docker-entrypoint-nginx.sh
+      - ./nginx/nginx.combined.conf:/etc/nginx/nginx.conf:ro
+      - ./docker-entrypoint-nginx.sh:/docker-entrypoint-nginx.sh:ro
+      - nginx_logs:/var/log/nginx
+      - ssl_certs:/etc/letsencrypt
     networks:
       - amt_crm_shared_network
     depends_on:
-      - app
+      app:
+        condition: service_healthy
     command: ["/bin/sh", "-c", "mkdir -p /var/cache/nginx/client_temp && nginx -g 'daemon off;'"]
+    security_opt:
+      - no-new-privileges:true
 
 volumes:
   db_data:
+    driver: local
+  app_storage:
+    driver: local
+  app_cache:
+    driver: local
+  nginx_logs:
+    driver: local
+  ssl_certs:
+    driver: local
 
 networks:
   amt_crm_shared_network:
