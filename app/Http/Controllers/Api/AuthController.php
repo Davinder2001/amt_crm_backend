@@ -8,7 +8,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use App\Services\AdminRegistrationService;
 use App\Models\User;
-use App\Models\CompanyUser;
+use Jenssegers\Agent\Agent;
+use Stevebauman\Location\Facades\Location;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Resources\UserResource;
 use Illuminate\Http\JsonResponse;
@@ -191,43 +192,64 @@ class AuthController extends Controller
         }
 
         $data = $validator->validated();
-        $user = User::with(['companies', 'roles'])->where('number', $data['number'])->whereIn('user_type', ['employee', 'admin', 'super-admin'])->first();
+
+        $user = User::with(['companies', 'roles'])
+            ->where('number', $data['number'])
+            ->whereIn('user_type', ['employee', 'admin', 'super-admin'])
+            ->first();
 
         if (!$user || !Hash::check($data['password'], $user->password)) {
-            return response()->json([
-                'error' => 'Invalid credentials.'
-            ], 401);
+            return response()->json(['error' => 'Invalid credentials.'], 401);
         }
 
         if ($user->user_status === 'blocked') {
-            return response()->json([
-                'error' => 'Your account has been blocked. Please contact your administrator.'
-            ], 403);
+            return response()->json(['error' => 'Your account has been blocked. Please contact your administrator.'], 403);
         }
 
-        $userCompanies = CompanyUser::where('user_id', $user->id)->get();
-
-        if ($userCompanies->count() === 1) {
-            $singleCompany = $userCompanies->first();
-            $company = $singleCompany->company ?? $singleCompany->load('company')->company;
-
-            if ($company && $company->verification_status === 'verified') {
-                CompanyUser::where('user_id', $user->id)->update(['status' => 0]);
-                CompanyUser::where('user_id', $user->id)->where('company_id', $singleCompany->company_id)->update(['status' => 1]);
+        $activeCompanyId = null;
+        if ($user->companies->count() === 1) {
+            $singleCompany = $user->companies->first();
+            if ($singleCompany && $singleCompany->verification_status === 'verified') {
+                $activeCompanyId = $singleCompany->id;
             }
         }
 
-        $tokenResult    = $user->createToken('auth_token');
-        $token          = $tokenResult->plainTextToken;
-        $accessToken    = $tokenResult->accessToken;
+        $tokenResult = $user->createToken('auth_token');
+        $token = $tokenResult->plainTextToken;
+        $accessToken = $tokenResult->accessToken;
+
+        if ($activeCompanyId) {
+            $accessToken->active_company_id = $activeCompanyId;
+        }
+
+        $ip = $request->header('CF-Connecting-IP')
+            ?? $request->header('X-Forwarded-For')
+            ?? $request->ip();
+        $accessToken->ip_address = $ip;
+
+        $position = Location::get($ip);
+        $accessToken->location = ($position && $position->cityName)
+            ? "{$position->cityName}, {$position->regionName}, {$position->countryName}"
+            : 'Unknown';
+
+        $agent = new Agent();
+        $device = $agent->device();
+        $platform = $agent->platform();
+        $browser = $agent->browser();
+        $accessToken->device = trim("{$device} | {$platform} | {$browser}");
+
         $accessToken->expires_at = now()->addHours(24);
         $accessToken->save();
 
         return response()->json([
-            'message'      => 'Logged in successfully.',
-            'access_token' => $token,
-            'token_type'   => 'Bearer',
-            'user'         => new UserResource($user),
+            'message'           => 'Logged in successfully.',
+            'access_token'      => $token,
+            'token_type'        => 'Bearer',
+            'active_company_id' => $activeCompanyId,
+            'ip_address'        => $accessToken->ip_address,
+            'location'          => $accessToken->location,
+            'device'            => $accessToken->device,
+            'user'              => new UserResource($user),
         ]);
     }
 
@@ -238,7 +260,6 @@ class AuthController extends Controller
     public function logout(Request $request): JsonResponse
     {
         $user = $request->user();
-        CompanyUser::query()->where('user_id', $user->id)->update(['status' => 0]);
         $user->currentAccessToken()->delete();
 
         return response()->json([
@@ -273,6 +294,7 @@ class AuthController extends Controller
         ]);
     }
 
+
     /**
      * Verify the OTP and reset the password.
      */
@@ -304,6 +326,7 @@ class AuthController extends Controller
         ]);
     }
 
+
     /**
      * Change the password.
      */
@@ -327,6 +350,7 @@ class AuthController extends Controller
             'message' => 'Password reset successfully.'
         ]);
     }
+
 
     /**
      * Change the password for the logged-in user.
@@ -377,10 +401,13 @@ class AuthController extends Controller
 
         $tokens = $user->tokens()->get()->map(function ($token) {
             return [
-                'token_id'    => $token->id,
-                'token_name'  => $token->name,
-                'created_at'  => $token->created_at->toDateTimeString(),
-                'last_used_at' => $token->last_used_at ? $token->last_used_at->toDateTimeString() : null,
+                'token_id'      => $token->id,
+                'token_name'    => $token->name,
+                'ip_address'    => $token->ip_address ?? 'Unknown',
+                'location'      => $token->location ?? 'Unknown',
+                'created_at'    => $token->created_at->toDateTimeString(),
+                'last_used_at'  => $token->last_used_at ? $token->last_used_at->toDateTimeString() : null,
+                'expires_at'    => $token->expires_at ? $token->expires_at->toDateTimeString() : null,
             ];
         });
 
