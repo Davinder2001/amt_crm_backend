@@ -10,6 +10,9 @@
 !.env.example
 !.env.docker
 
+# NPM configuration
+.npmrc
+
 # Node modules and build artifacts
 node_modules
 npm-debug.log
@@ -59,8 +62,6 @@ env-to-github-secrets.sh
 .github
 
 # Docker
-Dockerfile*
-docker-compose*
 .dockerignore
 
 # Development files

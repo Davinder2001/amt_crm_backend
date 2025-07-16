@@ -6,7 +6,6 @@ WORKDIR /app
 
 # Copy package files first for better caching
 COPY package*.json ./
-COPY .npmrc ./
 
 # Install dependencies
 RUN npm ci --only=production --no-optional --legacy-peer-deps
@@ -123,16 +122,16 @@ RUN echo "memory_limit = 512M" > /usr/local/etc/php/conf.d/memory-limit.ini && \
     echo "opcache.revalidate_freq = 2" >> /usr/local/etc/php/conf.d/opcache.ini && \
     echo "opcache.fast_shutdown = 1" >> /usr/local/etc/php/conf.d/opcache.ini
 
-# Copy entrypoint script
-COPY docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-
 # Expose ports
 EXPOSE 80 443 9000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD ps aux | grep php-fpm | grep -v grep || exit 1
+
+# Copy entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Switch to non-root user
 USER www
