@@ -39,13 +39,26 @@ class EmployeeController extends Controller
      */
     public function index(Request $request)
     {
-        $userType   = $request->user_type;
-        $employees  = User::where('user_type', $userType)->with(['roles.permissions', 'companies', 'employeeDetail.shift'])->get();
+        $userType = $request->user_type;
+        $perPage  = $request->get('per_page', 10);
+
+        $employees = User::where('user_type', $userType)
+            ->with(['roles.permissions', 'companies', 'employeeDetail.shift'])
+            ->latest()
+            ->paginate($perPage);
 
         return response()->json([
+            'status'    => true,
             'message'   => 'Employees retrieved successfully.',
-            'employees' => EmployeeResource::collection($employees),
-            'total'     => $employees->count(),
+            'employees' => EmployeeResource::collection($employees->items()),
+            'pagination' => [
+                'current_page'   => $employees->currentPage(),
+                'per_page'       => $employees->perPage(),
+                'total'          => $employees->total(),
+                'last_page'      => $employees->lastPage(),
+                'next_page_url'  => $employees->nextPageUrl(),
+                'prev_page_url'  => $employees->previousPageUrl(),
+            ]
         ], 200);
     }
 
@@ -60,36 +73,41 @@ class EmployeeController extends Controller
             'name'                      => 'required|string|min:3|max:50',
             'email'                     => 'required|email|max:100',
             'password'                  => 'required|string|min:8|max:30',
-            'number'                    => 'required|string|size:10',
+            'number'                    => 'required|digits:10',
             'role'                      => 'required|exists:roles,name',
             'salary'                    => 'required|numeric|min:0',
             'dateOfHire'                => 'required|date',
             'joiningDate'               => 'required|date',
-            'shiftTimings'              => 'nullable|string|max:20',
-            'address'                   => 'required|string|min:5|max:100',
+            'shiftTimings'              => 'nullable|integer|exists:shifts,id',
+            'address'                   => 'required',
             'nationality'               => 'required|string|min:3|max:30',
             'dob'                       => 'required|date',
             'religion'                  => 'required|string|min:3|max:30',
             'maritalStatus'             => 'required|string|max:20',
             'idProofType'               => 'nullable|string',
             'idProofValue'              => 'nullable|string',
-            'emergencyContact'          => 'required|string|size:10',
+            'emergencyContact'          => 'required|digits:10',
             'emergencyContactRelation'  => 'required|string|min:3|max:30',
-            'currentSalary'             => 'required|numeric|min:0',
             'workLocation'              => 'required|string|min:3|max:100',
             'joiningType'               => 'required|in:full-time,part-time,contract',
             'department'                => 'required|string|min:2|max:50',
             'previousEmployer'          => 'required|string|min:3|max:50',
-            'medicalInfo'               => 'required|string|min:3|max:100',
+            'acc_hol_name'              => 'required|string|min:3|max:100',
             'bankName'                  => 'required|string|min:2|max:50',
-            'accountNo'                 => 'required|string|min:9|max:18',
+            'accountNo'                 => 'required|digits_between:9,18',
             'ifscCode'                  => 'required|string|size:11',
             'panNo'                     => 'required|string|size:10',
             'upiId'                     => 'required|string|min:8|max:50',
+<<<<<<< HEAD
             'addressProof'              => 'required|string|min:5|max:50',
             'id_proof_type'              => 'nullable|string|min:5|max:50',
             'profilePicture'            => 'required|string|max:255',
 
+=======
+            'addressProof'              => 'required|string',
+            'id_proof_type'             => 'nullable|string|min:5|max:50',
+            'profilePicture'            => 'nullable|file|image|mimes:jpeg,png,jpg,webp|max:2048',
+>>>>>>> main
         ]);
 
         if ($validator->fails()) {
@@ -120,7 +138,6 @@ class EmployeeController extends Controller
                 'message' => "You have reached your {$packageType} employee limit of {$allowedEmployeeCount}.",
             ], 403);
         }
-
 
         try {
             $employee = $userCreateService->createEmployee($validator->validated());
@@ -162,39 +179,42 @@ class EmployeeController extends Controller
     /**
      * Update the specified employee.
      */
+<<<<<<< HEAD
 
     public function update(Request $request, $id)
+=======
+    public function update(Request $request, $id, EmployeeCreateService $employeeService)
+>>>>>>> main
     {
-        $employee = User::where('user_type', 'employee')->findOrFail($id);
-
         try {
+            $employee = User::where('user_type', 'employee')->findOrFail($id);
+
             $validator = Validator::make($request->all(), [
                 'name'                      => 'sometimes|string|min:3|max:50',
                 'email'                     => 'sometimes|email|max:100',
                 'password'                  => 'sometimes|string|min:8|max:30',
-                'number'                    => 'sometimes|string|size:10',
+                'number'                    => 'sometimes|digits:10',
                 'role'                      => 'sometimes|exists:roles,name',
                 'salary'                    => 'sometimes|numeric|min:0',
                 'dateOfHire'                => 'sometimes|date',
                 'joiningDate'               => 'sometimes|date',
-                'shiftTimings'              => 'nullable|string|max:20',
-                'address'                   => 'sometimes|string|min:5|max:100',
+                'shiftTimings'              => 'nullable|integer|exists:shifts,id',
+                'address'                   => 'sometimes|string|min:3|max:200',
                 'nationality'               => 'sometimes|string|min:3|max:30',
                 'dob'                       => 'sometimes|date',
                 'religion'                  => 'sometimes|string|min:3|max:30',
                 'maritalStatus'             => 'sometimes|string|max:20',
                 'idProofType'               => 'nullable|string',
-                'idProofValue'              => 'nullable|string',
-                'emergencyContact'          => 'sometimes|string|size:10',
+                'idProofValue'              => 'nullable',
+                'emergencyContact'          => 'sometimes|digits:10',
                 'emergencyContactRelation'  => 'sometimes|string|min:3|max:30',
-                'currentSalary'             => 'sometimes|numeric|min:0',
                 'workLocation'              => 'sometimes|string|min:3|max:100',
                 'joiningType'               => 'sometimes|in:full-time,part-time,contract',
                 'department'                => 'sometimes|string|min:2|max:50',
                 'previousEmployer'          => 'sometimes|string|min:3|max:50',
-                'medicalInfo'               => 'sometimes|string|min:3|max:100',
+                'acc_hol_name'              => 'sometimes|string|min:3|max:100',
                 'bankName'                  => 'sometimes|string|min:2|max:50',
-                'accountNo'                 => 'sometimes|string|min:9|max:18',
+                'accountNo'                 => 'sometimes|digits_between:9,18',
                 'ifscCode'                  => 'sometimes|string|size:11',
                 'panNo'                     => 'sometimes|string|size:10',
                 'upiId'                     => 'sometimes|string|min:8|max:50',
@@ -211,38 +231,12 @@ class EmployeeController extends Controller
 
             $data = $validator->validated();
 
-            if (!empty($data['password'])) {
-                $data['password'] = Hash::make($data['password']);
-            }
-
-            if (!isset($data['role'])) {
-                return response()->json([
-                    'message' => 'Role is required when updating an employee.',
-                ], 400);
-            }
-
-            $employee->update(Arr::except($data, ['role', 'salary', 'dateOfHire', 'joiningDate', 'shiftTimings']));
-
-            $employee->syncRoles($data['role']);
-            $metaFields = [
-                'salary'       => $data['salary']       ?? null,
-                'dateOfHire'   => $data['dateOfHire']   ?? null,
-                'joiningDate'  => $data['joiningDate']  ?? null,
-                'shiftTimings' => $data['shiftTimings'] ?? null,
-            ];
-
-            foreach ($metaFields as $metaKey => $metaValue) {
-                if (!is_null($metaValue)) {
-                    UserMeta::updateOrCreate(
-                        ['user_id'      => $employee->id, 'meta_key' => $metaKey],
-                        ['meta_value'   => $metaValue]
-                    );
-                }
-            }
+            // ✅ Delegate update logic to the service
+            $updatedEmployee = $employeeService->updateEmployee($employee, $data);
 
             return response()->json([
                 'message'  => 'Employee updated successfully.',
-                'employee' => new EmployeeResource($employee->load('roles')),
+                'employee' => $updatedEmployee->load('roles', 'employeeDetail'),
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
@@ -261,7 +255,9 @@ class EmployeeController extends Controller
         $employee = User::where('user_type', 'employee')->findOrFail($id);
         $employee->delete();
 
-        return response()->json(['message' => 'Employee deleted successfully.']);
+        return response()->json([
+            'message' => 'Employee deleted successfully.'
+        ], 200);
     }
 
     /**
@@ -288,6 +284,6 @@ class EmployeeController extends Controller
         return response()->json([
             'message' => 'Employee status updated successfully.',
             'employee' => $employee,
-        ]);
+        ], 200);
     }
 }

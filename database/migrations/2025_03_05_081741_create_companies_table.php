@@ -36,6 +36,7 @@ return new class extends Migration
             $table->string('business_address')->nullable();
             $table->string('pin_code', 20)->nullable();
             $table->string('business_proof_type')->nullable();
+            $table->text('terms_and_conditions')->nullable();
             $table->string('business_id')->nullable();
             $table->string('business_proof_front')->nullable();
             $table->string('business_proof_back')->nullable();

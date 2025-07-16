@@ -70,27 +70,39 @@ class StoreVendorController extends Controller
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
 
-        $vendor = StoreVendor::with(['items' => function ($query) use ($selectedCompany) {
-            $query->where('company_id', $selectedCompany->company_id);
+        // ✅ Fetch vendor with batches (NOT items)
+        $vendor = StoreVendor::with(['batches.item' => function ($query) use ($selectedCompany) {
+            $query->where('company_id', $selectedCompany->id);
         }])->find($id);
 
         if (!$vendor) {
             return response()->json(['message' => 'Vendor not found.'], 404);
         }
 
-        if ($vendor->company_id !== $selectedCompany->company_id) {
+        if ($vendor->company_id !== $selectedCompany->id) {
             return response()->json(['message' => 'Unauthorized.'], 403);
         }
 
-        // Step 1: Group items by purchase_date
-        $groupedByDate = $vendor->items->groupBy(function ($item) {
-            return optional($item->purchase_date)->format('Y-m-d') ?? 'Unknown Date';
+        $groupedByDate = $vendor->batches->groupBy(function ($batch) {
+            return ($batch->purchase_date);
         });
 
-        // Step 2: Within each date group, group by invoice_no
-        $nestedGrouped = $groupedByDate->map(function ($itemsByDate) {
-            return $itemsByDate->groupBy(function ($item) {
-                return $item->invoice_no ?? 'No Invoice';
+        $nestedGrouped = $groupedByDate->map(function ($batchesByDate) {
+            return $batchesByDate->groupBy(function ($batch) {
+                return $batch->invoice_number ?? 'No Invoice';
+            })->map(function ($batchesByInvoice) {
+                return $batchesByInvoice->map(function ($batch) {
+                    return [
+                        'batch_id'        => $batch->id,
+                        'item_name'       => $batch->item->name ?? null,
+                        'quantity'        => $batch->quantity,
+                        'stock'           => $batch->stock,
+                        'regular_price'   => $batch->regular_price,
+                        'sale_price'      => $batch->sale_price,
+                        'cost_price'      => $batch->cost_price,
+                        'purchase_date'   => optional($batch->purchase_date)->format('Y-m-d'),
+                    ];
+                });
             });
         });
 
@@ -108,9 +120,9 @@ class StoreVendorController extends Controller
 
 
 
-    /* /
+    /* 
      * Update the specified resource in storage.
-      */
+    */
     public function update(Request $request, $id): JsonResponse
     {
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
@@ -213,9 +225,9 @@ class StoreVendorController extends Controller
 
         foreach ($vendor->invoices as $invoice) {
             $items = Item::where('vendor_id', $vendor->id)
-                    ->where('vendor_invoice_id', $invoice->id)
-                    ->where('company_id', $selectedCompany->company_id)
-                    ->get();
+                ->where('vendor_invoice_id', $invoice->id)
+                ->where('company_id', $selectedCompany->company_id)
+                ->get();
 
             $totalInvoiceAmount = $items->sum('cost_price');
             $totalPaid          = $invoice->paymentHistories->sum('amount_paid');

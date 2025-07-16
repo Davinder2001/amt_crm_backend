@@ -12,10 +12,13 @@ class Company extends Model
 {
     use HasFactory;
 
+    protected $table = 'companies'; 
+
     protected $fillable = [
         'company_name',
         'company_id',
         'company_logo',
+        'company_signature',
         'admin_id',
         'company_slug',
         'package_id',
@@ -34,6 +37,7 @@ class Company extends Model
         'business_proof_back',
         'subscription_date',
         'subscription_status',
+        'terms_and_conditions',
     ];
 
     /**

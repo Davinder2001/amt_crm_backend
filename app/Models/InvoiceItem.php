@@ -9,6 +9,7 @@ class InvoiceItem extends Model
 {
     protected $fillable = [
         'invoice_id',
+        'company_id',
         'description',
         'quantity',
         'sale_by',
@@ -17,7 +18,6 @@ class InvoiceItem extends Model
         'tax_amount',
         'total',
     ];
-
 
     /**
      * The attributes that should be cast to native types.

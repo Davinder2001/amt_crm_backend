@@ -41,9 +41,24 @@ use App\Http\Controllers\Api\{
     BulkActionsController,
     MeasuringUnitController,
     ItemStockController,
-    ExpenseController
+    ExpenseController,
+    DashboardController,
+    PackageDetailController,
+    InvoicePaymentHistoryController
 };
 
+use App\Http\Controllers\Api\Reports\SalesController;
+use App\Http\Controllers\Api\Reports\RevenueController;
+
+// Health check route
+Route::get('/health', function () {
+    return response()->json([
+        'status' => 'healthy',
+        'timestamp' => now()->toISOString(),
+        'version' => '1.0.0',
+        'environment' => config('app.env')
+    ]);
+});
 
 
 // Version 1 API's
@@ -85,6 +100,13 @@ Route::prefix('v1')->group(function () {
             Route::post('/pay', [AdminAndCompanyRegisterController::class, 'addNewCompanyPay']);
             Route::post('/{id}', [AdminAndCompanyRegisterController::class, 'createCompany']);
         });
+
+        // Auth API's
+        Route::post('logout', [AuthController::class, 'logout']);
+        Route::get('/auth/sessions', [AuthController::class, 'getLoginSessions']);
+        Route::post('password/change', [AuthController::class, 'changePassword']);
+        Route::post('password/reset', [AuthController::class, 'resetPassword']);
+        Route::apiResource('permissions', PermissionController::class);
 
 
 
@@ -366,11 +388,11 @@ Route::prefix('v1')->group(function () {
 
             // All payment history API's
             Route::prefix('/payments-history')->group(function () {
-                Route::get('/online', [InvoicesController::class, 'onlinePaymentHistory']);
-                Route::get('/cash', [InvoicesController::class, 'cashPaymentHistory']);
-                Route::get('/card', [InvoicesController::class, 'cardPaymentHistory']);
-                Route::get('/credit', [InvoicesController::class, 'creditPaymentHistory']);
-                Route::get('/self-consumption', [InvoicesController::class, 'selfConsumptionHistory']);
+                Route::get('/online', [InvoicePaymentHistoryController::class, 'onlinePaymentHistory']);
+                Route::get('/cash', [InvoicePaymentHistoryController::class, 'cashPaymentHistory']);
+                Route::get('/card', [InvoicePaymentHistoryController::class, 'cardPaymentHistory']);
+                Route::get('/credit', [InvoicePaymentHistoryController::class, 'creditPaymentHistory']);
+                Route::get('/self-consumption', [InvoicePaymentHistoryController::class, 'selfConsumptionHistory']);
             });
 
 
@@ -380,6 +402,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/{id}/download', [InvoicesController::class, 'download']);
             Route::post('/', [InvoicesController::class, 'store']);
             Route::post('/print', [InvoicesController::class, 'storeAndPrint']);
+            Route::post('/save-share', [InvoicesController::class, 'storeAndShare']);
             Route::post('/mail', [InvoicesController::class, 'storeAndMail']);
             Route::post('/{id}/store-whatsapp', [InvoicesController::class, 'sendToWhatsapp']);
             Route::post('/{id}/whatsapp', [InvoicesController::class, 'sendToWhatsapp']);
@@ -485,6 +508,7 @@ Route::prefix('v1')->group(function () {
         });
 
         Route::get('company-details', [CompanyController::class, 'companyDetails']);
+        Route::post('company-details/{id}', [CompanyController::class, 'updateCompanyDetails']);
         Route::get('company-status/{id}', [AddNewCompanyController::class, 'getCompanyStatus']);
 
 

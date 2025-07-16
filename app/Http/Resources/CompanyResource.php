@@ -33,8 +33,19 @@ class CompanyResource extends JsonResource
             'business_proof_back' => $this->business_proof_back
                 ? $baseImageUrl . '/' . ltrim($this->business_proof_back, '/')
                 : null,
+
+            // ✅ Added fields
+            'company_logo' => $this->company_logo
+                ? $baseImageUrl . '/' . ltrim($this->company_logo, '/')
+                : null,
+
+            'company_signature' => $this->company_signature
+                ? $baseImageUrl . '/' . ltrim($this->company_signature, '/')
+                : null,
+
             'payment_status' => $this->payment_status,
             'verification_status' => $this->verification_status,
+            'terms_and_conditions' => $this->terms_and_conditions,
         ];
     }
 }

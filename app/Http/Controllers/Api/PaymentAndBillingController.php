@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Services\PhonePePaymentService;
 use Carbon\Carbon;
 use App\Models\User;
+use Illuminate\Support\Facades\Mail;
 use App\Notifications\SystemNotification;
 use App\Services\SelectedCompanyService;
 use Illuminate\Support\Facades\Validator;
@@ -190,6 +191,24 @@ class PaymentAndBillingController extends Controller
             'verification_status'    => 'verified',
         ]);
 
+        // ✅ Send Package Upgrade Email with Invoice
+        $user = auth()->user(); // Assuming admin is logged in
+
+        Mail::send('emails.package_upgrade_invoice', [
+            'user'           => $user,
+            'company'        => $company,
+            'orderId'        => $order_id,
+            'transactionId'  => $paymentStatusData['transaction_id'] ?? 'N/A',
+            'paymentStatus'  => $paymentStatusData['status'] ?? 'UNKNOWN',
+            'amount'         => $paymentStatusData['amount'] ?? '0.00',
+            'paymentMode'    => $paymentStatusData['mode'] ?? 'N/A',
+            'packageId'      => $validated['package_id'],
+            'packageType'    => $validated['package_type'],
+        ], function ($message) use ($user) {
+            $message->to($user->email)
+                ->subject('Package Upgrade Successful - Invoice Included');
+        });
+
         return response()->json([
             'success' => true,
             'message' => 'Package upgrade confirmed and updated successfully.',
@@ -204,6 +223,7 @@ class PaymentAndBillingController extends Controller
             ],
         ]);
     }
+
 
 
 

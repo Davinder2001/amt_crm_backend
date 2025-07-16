@@ -15,8 +15,19 @@ use Illuminate\Http\JsonResponse;
 
 class ItemsController extends Controller
 {
+<<<<<<< HEAD
     public function index(): JsonResponse
+=======
+    /**
+     * Display a listing of the resource.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function index(Request $request): JsonResponse
+>>>>>>> main
     {
+        $perPage = $request->get('per_page', 10);
+
         $items = Item::with([
             'taxes',
             'categories',
@@ -25,9 +36,20 @@ class ItemsController extends Controller
             'measurementDetails',
             'brand',
             'vendor'
-        ])->get();
+        ])->paginate($perPage);
 
-        return response()->json(ItemResource::collection($items));
+        return response()->json([
+            'status' => true,
+            'items' => ItemResource::collection($items->items()), 
+            'pagination' => [
+                'current_page' => $items->currentPage(),
+                'per_page' => $items->perPage(),
+                'total' => $items->total(),
+                'last_page' => $items->lastPage(),
+                'next_page_url' => $items->nextPageUrl(),
+                'prev_page_url' => $items->previousPageUrl(),
+            ]
+        ]);
     }
 
     public function store(Request $request): JsonResponse

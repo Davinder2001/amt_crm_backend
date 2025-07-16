@@ -38,7 +38,6 @@ class EmployeeSeeder extends Seeder
             ]);
 
             for ($i = 1; $i <= 2; $i++) {
-                // Generate exactly 10-digit mobile number starting with 8
                 $employeeNumber = '8' . str_pad((string)$employeeCounter, 9, '0', STR_PAD_LEFT);
 
                 $employee = User::create([
@@ -59,27 +58,31 @@ class EmployeeSeeder extends Seeder
 
                 $employee->assignRole($role);
 
+                $salary = 25000 + ($employeeCounter * 1000);
+
                 EmployeeDetail::create([
                     'user_id'                  => $employee->id,
-                    'salary'                   => 25000 + ($employeeCounter * 1000),
+                    'salary'                   => $salary,
                     'dateOfHire'               => now()->subDays(30),
                     'joiningDate'              => now()->subDays(20),
                     'shift_id'                 => null,
-                    'address'                  => "Employee $employeeCounter Street",
+                    'address'                  => "Employee $employeeCounter Street, City, State, Country",
                     'nationality'              => 'Indian',
                     'dob'                      => '1995-01-01',
                     'religion'                 => 'Hindu',
                     'maritalStatus'            => 'Single',
-                    'emergencyContact'         => "99999999$employeeCounter",
-                    'emergencyContactRelation' => 'Father',
-                    'currentSalary'            => 26000 + ($employeeCounter * 500),
+                    'idProofType'              => 'Aadhar',
+                    'id_proof_type'            => 'Aadhar',
+                    'idProofValue'             => '1234-5678-9012',
+                    'emergencyContact'         => 9999999900 + $employeeCounter,
+                    'emergencyContactRelation' => 'uknown', 
                     'workLocation'             => 'Head Office',
                     'joiningType'              => 'full-time',
                     'department'               => 'IT',
                     'previousEmployer'         => 'ABC Corp',
-                    'medicalInfo'              => 'None',
+                    'acc_hol_name'             => 'Employee Holder ' . $employeeCounter,
                     'bankName'                 => 'SBI',
-                    'accountNo'                => '1234567890' . $employeeCounter,
+                    'accountNo'                => 1234567890 + $employeeCounter,
                     'ifscCode'                 => 'SBIN0000123',
                     'panNo'                    => 'ABCDE1234F',
                     'upiId'                    => 'employee' . $employeeCounter . '@upi',

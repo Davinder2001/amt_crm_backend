@@ -7,8 +7,11 @@ use App\Models\Invoice;
 use App\Models\Item;
 use Illuminate\Support\Facades\Log;
 use App\Services\InvoiceServices\InvoiceHelperService;
+<<<<<<< HEAD
 use App\Models\Package;
 use App\Models\CompanyAccount;
+=======
+>>>>>>> main
 use App\Models\ItemBatch;
 use App\Models\ItemVariant;
 use App\Models\InvoiceItem;
@@ -17,7 +20,7 @@ use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Mail;
+use App\Http\Resources\InvoiceResource;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Services\SelectedCompanyService;
@@ -27,15 +30,27 @@ class InvoicesController extends Controller
     /**
      * Show a list of all attributes with their values.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $invoices   = Invoice::with(['items', 'credit'])->latest()->get();
+        $perPage = $request->get('per_page', 10);
+
+        $invoices = Invoice::with(['items', 'credit'])->latest()->paginate($perPage);
 
         return response()->json([
             'status'   => true,
-            'invoices' => $invoices,
+            'invoices' => InvoiceResource::collection($invoices->items()),
+            'pagination' => [
+                'current_page'  => $invoices->currentPage(),
+                'per_page'      => $invoices->perPage(),
+                'total'         => $invoices->total(),
+                'last_page'     => $invoices->lastPage(),
+                'next_page_url' => $invoices->nextPageUrl(),
+                'prev_page_url' => $invoices->previousPageUrl(),
+            ]
         ]);
     }
+
+
 
     /**
      * Store a newly created invoice in storage.
@@ -50,12 +65,247 @@ class InvoicesController extends Controller
             'invoice' => $invoice,
         ], 201);
     }
+<<<<<<< HEAD
+=======
+
+
+    /**
+     * Create an invoice and generate a PDF.
+     *
+     */
+    private function createInvoiceAndPdf(Request $request): array
+    {
+        $validator = Validator::make($request->all(), [
+            'client_name'           => 'required|string',
+            'number'                => 'required|string',
+            'email'                 => 'nullable|email',
+            'invoice_date'          => 'required|date',
+            'payment_method'        => 'required|string',
+            'creditPaymentType'     => 'nullable|in:partial,full',
+            'partialAmount'         => 'nullable|numeric|min:0',
+            'credit_note'           => 'nullable|string',
+            'bank_account_id'       => 'nullable|integer|exists:company_accounts,id',
+            'item_type'             => 'nullable|string',
+            'discount_price'        => 'nullable|numeric|min:0',
+            'discount_percentage'   => 'nullable|numeric|min:0',
+            'discount_type'         => 'nullable|in:percentage,amount',
+
+            'delivery_charge'       => 'nullable|numeric|min:0',
+            'delivery_boy'          => 'nullable|exists:users,id',
+
+            'serviceChargeType'     => 'nullable|in:amount,percentage',
+            'serviceChargeAmount'   => 'nullable|numeric|min:0',
+            'serviceChargePercent'  => 'nullable|numeric|min:0',
+            'address'               => 'nullable|string',
+            'pincode'               => 'nullable|string|max:10',
+
+            'items'                 => 'required|array|min:1',
+            'items.*.item_id'       => 'required|exists:store_items,id',
+            'items.*.sale_by'       => 'required|in:piece,unit',
+            'items.*.variant_id'    => 'nullable|exists:item_variants,id',
+            'items.*.quantity'      => 'required|numeric|min:0.01',
+            'items.*.batch_id'      => 'required|integer|min:1',
+        ]);
+
+        if ($validator->fails()) {
+            abort(response()->json([
+                'status'  => false,
+                'message' => 'Validation failed.',
+                'errors'  => $validator->errors(),
+            ], 422));
+        }
+
+        $data            = $validator->validated();
+        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+        $issuedById      = Auth::id();
+        $issuedByName    = Auth::user()->name;
+
+
+        $unitPriceFor = static function (int $itemId, int $batchId, ?int $variantId = null, string $saleBy = 'piece'): float {
+            $batch = ItemBatch::where('id', $batchId)->where('item_id', $itemId)->firstOrFail();
+            if ($variantId) {
+                $variant = ItemVariant::where('id', $variantId)->where('batch_id', $batch->id)->first();
+                if ($variant) {
+                    return $saleBy === 'unit' ? $variant->variant_price_per_unit : $variant->variant_sale_price;
+                }
+            }
+            return $saleBy === 'unit'
+                ? ($batch->price_per_unit ?? $batch->regular_price ?? 0.0)
+                : ($batch->sale_price ?? $batch->regular_price ?? 0.0);
+        };
+
+        $invoice = DB::transaction(function () use ($data, $selectedCompany, $issuedById, $issuedByName, $unitPriceFor) {
+            $total = collect($data['items'])->sum(function ($row) use ($unitPriceFor) {
+                $price = $unitPriceFor($row['item_id'], $row['batch_id'], $row['variant_id'] ?? null, $row['sale_by']);
+                $taxRate = DB::table('item_tax')
+                    ->join('taxes', 'item_tax.tax_id', '=', 'taxes.id')
+                    ->where('item_tax.store_item_id', $row['item_id'])
+                    ->value('taxes.rate') ?? 0;
+                return ($price + ($price * $taxRate / 100)) * $row['quantity'];
+            });
+
+            $serviceChargeAmount = $serviceChargePercent = $serviceChargeGstAmount = $finalServiceCharge = 0;
+            if (!empty($data['serviceChargeType'])) {
+                if ($data['serviceChargeType'] === 'amount' && !empty($data['serviceChargeAmount'])) {
+                    $serviceChargeAmount  = $data['serviceChargeAmount'];
+                    $serviceChargePercent = $total > 0 ? round(($serviceChargeAmount / $total) * 100, 2) : 0;
+                } elseif ($data['serviceChargeType'] === 'percentage' && !empty($data['serviceChargePercent'])) {
+                    $serviceChargePercent = $data['serviceChargePercent'];
+                    $serviceChargeAmount  = round(($serviceChargePercent / 100) * $total, 2);
+                }
+                $serviceChargeGstAmount = round($serviceChargeAmount * 0.18, 2);
+                $finalServiceCharge = $serviceChargeAmount + $serviceChargeGstAmount;
+            }
+
+            $subtotal       = $total + $finalServiceCharge;
+            $discountAmount = $discountPercentage = 0;
+            $finalAmount    = round($subtotal);
+
+            if ($data['discount_type'] === 'amount' && $data['discount_price'] > 0) {
+                $discountAmount = $data['discount_price'];
+                $discountPercentage = $subtotal > 0 ? round(($discountAmount / $subtotal) * 100, 2) : 0;
+                $finalAmount = round(max(0, $subtotal - $discountAmount));
+            } elseif ($data['discount_type'] === 'percentage' && $data['discount_percentage'] > 0) {
+                $discountPercentage = $data['discount_percentage'];
+                $discountAmount = round(($discountPercentage / 100) * $subtotal, 2);
+                $finalAmount = round(max(0, $subtotal - $discountAmount));
+            }
+
+            if (isset($data['delivery_charge']) && is_numeric($data['delivery_charge'])) {
+                $finalAmount += $data['delivery_charge'];
+            }
+
+            $customer = InvoiceHelperService::createCustomer($data, $selectedCompany->company_id);
+            $today = now()->toDateString();
+            $shortDate = now()->format('ymd');
+            $companyCode = 'C' . $selectedCompany->company->id;
+            $lastInv = Invoice::where('company_id', $selectedCompany->company->id)->whereDate('invoice_date', $today)->orderBy('invoice_number', 'desc')->first();
+            $nextSeq = $lastInv ? ((int) substr($lastInv->invoice_number, -3)) + 1 : 1;
+            $invoiceNo = $companyCode . $shortDate . str_pad($nextSeq, 3, '0', STR_PAD_LEFT);
+
+            $inv = Invoice::create([
+                'invoice_number'          => $invoiceNo,
+                'client_name'             => $data['client_name'] ?? 'Guest',
+                'client_phone'            => $data['number'],
+                'client_email'            => $data['email'] ?? null,
+                'invoice_date'            => $data['invoice_date'],
+                'total_amount'            => $subtotal,
+                'sub_total'               => $total,
+                'service_charge_amount'   => $serviceChargeAmount,
+                'service_charge_percent'  => 18,
+                'service_charge_gst'      => $serviceChargeGstAmount,
+                'service_charge_final'    => $finalServiceCharge,
+                'discount_amount'         => $discountAmount,
+                'discount_percentage'     => $discountPercentage,
+                'delivery_charge'         => $data['delivery_charge'] ?? 0,
+                'delivery_address'        => $data['address'] ?? null,
+                'delivery_pincode'        => $data['pincode'] ?? null,
+                'final_amount'            => $finalAmount,
+                'payment_method'          => $data['payment_method'],
+                'bank_account_id'         => $data['bank_account_id'] ?? null,
+                'credit_note'             => $data['credit_note'] ?? null,
+                'delivery_boy'            => $data['delivery_boy'] ?? null,
+                'issued_by'               => $issuedById,
+                'issued_by_name'          => $issuedByName,
+                'company_id'              => $selectedCompany->company_id,
+            ]);
+
+            $historyItems = [];
+
+            foreach ($data['items'] as $row) {
+                $item = Item::findOrFail($row['item_id']);
+                $unitPrice = $unitPriceFor($item->id, $row['batch_id'], $row['variant_id'] ?? null, $row['sale_by']);
+                $taxPercentage = DB::table('item_tax')->join('taxes', 'item_tax.tax_id', '=', 'taxes.id')->where('item_tax.store_item_id', $item->id)->value('taxes.rate') ?? 0;
+                $taxAmount = $unitPrice * $taxPercentage / 100;
+                $lineTotal = $unitPrice * $row['quantity'];
+                $totalAmount = $lineTotal + $taxAmount;
+
+                InvoiceItem::create([
+                    'invoice_id'     => $inv->id,
+                    'company_id'     => $selectedCompany->company->id,
+                    'item_id'        => $item->id,
+                    'variant_id'     => $row['variant_id'] ?? null,
+                    'description'    => $item->name,
+                    'quantity'       => $row['quantity'],
+                    'sale_by'        => $row['sale_by'],
+                    'unit_price'     => $unitPrice,
+                    'tax_percentage' => $taxPercentage,
+                    'tax_amount'     => $taxAmount,
+                    'total'          => $totalAmount,
+                ]);
+
+
+                $qty = (float) $row['quantity'];
+                $batch = ItemBatch::find($row['batch_id']);
+                if ($batch) {
+                    $batch->stock = max(0, $batch->stock - $qty);
+                    $batch->save();
+                }
+
+                if (!empty($row['variant_id'])) {
+                    $variant = ItemVariant::find($row['variant_id']);
+                    if ($variant) {
+                        $variant->stock = max(0, $variant->stock - $qty);
+                        $variant->save();
+                    }
+                }
+
+                $historyItems[] = [
+                    'description' => $item->name,
+                    'quantity'    => $row['quantity'],
+                    'unit_price'  => $unitPrice,
+                    'total'       => $lineTotal,
+                ];
+            }
+
+            InvoiceHelperService::createCustomerHistory($customer, $historyItems, $inv->id, $data['invoice_date'], $inv->invoice_number, $total);
+
+            if ($data['payment_method'] === 'credit') {
+                InvoiceHelperService::createCreditHistory($customer, $data, $finalAmount, $inv->id, $selectedCompany->company_id);
+            }
+
+            if (!empty($data['delivery_boy'])) {
+                InvoiceHelperService::createDeliveryTask($inv, $data['delivery_boy']);
+            }
+
+
+            return $inv;
+        });
+
+        $invoice->load(['items.variant', 'credit']);
+
+        if (!empty($data['email'])) {
+            InvoiceHelperService::sendInvoiceEmail($data['email'], $invoice, $selectedCompany->company);
+        }
+
+        return [$invoice];
+    }
+
+
+>>>>>>> main
     /**
      * Store a newly created invoice and return the PDF content.
      */
     public function storeAndPrint(Request $request)
     {
-        [$invoice, $pdfContent] = $this->createInvoiceAndPdf($request);
+        [$invoice] = $this->createInvoiceAndPdf($request);
+        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
+        $company = $selectedCompany->company;
+
+        $companyLogo = (!empty($company->company_logo) && !is_dir(public_path($company->company_logo)))
+            ? public_path($company->company_logo)
+            : null;
+
+        $pdfContent = Pdf::loadView('invoices.pdf', [
+            'invoice'          => $invoice,
+            'company_name'     => $company->company_name,
+            'company_logo'     => $companyLogo,
+            'company_address'  => $company->address ?? 'N/A',
+            'company_phone'    => $company->phone ?? 'N/A',
+            'company_gstin'    => $company->gstin ?? 'N/A',
+            'footer_note'      => 'Thank you for your business',
+            'show_signature'   => false,
+        ])->output();
 
         return response($pdfContent, 200)
             ->header('Content-Type', 'application/pdf')
@@ -63,56 +313,6 @@ class InvoicesController extends Controller
                 'Content-Disposition',
                 'inline; filename="invoice_' . $invoice->invoice_number . '.pdf"'
             );
-    }
-
-    /**
-     * Store a newly created invoice and send it via email.
-     */
-    public function storeAndMail(Request $request)
-    {
-        [$invoice, $pdfContent] = $this->createInvoiceAndPdf($request);
-
-        $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $companyName     = $selectedCompany->company->company_name;
-        $logoFile        = $selectedCompany->company->company_logo;
-
-        if (!empty($logoFile) && !is_dir(public_path($logoFile))) {
-            $companyLogo = public_path($logoFile);
-        } else {
-            $companyLogo = null;
-        }
-
-        if ($invoice->client_email) {
-            Mail::send(
-                'invoices.pdf',
-                [
-                    'invoice'          => $invoice,
-                    'company_name'     => $companyName,
-                    'company_logo'     => $companyLogo,
-                    'company_address'  => $selectedCompany->company->address ?? 'N/A',
-                    'company_phone'    => $selectedCompany->company->phone ?? 'N/A',
-                    'company_gstin'    => $selectedCompany->company->gstin ?? 'N/A',
-                    'footer_note'      => 'Thank you for your business',
-                    'show_signature'   => true,
-                ],
-
-                function ($message) use ($invoice, $pdfContent) {
-                    $message->to($invoice->client_email)
-                        ->subject('Your Invoice #' . $invoice->invoice_number)
-                        ->attachData(
-                            $pdfContent,
-                            'invoice_' . $invoice->invoice_number . '.pdf',
-                            ['mime' => 'application/pdf']
-                        );
-                }
-            );
-        }
-
-        return response()->json([
-            'status'  => true,
-            'message' => 'Invoice created and emailed successfully.',
-            'invoice' => $invoice,
-        ], 201);
     }
 
     /**
@@ -135,6 +335,7 @@ class InvoicesController extends Controller
         $customerCredits = CustomerCredit::where('invoice_id', $invoiceID)->get();
 
         $pdf = Pdf::loadView('invoices.pdf', [
+<<<<<<< HEAD
             'invoice'          => $invoice,
             'company_name'     => $companyName,
             'customer_credits' => $customerCredits,
@@ -144,6 +345,19 @@ class InvoicesController extends Controller
             'company_gstin'    => $selectedCompany->company->gstin ?? 'N/A',
             'footer_note'      => 'Thank you for your business',
             'show_signature'   => true,
+=======
+            'invoice'           => $invoice,
+            'company_name'      => $companyName,
+            'customer_credits'  => $customerCredits,
+            'signature'         => $company->company_signature,
+            'company_logo'      => $companyLogo,
+            'company_address'   => $company->address ?? 'N/A',
+            'company_phone'     => $company->phone ?? 'N/A',
+            'company_gstin'     => $company->gstin ?? 'N/A',
+            'footer_note'       => 'Thank you for your business',
+            'show_signature'    => false,
+            'delivery_boy_name' => $deliveryBoyName,
+>>>>>>> main
         ]);
 
         return $pdf->download('invoice_' . $invoice->invoice_number . '.pdf');
@@ -514,34 +728,35 @@ class InvoicesController extends Controller
     }
 
 
+
     /**
-     * Display the online payment history.
+     * Store a newly created invoice and return Base64 encoded PDF.
      */
-    public function onlinePaymentHistory()
+    public function storeAndShare(Request $request)
     {
+        [$invoice] = $this->createInvoiceAndPdf($request);
         $selectedCompany = SelectedCompanyService::getSelectedCompanyOrFail();
-        $invoices = Invoice::where('company_id', $selectedCompany->company_id)->where('payment_method', 'online')->get();
+        $company = $selectedCompany->company;
 
-        $grouped = $invoices->groupBy('bank_account_id')->map(function ($invoiceGroup, $bankAccountId) {
-            $bankAccount = CompanyAccount::find($bankAccountId);
+        $companyLogo = (!empty($company->company_logo) && !is_dir(public_path($company->company_logo)))
+            ? public_path($company->company_logo)
+            : null;
 
-            return [
-                'bank_account_id'   => $bankAccountId,
-                'bank_name'         => $bankAccount->bank_name ?? 'N/A',
-                'account_number'    => $bankAccount->account_number ?? 'N/A',
-                'ifsc_code'         => $bankAccount->ifsc_code ?? 'N/A',
-                'total_transferred' => $invoiceGroup->sum('final_amount'),
-                'transactions'      => $invoiceGroup->map(function ($inv) {
-                    return [
-                        'invoice_number' => $inv->invoice_number,
-                        'invoice_date'   => $inv->invoice_date,
-                        'amount'         => $inv->final_amount,
-                    ];
-                })->values()
-            ];
-        })->values();
+        $pdfContent = Pdf::loadView('invoices.pdf', [
+            'invoice'          => $invoice,
+            'company_name'     => $company->company_name,
+            'company_logo'     => $companyLogo,
+            'company_address'  => $company->address ?? 'N/A',
+            'company_phone'    => $company->phone ?? 'N/A',
+            'company_gstin'    => $company->gstin ?? 'N/A',
+            'footer_note'      => 'Thank you for your business',
+            'show_signature'   => false,
+        ])->output();
+
+        $base64Pdf = base64_encode($pdfContent);
 
         return response()->json([
+<<<<<<< HEAD
             'status' => true,
             'data' => $grouped,
         ]);
@@ -737,5 +952,11 @@ class InvoicesController extends Controller
                 'error'   => $response->body()
             ], 500);
         }
+=======
+            'status'      => true,
+            'message'     => 'Invoice created successfully. PDF ready for sharing.',
+            'pdf_base64'  => 'data:application/pdf;base64,' . $base64Pdf,
+        ], 201);
+>>>>>>> main
     }
 }

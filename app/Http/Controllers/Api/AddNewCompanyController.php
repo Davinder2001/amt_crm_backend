@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Validator;
 use App\Models\Company;
 use App\Services\CompanySetupService;
 use App\Models\CompanyUser;
+use Illuminate\Support\Facades\Mail;
 use App\Services\CompanyIdService;
 use App\Models\Package;
 
@@ -181,6 +182,21 @@ class AddNewCompanyController extends Controller
         $user = Auth::user();
 
         CompanySetupService::setupDefaults($company, $user);
+
+        Mail::send('emails.company_registered', ['company' => $company, 'user' => $user], function ($message) use ($user) {
+            $message->to($user->email)
+                ->subject('Company Registration Successful - Verification Pending');
+        });
+
+        Mail::send('emails.payment_invoice', [
+            'company'         => $company,
+            'user'            => $user,
+            'transaction_id'  => $company->transaction_id,
+            'amount'          => $company->amount ?? 'N/A',
+        ], function ($message) use ($user) {
+            $message->to($user->email)
+                ->subject('Payment Received - Invoice Attached');
+        });
 
         return response()->json([
             'success' => true,

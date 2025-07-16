@@ -96,7 +96,7 @@ class ItemStockController extends Controller
                 'variant_regular_price'   => $variantData['variant_regular_price'],
                 'variant_sale_price'      => $variantData['variant_sale_price'],
                 'variant_units_in_peace'  => $variantData['variant_units_in_peace'] ?? null,
-                'variant_price_per_unit'  => $variantData['variant_price_per_unit'] ?? null, 
+                'variant_price_per_unit'  => $variantData['variant_price_per_unit'] ?? null,
                 'quntity'                 => $variantData['variant_stock'],
                 'stock'                   => $variantData['variant_stock'],
                 'images'                  => $variantData['images'] ?? [],
@@ -121,20 +121,20 @@ class ItemStockController extends Controller
     /**
      * Display the specified item batch.
      *
-    */
+     */
     public function show($id)
     {
         $batch = ItemBatch::with(['item', 'variants.attributeValues.attribute', 'unit', 'vendor'])->find($id);
 
         if (!$batch) {
             return response()->json([
-                'status' => false, 
+                'status' => false,
                 'message' => 'Batch not found.'
             ], 404);
         }
 
         return response()->json([
-            'status' => true, 
+            'status' => true,
             'batch' => new BatchResource($batch)
         ], 201);
     }
@@ -164,7 +164,7 @@ class ItemStockController extends Controller
             'variants.*.images'                         => 'sometimes|array',
             'variants.*.attributes'                     => 'sometimes|array',
             'variants.*.attributes.*.attribute_id'      => 'required_with:variants.*.attributes|integer',
-            'variants.*.attributes.*.attribute_value_id'=> 'required_with:variants.*.attributes|integer',
+            'variants.*.attributes.*.attribute_value_id' => 'required_with:variants.*.attributes|integer',
 
             'purchase_date'                             => 'sometimes|date',
             'date_of_manufacture'                       => 'sometimes|date',
@@ -179,7 +179,7 @@ class ItemStockController extends Controller
 
         if ($validator->fails()) {
             return response()->json([
-                'status' => false, 
+                'status' => false,
                 'errors' => $validator->errors()
             ], 422);
         }
@@ -270,6 +270,14 @@ class ItemStockController extends Controller
 
         if (!$batch) {
             return response()->json(['status' => false, 'message' => 'Batch not found.'], 404);
+        }
+
+        // Check if stock equals quantity
+        if ($batch->stock != $batch->quantity) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Cannot delete batch. Stock has been used.',
+            ], 403);
         }
 
         $batch->variants()->delete();

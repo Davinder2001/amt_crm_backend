@@ -12,8 +12,9 @@ use App\Services\SelectedCompanyService;
 
 class ExpenseController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+<<<<<<< HEAD
         $query = Expense::query();
 
         if (request()->filled('status')) {
@@ -23,7 +24,26 @@ class ExpenseController extends Controller
         return ExpenseResource::collection(
             $query->latest()->get()
         );
+=======
+        $perPage = $request->get('per_page', 10); 
+
+        $expenses = Expense::with(['items', 'invoices', 'users'])->latest()->paginate($perPage);
+
+        return response()->json([
+            'status' => true,
+            'expenses' => ExpenseResource::collection($expenses->items()),
+            'pagination' => [
+                'current_page'   => $expenses->currentPage(),
+                'per_page'       => $expenses->perPage(),
+                'total'          => $expenses->total(),
+                'last_page'      => $expenses->lastPage(),
+                'next_page_url'  => $expenses->nextPageUrl(),
+                'prev_page_url'  => $expenses->previousPageUrl(),
+            ]
+        ]);
+>>>>>>> main
     }
+
 
     public function store(Request $request)
     {

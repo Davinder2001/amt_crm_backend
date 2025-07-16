@@ -107,7 +107,7 @@ class InvoiceHelperService
             'company_logo'      => $company->company_logo ?? 'N/A',
             'issued_by'         => Auth::user()->name,
             'footer_note'       => 'Thank you for your business',
-            'show_signature'    => true,
+            'show_signature'    => false,
         ]);
 
         Mail::send([], [], function ($message) use ($email, $pdf) {

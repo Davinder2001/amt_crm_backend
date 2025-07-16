@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Mail;
 use App\Services\OtpService;
 use App\Models\User;
 
@@ -100,6 +101,13 @@ class AdminAndCompanyRegisterController extends Controller
         $user->assignRole('admin');
         Cache::forget("otp_{$data['request_id']}");
         $token = $user->createToken('auth_token')->plainTextToken;
+
+
+        Mail::send('emails.admin_registered', ['user' => $user], function ($message) use ($user) {
+            $message->to($user->email)
+                ->subject('Welcome to AMT CRM');
+        });
+
 
         return response()->json([
             'message' => 'Admin user registered and logged in successfully.',
