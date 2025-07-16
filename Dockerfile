@@ -37,8 +37,9 @@ RUN apk add --no-cache curl && \
     ln -sf /usr/local/bin/node /usr/bin/node && \
     ln -sf /usr/local/bin/npm /usr/bin/npm
 
-# Install frontend dependencies
-RUN npm install
+# Install frontend dependencies with npm cache clean and force
+RUN npm cache clean --force && \
+    npm install --no-optional --legacy-peer-deps
 
 # Build frontend assets
 RUN npm run build
