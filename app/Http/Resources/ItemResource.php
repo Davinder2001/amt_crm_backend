@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
 use App\Http\Resources\{
     BatchResource,
     TaxResource,
@@ -15,7 +16,6 @@ class ItemResource extends JsonResource
 {
     public function toArray($request)
     {
-
         $totalStock = $this->whenLoaded('batches', function () {
             return $this->batches->sum('stock');
         });
@@ -23,8 +23,8 @@ class ItemResource extends JsonResource
         return [
             'id'                 => $this->id,
             'name'               => $this->name,
-            'featured_image'     => $this->featured_image,
-            'images'             => $this->images,
+            'featured_image'     => $this->featured_image? Storage::url($this->featured_image): null,
+            'images'             => $this->images ? collect($this->images)->map(fn($img) => Storage::url($img))->toArray() : [],
             'availability_stock' => $totalStock,
 
             'brand'              => new ItemBrandResource($this->whenLoaded('brand')),

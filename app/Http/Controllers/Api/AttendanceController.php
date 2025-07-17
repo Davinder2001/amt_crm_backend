@@ -8,6 +8,7 @@ use App\Models\Attendance;
 use App\Models\Leave;
 use App\Models\LeaveApplication;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Storage;
 use App\Http\Resources\AttendanceResource;
 use App\Services\SelectedCompanyService;
 use App\Models\User;
@@ -25,7 +26,6 @@ class AttendanceController extends Controller
         $user = $request->user();
         $activeCompany = SelectedCompanyService::getSelectedCompanyOrFail();
 
-
         if (!$activeCompany) {
             return response()->json([
                 'message' => 'User is not associated with any company.'
@@ -39,28 +39,36 @@ class AttendanceController extends Controller
             'attendance_date' => $today,
         ]);
 
-        if ($attendance->exists && $attendance->status === 'leave' && $attendance->approval_status === 'rejected') {
-            $validator  = Validator::make($request->all(), [
+        // ✅ Helper function to upload image (returns relative path like attendance_images/filename.jpg)
+        $uploadImage = function ($file) {
+            $fileName = uniqid('attendance_', true) . '.' . $file->getClientOriginalExtension();
+            return $file->storeAs('attendance_images', $fileName, 'public');
+        };
+
+        // ✅ Validation logic (used in all cases)
+        $validateImage = function () use ($request) {
+            $validator = Validator::make($request->all(), [
                 'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             ]);
 
             if ($validator->fails()) {
-                return response()->json([
+                response()->json([
                     'message' => 'Validation errors.',
                     'errors'  => $validator->errors(),
-                ], 422);
+                ], 422)->send();
+                exit; // stop further execution after sending response
             }
+        };
 
-            $image = $request->file('image');
-            $imageName = uniqid('attendance_', true) . '.' . $image->getClientOriginalExtension();
-            $image->move(public_path('images/attendance_images'), $imageName);
+        $currentTime = Carbon::now('Asia/Kolkata')->format('h:i A');
 
-            $clockInImagePath = 'images/attendance_images/' . $imageName;
-            $time = Carbon::now('Asia/Kolkata')->format('h:i A');
+        // ✅ Override rejected leave
+        if ($attendance->exists && $attendance->status === 'leave' && $attendance->approval_status === 'rejected') {
+            $validateImage();
 
             $attendance->company_id       = $activeCompany->company_id;
-            $attendance->clock_in         = $time;
-            $attendance->clock_in_image   = $clockInImagePath;
+            $attendance->clock_in         = $currentTime;
+            $attendance->clock_in_image   = $uploadImage($request->file('image'));
             $attendance->status           = 'present';
             $attendance->approval_status  = 'pending';
             $attendance->save();
@@ -71,28 +79,13 @@ class AttendanceController extends Controller
             ]);
         }
 
+        // ✅ New clock-in
         if (!$attendance->exists) {
-            $validator = Validator::make($request->all(), [
-                'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'message' => 'Validation errors.',
-                    'errors'  => $validator->errors(),
-                ], 422);
-            }
-
-            $image = $request->file('image');
-            $imageName = uniqid('attendance_', true) . '.' . $image->getClientOriginalExtension();
-            $image->move(public_path('images/attendance_images'), $imageName);
-
-            $clockInImagePath = 'images/attendance_images/' . $imageName;
-            $time = Carbon::now('Asia/Kolkata')->format('h:i A');
+            $validateImage();
 
             $attendance->company_id       = $activeCompany->company_id;
-            $attendance->clock_in         = $time;
-            $attendance->clock_in_image   = $clockInImagePath;
+            $attendance->clock_in         = $currentTime;
+            $attendance->clock_in_image   = $uploadImage($request->file('image'));
             $attendance->status           = 'present';
             $attendance->approval_status  = 'pending';
             $attendance->save();
@@ -103,25 +96,12 @@ class AttendanceController extends Controller
             ]);
         }
 
+        // ✅ Clock-out
         if ($attendance->clock_in && !$attendance->clock_out) {
-            $validator  = Validator::make($request->all(), [
-                'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-            ]);
+            $validateImage();
 
-            if ($validator->fails()) {
-                return response()->json([
-                    'message' => 'Validation errors.',
-                    'errors'  => $validator->errors(),
-                ], 422);
-            }
-
-            $image = $request->file('image');
-            $imageName = uniqid('attendance_', true) . '.' . $image->getClientOriginalExtension();
-            $image->move(public_path('images/attendance_images'), $imageName);
-            $clockOutImagePath = 'images/attendance_images/' . $imageName;
-            $time = Carbon::now('Asia/Kolkata')->format('h:i A');
-            $attendance->clock_out = $time;
-            $attendance->clock_out_image = $clockOutImagePath;
+            $attendance->clock_out       = $currentTime;
+            $attendance->clock_out_image = $uploadImage($request->file('image'));
             $attendance->save();
 
             return response()->json([
