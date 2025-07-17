@@ -1,2 +1,0 @@
-# pg-sdk-php
-
