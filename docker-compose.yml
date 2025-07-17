@@ -1,8 +1,6 @@
-version: '3.8'
-
 services:
   app:
-    build: .
+    build: ./amt_crm_backend
     container_name: amt_crm_app
     restart: unless-stopped
     volumes:
@@ -16,7 +14,7 @@ services:
       - SESSION_DRIVER=file
       - QUEUE_CONNECTION=sync
     env_file:
-      - .env
+      - ./amt_crm_backend/.env
     depends_on:
       db:
         condition: service_healthy
@@ -36,14 +34,14 @@ services:
     container_name: amt_crm_db
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${DB_DATABASE}
-      MYSQL_USER: ${DB_USERNAME}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: amt_crm_user_password_2024
+      MYSQL_DATABASE: amt_crm_backend
+      MYSQL_USER: amt_crm_user
+      MYSQL_PASSWORD: amt_crm_user_password_2024
       MYSQL_INITDB_SKIP_TZINFO: 1
     volumes:
       - db_data:/var/lib/mysql
-      - ./docker/mysql/init:/docker-entrypoint-initdb.d
+      - ./amt_crm_db/init:/docker-entrypoint-initdb.d
     networks:
       - amt_crm_shared_network
     healthcheck:
@@ -56,14 +54,14 @@ services:
 
   nginx:
     build:
-      context: .
+      context: ./amt_crm_backend
       dockerfile: Dockerfile.nginx
     container_name: amt_crm_nginx
     restart: unless-stopped
     ports:
       - "80:80"
     volumes:
-      - ./nginx/nginx.combined.conf:/etc/nginx/nginx.conf:ro
+      - ./amt_crm_nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - nginx_logs:/var/log/nginx
       - app_storage:/var/www/storage:ro
     networks:
