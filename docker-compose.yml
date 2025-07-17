@@ -21,7 +21,7 @@ services:
     networks:
       - amt_crm_shared_network
     healthcheck:
-      test: ["CMD", "ps", "aux", "|", "grep", "php-fpm", "|", "grep", "-v", "grep"]
+      test: ["CMD", "pgrep", "php-fpm"]
       interval: 30s
       timeout: 10s
       retries: 3
